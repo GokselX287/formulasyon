@@ -31,9 +31,20 @@ function parseRow(r: DbRow) {
   };
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const suggest = searchParams.get('suggest') === '1';
   const db = getDb();
-  const rows = db.prepare(`SELECT * FROM interventions ORDER BY use_count DESC, id ASC`).all() as DbRow[];
+
+  // suggest=1 → top-5 by use_count + favorite (toolkit for briefing)
+  const rows = suggest
+    ? db.prepare(`
+        SELECT * FROM interventions
+        ORDER BY (favorite * 10 + use_count) DESC, id ASC
+        LIMIT 5
+      `).all() as DbRow[]
+    : db.prepare(`SELECT * FROM interventions ORDER BY use_count DESC, id ASC`).all() as DbRow[];
+
   return Response.json(rows.map(parseRow));
 }
 

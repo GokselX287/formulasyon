@@ -9,18 +9,19 @@ import {
   Sparkles, Home, BookOpen, Layers, MonitorOff, Zap, Target, GraduationCap, Heart,
 } from "lucide-react";
 import dynamic from "next/dynamic";
+import "@/components/GunlukOzet.css";
 import WeekCalendar from "@/components/WeekCalendar";
 import HomePanel from "@/components/HomePanel";
 import "@/components/HomePanel.css";
-import DanisanlarPanelNew from "@/components/DanisanlarPanel";
 import type { Client as DanisanClient } from "@/components/DanisanlarPanel";
 import "@/components/DanisanlarPanel.css";
 import FormulasyonPanelNew, { type FormulationViewMode, type FormulationVizMode, type FourP, type BeckChain, type Hexaflex, type SelectedNode } from "@/components/FormulasyonPanel";
 import "@/components/FormulasyonPanel.css";
 import ActHubPanelNew from "@/components/ActHubPanel";
 import "@/components/ActHubPanel.css";
-import TakvimPanel, { type TakvimSubTab } from "@/components/TakvimPanel";
-import "@/components/TakvimPanel.css";
+import TasarimDosyalariV2 from "@/components/TasarimDosyalariV2";
+import { type TakvimSubTab } from "@/components/TakvimPanel";
+import TakvimRandevular from "@/components/TakvimRandevular";
 import { AnamnezForm } from "@/components/AnamnezForm";
 import { SeansNotuForm } from "@/components/SeansNotuForm";
 import { SeansCard } from "@/components/SeansCard";
@@ -32,10 +33,18 @@ import {
   Cell, LabelList,
 } from "recharts";
 import OnamMetinleri from "@/components/OnamMetinleri";
-import TasarimArsivi from "@/components/TasarimArsivi";
 import VakaHaritasi, { DEMO_CASE } from "@/components/VakaHaritasi";
 import RandevuPanel from "@/components/RandevuPanel";
-import TerapistProfil from "@/components/TerapistProfil";
+import TerapistProfilV2 from "@/components/TerapistProfilV2";
+import CalismaAlaniV2 from "@/components/CalismaAlaniV2";
+import DanisanlarV2 from "@/components/DanisanlarV2";
+import MudahaleV2 from "@/components/MudahaleV2";
+import YolHaritasiV2 from "@/components/YolHaritasiV2";
+import FormulasyonV2 from "@/components/FormulasyonV2";
+import ACTGelistirmeV2 from "@/components/ACTGelistirmeV2";
+import HomeDashboardPanel from "@/components/HomeDashboardPanel";
+import "@/components/HomeDashboardPanel.css";
+import AnaSayfa from "@/components/AnaSayfa";
 import BriefModal from "@/components/BriefModal";
 import MudahalePanel, { type Intervention } from "@/components/MudahalePanel";
 import "@/components/MudahalePanel.css";
@@ -47,6 +56,8 @@ import BeklemeEkrani from "@/components/BeklemeEkrani";
 import ActFormulasyon from "@/components/ActFormulasyon";
 import PratikYap from "@/components/PratikYap";
 import DegerKartlari from "@/components/DegerKartlari";
+import BenlikAlgisiPanel, { type BenlikAlgisiData } from "@/components/BenlikAlgisiPanel";
+import "@/components/BenlikAlgisiPanel.css";
 import CocukDegerlendirme from "@/components/CocukDegerlendirme";
 import CocukBdtForm from "@/components/CocukBdtForm";
 import OyunTerapisi from "@/components/OyunTerapisi";
@@ -69,6 +80,10 @@ type Patient = {
   id: string; adSoyad: string; yas?: string; cinsiyet?: string;
   telefon?: string; email?: string; basvuruTarihi?: string;
   sunumSorunu?: string; hedefler?: string; status: "intake" | "active" | "archived";
+  exitReason?: "completed" | "dropout" | "financial";
+  seansUcreti?: number;
+  takipSikligi?: 'haftalik' | 'iki_haftalik' | 'aylik';
+  kisilikTipi?: string;
   patientType?: 'cocuk' | 'yetiskin';
   il?: string; ilce?: string;
   onamImzalandi?: boolean;
@@ -111,10 +126,13 @@ type Settings_ = {
   smsWebhookUrl: string;
   smsAutoAppointmentReminder: boolean;
   smsAutoWorkshopSignup: boolean;
+  smsDayOfReminder: boolean;
+  noShowTracking: boolean;
   gmailUser: string;
   gmailAppPassword: string;
   gmailImapHost: string;
   gmailImapPort: number;
+  todayIntent?: string;
 };
 
 type State = {
@@ -150,10 +168,13 @@ const defaultSettings: Settings_ = {
   smsWebhookUrl: '',
   smsAutoAppointmentReminder: true,
   smsAutoWorkshopSignup: true,
+  smsDayOfReminder: true,
+  noShowTracking: true,
   gmailUser: '',
   gmailAppPassword: '',
   gmailImapHost: 'imap.gmail.com',
   gmailImapPort: 993,
+  todayIntent: '',
 };
 
 const defaultState: State = {
@@ -734,6 +755,422 @@ function IntakeInbox({ state, dispatch, onOpenFormulation, onOpenSeanslar }: { s
 }
 
 // ============================================================
+// NewClientModal — erişilebilir "Yeni danışan" kaydı
+// IntakeInbox'taki kayıt mantığının bağımsız, yeniden kullanılabilir hâli.
+// V2 ekranlarından (DanisanlarV2 / CalismaAlaniV2) onNewClient ile açılır.
+// ============================================================
+function NewClientModal({ open, onClose, dispatch, onCreated }: {
+  open: boolean;
+  onClose: () => void;
+  dispatch: React.Dispatch<Action>;
+  onCreated: (id: string) => void;
+}) {
+  const [draft, setDraft] = useState<Partial<Patient>>({ patientType: 'yetiskin' });
+  const [formAyar, setFormAyar] = useState({ onForm: false, haftalikOlcek: false, olcekId: '' });
+  const [saving, setSaving] = useState(false);
+
+  const reset = () => {
+    setDraft({ patientType: 'yetiskin' });
+    setFormAyar({ onForm: false, haftalikOlcek: false, olcekId: '' });
+  };
+
+  const add = async () => {
+    if (!draft.adSoyad?.trim() || saving) return;
+    setSaving(true);
+    const pType = draft.patientType ?? 'yetiskin';
+    const np: Patient = {
+      id: uid(), adSoyad: draft.adSoyad, yas: draft.yas, cinsiyet: draft.cinsiyet,
+      telefon: draft.telefon, email: draft.email, basvuruTarihi: new Date().toISOString(),
+      sunumSorunu: draft.sunumSorunu, hedefler: draft.hedefler,
+      il: draft.il, ilce: draft.ilce, seansUcreti: draft.seansUcreti,
+      takipSikligi: draft.takipSikligi, kisilikTipi: draft.kisilikTipi,
+      status: "active", patientType: pType, createdAt: new Date().toISOString(),
+    };
+    dispatch({ type: "PATIENT_ADD", p: np });
+    let finalId = np.id;
+    try {
+      const res = await fetch('/api/clients', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(np) });
+      const created = await res.json();
+      if (created.id && created.id !== np.id) {
+        dispatch({ type: "PATIENT_UPDATE", id: np.id, patch: { id: created.id } });
+        finalId = created.id;
+      }
+
+      if (formAyar.onForm || formAyar.haftalikOlcek) {
+        await fetch('/api/danisan-ayarlar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            clientId: finalId,
+            onFormAktif: formAyar.onForm,
+            haftalikOlcekAktif: formAyar.haftalikOlcek,
+            haftalikOlcekId: formAyar.haftalikOlcek ? formAyar.olcekId : null,
+          }),
+        });
+        if (formAyar.onForm) {
+          await fetch('/api/form-link', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ clientId: finalId, clientName: np.adSoyad, formTipi: 'on_form' }),
+          });
+        }
+        if (formAyar.haftalikOlcek && formAyar.olcekId) {
+          const olcek = OLCEKLER.find(o => o.id === formAyar.olcekId);
+          await fetch('/api/form-link', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ clientId: finalId, clientName: np.adSoyad, formTipi: 'olcek', olcekId: formAyar.olcekId, olcekAd: olcek?.ad }),
+          });
+        }
+      }
+    } catch { /* yerel state zaten eklendi; sessiz geç */ }
+    setSaving(false);
+    reset();
+    onClose();
+    onCreated(finalId);
+  };
+
+  return (
+    <Modal open={open} onClose={() => { reset(); onClose(); }} title="Yeni Danışan Kaydı" wide>
+      {/* Type selector */}
+      <div className="flex gap-2 mb-4 p-1 bg-gray-100 rounded-xl w-fit">
+        {([
+          { k: 'yetiskin', l: 'Ergen / Yetişkin' },
+          { k: 'cocuk',    l: '🧒 Çocuk' },
+        ] as const).map(t => (
+          <button
+            key={t.k}
+            onClick={() => setDraft(d => ({ ...d, patientType: t.k }))}
+            className={`text-xs px-4 py-1.5 rounded-lg font-medium transition-colors ${
+              (draft.patientType ?? 'yetiskin') === t.k ? 'bg-white text-[#0E0F12] shadow-sm' : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >{t.l}</button>
+        ))}
+      </div>
+
+      {(draft.patientType ?? 'yetiskin') === 'cocuk' && (
+        <div className="mb-3 rounded-xl bg-amber-50 border border-amber-100 px-3 py-2 text-xs text-amber-700">
+          Kaydedildiğinde çocuk değerlendirme formu otomatik açılır.
+        </div>
+      )}
+
+      <div className="grid sm:grid-cols-2 gap-3">
+        <div><Label>Ad Soyad *</Label><Input value={draft.adSoyad ?? ""} onChange={e => setDraft({ ...draft, adSoyad: e.target.value })} /></div>
+        <div><Label>Yaş</Label><Input value={draft.yas ?? ""} onChange={e => setDraft({ ...draft, yas: e.target.value })} /></div>
+        <div><Label>Cinsiyet</Label><Input value={draft.cinsiyet ?? ""} onChange={e => setDraft({ ...draft, cinsiyet: e.target.value })} /></div>
+        <div><Label>Telefon</Label><Input value={draft.telefon ?? ""} onChange={e => setDraft({ ...draft, telefon: e.target.value })} /></div>
+        <div className="sm:col-span-2"><Label>Email</Label><Input value={draft.email ?? ""} onChange={e => setDraft({ ...draft, email: e.target.value })} /></div>
+        <div><Label>İl</Label><Input value={draft.il ?? ""} onChange={e => setDraft({ ...draft, il: e.target.value })} placeholder="İstanbul" /></div>
+        <div><Label>İlçe</Label><Input value={draft.ilce ?? ""} onChange={e => setDraft({ ...draft, ilce: e.target.value })} placeholder="Kadıköy" /></div>
+        <div><Label>Seans Ücreti (₺)</Label><Input type="number" inputMode="numeric" value={draft.seansUcreti != null ? String(draft.seansUcreti) : ""} onChange={e => setDraft({ ...draft, seansUcreti: e.target.value === "" ? undefined : Number(e.target.value) })} placeholder="örn. 1500" /></div>
+        <div><Label>Takip Sıklığı</Label>
+          <select className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm bg-white" value={draft.takipSikligi ?? ""} onChange={e => setDraft({ ...draft, takipSikligi: (e.target.value || undefined) as any })}>
+            <option value="">— seçiniz —</option>
+            <option value="haftalik">Haftalık</option>
+            <option value="iki_haftalik">2 haftalık</option>
+            <option value="aylik">Aylık</option>
+          </select>
+        </div>
+        <div><Label>Kişilik Tipi</Label><Input value={draft.kisilikTipi ?? ""} onChange={e => setDraft({ ...draft, kisilikTipi: e.target.value || undefined })} placeholder="örn. Kaçıngan / 4w5 / INFP" /></div>
+        <div className="sm:col-span-2"><Label>Sunum Sorunu / Başvuru Nedeni</Label><Textarea value={draft.sunumSorunu ?? ""} onChange={e => setDraft({ ...draft, sunumSorunu: e.target.value })} /></div>
+        {(draft.patientType ?? 'yetiskin') === 'yetiskin' && (
+          <div className="sm:col-span-2"><Label>Hedefler</Label><Textarea value={draft.hedefler ?? ""} onChange={e => setDraft({ ...draft, hedefler: e.target.value })} /></div>
+        )}
+      </div>
+
+      {/* Seans Öncesi Form & Haftalık Ölçek */}
+      <div className="mt-4 rounded-xl border border-gray-200 p-4 space-y-3">
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Seans Öncesi Ayarlar</p>
+        <label className="flex items-center gap-3 cursor-pointer">
+          <div
+            onClick={() => setFormAyar(a => ({ ...a, onForm: !a.onForm }))}
+            className={`w-10 h-5 rounded-full transition-colors flex items-center px-0.5 ${formAyar.onForm ? 'bg-[#6366f1]' : 'bg-gray-200'}`}
+          >
+            <div className={`w-4 h-4 rounded-full bg-white shadow transition-transform ${formAyar.onForm ? 'translate-x-5' : 'translate-x-0'}`} />
+          </div>
+          <span className="text-sm text-gray-700">Seans öncesi form linki oluştur</span>
+        </label>
+        <label className="flex items-center gap-3 cursor-pointer">
+          <div
+            onClick={() => setFormAyar(a => ({ ...a, haftalikOlcek: !a.haftalikOlcek }))}
+            className={`w-10 h-5 rounded-full transition-colors flex items-center px-0.5 ${formAyar.haftalikOlcek ? 'bg-[#6366f1]' : 'bg-gray-200'}`}
+          >
+            <div className={`w-4 h-4 rounded-full bg-white shadow transition-transform ${formAyar.haftalikOlcek ? 'translate-x-5' : 'translate-x-0'}`} />
+          </div>
+          <span className="text-sm text-gray-700">Haftalık ölçek uygula</span>
+        </label>
+        {formAyar.haftalikOlcek && (
+          <div>
+            <Label>Ölçek Seç</Label>
+            <select
+              value={formAyar.olcekId}
+              onChange={e => setFormAyar(a => ({ ...a, olcekId: e.target.value }))}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30"
+            >
+              <option value="">— Seçiniz —</option>
+              {OLCEKLER.filter(o => o.id !== 'custom').map(o => (
+                <option key={o.id} value={o.id}>{o.tam}</option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
+
+      <div className="flex justify-end gap-2 mt-4">
+        <Btn variant="outline" size="sm" onClick={() => { reset(); onClose(); }}>Vazgeç</Btn>
+        <Btn size="sm" onClick={add} disabled={saving || !draft.adSoyad?.trim()}>{saving ? 'Kaydediliyor…' : 'Kaydet'}</Btn>
+      </div>
+    </Modal>
+  );
+}
+
+// ============================================================
+// ProfileEditModal — Terapist Profil "Profili düzenle"
+// Gerçek kalıcı alanlar: terapist adı (/api/settings) + portre foto (localStorage).
+// Statik profil içeriği Claude Design'da ayrıca düzenlenecek.
+// ============================================================
+function ProfileEditModal({ open, onClose, currentName, onSaved }: {
+  open: boolean;
+  onClose: () => void;
+  currentName: string;
+  onSaved: (name: string) => void;
+}) {
+  const [name, setName] = useState(currentName);
+  const [photo, setPhoto] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    setName(currentName);
+    try { setPhoto(localStorage.getItem('tp-profile-photo')); } catch { setPhoto(null); }
+  }, [open, currentName]);
+
+  const pickPhoto = (file: File | undefined) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setPhoto(typeof reader.result === 'string' ? reader.result : null);
+    reader.readAsDataURL(file);
+  };
+
+  const save = async () => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      try {
+        if (photo) localStorage.setItem('tp-profile-photo', photo);
+        else localStorage.removeItem('tp-profile-photo');
+      } catch {}
+      await fetch('/api/settings', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ therapistName: name.trim() || 'Terapist' }),
+      });
+    } catch {}
+    setSaving(false);
+    onSaved(name.trim() || 'Terapist');
+    onClose();
+  };
+
+  return (
+    <Modal open={open} onClose={onClose} title="Profili Düzenle">
+      <div className="space-y-4">
+        <div className="flex items-center gap-4">
+          <div className="w-20 h-20 rounded-2xl bg-[#07090f] text-white flex items-center justify-center overflow-hidden shrink-0">
+            {photo
+              ? <img alt="Portre" src={photo} className="w-full h-full object-cover" />
+              : <span className="font-mono text-lg">{(name || 'GA').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()}</span>}
+          </div>
+          <div className="flex flex-col gap-2">
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={e => pickPhoto(e.target.files?.[0])} />
+            <Btn size="sm" variant="outline" onClick={() => fileRef.current?.click()}>Fotoğraf yükle</Btn>
+            {photo && <Btn size="sm" variant="ghost" onClick={() => setPhoto(null)}>Fotoğrafı kaldır</Btn>}
+          </div>
+        </div>
+        <div>
+          <Label>Ad Soyad</Label>
+          <Input value={name} onChange={e => setName(e.target.value)} placeholder="Göksel Akkaya" />
+          <p className="mt-1 text-xs text-gray-400">Ana sayfa, çalışma alanı ve selamlamalarda kullanılır.</p>
+        </div>
+      </div>
+      <div className="flex justify-end gap-2 mt-5">
+        <Btn variant="outline" size="sm" onClick={onClose}>Vazgeç</Btn>
+        <Btn size="sm" onClick={save} disabled={saving}>{saving ? 'Kaydediliyor…' : 'Kaydet'}</Btn>
+      </div>
+    </Modal>
+  );
+}
+
+// ============================================================
+// ConsentShareModal — Terapist Profil "Onam formunu paylaş"
+// Danışan seç → 'onam' tipi form-link üret → paylaşılabilir bağlantıyı kopyala.
+// Danışan, /form/[token] üzerinden onam metnini okuyup onaylar.
+// ============================================================
+function ShareLinkModal({ open, onClose, patients, formTipi = 'onam', payload, modalTitle = 'Paylaş', ctaLabel = 'Link üret', successNoun = 'bağlantı', note }: {
+  open: boolean;
+  onClose: () => void;
+  patients: Patient[];
+  formTipi?: string;
+  payload?: unknown;
+  modalTitle?: string;
+  ctaLabel?: string;
+  successNoun?: string;
+  note?: string;
+}) {
+  const [q, setQ] = useState('');
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [link, setLink] = useState<{ name: string; url: string } | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (!open) { setQ(''); setLink(null); setCopied(false); setBusyId(null); }
+  }, [open]);
+
+  const candidates = patients
+    .filter(p => p.status !== 'archived' && (p.adSoyad ?? '').trim())
+    .filter(p => !q.trim() || (p.adSoyad ?? '').toLocaleLowerCase('tr-TR').includes(q.toLocaleLowerCase('tr-TR')))
+    .slice(0, 40);
+
+  const generate = async (p: Patient) => {
+    if (busyId) return;
+    setBusyId(p.id);
+    setCopied(false);
+    try {
+      const res = await fetch('/api/form-link', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId: p.id, clientName: p.adSoyad, formTipi, payload }),
+      });
+      const row = await res.json();
+      if (row?.token) {
+        const url = `${window.location.origin}/form/${row.token}`;
+        setLink({ name: p.adSoyad ?? '—', url });
+        try { await navigator.clipboard.writeText(url); setCopied(true); } catch {}
+      }
+    } catch {}
+    setBusyId(null);
+  };
+
+  const copyAgain = async () => {
+    if (!link) return;
+    try { await navigator.clipboard.writeText(link.url); setCopied(true); } catch {}
+  };
+
+  return (
+    <Modal open={open} onClose={onClose} title={modalTitle}>
+      {link ? (
+        <div className="space-y-3">
+          <div className="rounded-xl bg-emerald-50 border border-emerald-100 px-3 py-2 text-sm text-emerald-700">
+            <b>{link.name}</b> için {successNoun} oluşturuldu{copied ? ' ve panoya kopyalandı' : ''}.
+          </div>
+          <div className="flex items-center gap-2">
+            <Input value={link.url} readOnly onFocus={e => e.currentTarget.select()} />
+            <Btn size="sm" onClick={copyAgain}>{copied ? 'Kopyalandı' : 'Kopyala'}</Btn>
+          </div>
+          {note && <p className="text-xs text-gray-400">{note}</p>}
+          <div className="flex justify-end gap-2 pt-1">
+            <Btn variant="outline" size="sm" onClick={() => { setLink(null); setCopied(false); }}>Başka danışan</Btn>
+            <Btn size="sm" onClick={onClose}>Kapat</Btn>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <Input value={q} onChange={e => setQ(e.target.value)} placeholder="Danışan ara…" autoFocus />
+          <div className="max-h-72 overflow-y-auto space-y-1.5">
+            {candidates.map(p => (
+              <button
+                key={p.id}
+                onClick={() => generate(p)}
+                disabled={!!busyId}
+                className="w-full flex items-center justify-between rounded-xl border border-gray-100 px-3 py-2 text-left hover:bg-gray-50 transition disabled:opacity-50"
+              >
+                <div>
+                  <div className="text-sm font-medium text-[#0E0F12]">{p.adSoyad}</div>
+                  <div className="text-[11px] text-gray-500">{p.telefon ?? p.email ?? '—'}</div>
+                </div>
+                <span className="text-xs text-[#6366f1] font-medium">{busyId === p.id ? 'Oluşturuluyor…' : ctaLabel}</span>
+              </button>
+            ))}
+            {candidates.length === 0 && (
+              <p className="text-sm text-gray-500 py-3 text-center">Eşleşen danışan yok.</p>
+            )}
+          </div>
+        </div>
+      )}
+    </Modal>
+  );
+}
+
+// ============================================================
+// MuhasebePanel — "Muhasebe İçerikleri": Drive bağla + fatura yükle (stub)
+// TODO: Gerçek Google Drive OAuth + Drive API yükleme entegrasyonu.
+// ============================================================
+function MuhasebePanel({ onBack }: { onBack: () => void }) {
+  const [connected, setConnected] = useState(false);
+  const [files, setFiles] = useState<{ name: string; size: string }[]>([]);
+  const [toast, setToast] = useState('');
+  const fileRef = useRef<HTMLInputElement>(null);
+  const flash = (m: string) => { setToast(m); setTimeout(() => setToast(''), 2600); };
+  const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const fs = Array.from(e.target.files ?? []);
+    if (!fs.length) return;
+    if (!connected) { flash('Önce Google Drive’a bağlanın.'); return; }
+    // TODO: gerçek Drive yükleme — şimdilik yalnızca listeye eklenir (stub).
+    setFiles((prev) => [...fs.map((f) => ({ name: f.name, size: `${Math.max(1, Math.round(f.size / 1024))} KB` })), ...prev]);
+    flash(`${fs.length} dosya Drive’a yüklendi (demo).`);
+    if (fileRef.current) fileRef.current.value = '';
+  };
+  return (
+    <div className="min-h-screen w-full bg-[#EFEDE9] px-6 py-8 sm:px-10">
+      <div className="mx-auto max-w-3xl">
+        <button onClick={onBack} className="mb-6 inline-flex items-center gap-2 rounded-full bg-[#F1EFEA] border border-black/5 px-4 py-2 text-sm text-[#57554F] hover:text-[#2A2926] shadow-sm">‹ Çalışma Alanı</button>
+        <div className="font-mono text-[10.5px] font-bold tracking-[.18em] uppercase text-[#8C8A84]">çalışma alanı · muhasebe</div>
+        <h1 className="mt-2 text-[32px] font-medium tracking-tight text-[#2A2926]">Muhasebe <span className="italic text-[#A6A6A1]">içerikleri</span></h1>
+        <p className="mt-2 text-[14px] leading-relaxed text-[#57554F] max-w-[58ch]">Faturalarını ve mali belgelerini kendi Google Drive’ında sakla. Önce Drive’a bağlan, sonra dosyaları doğrudan yükle.</p>
+
+        {/* Drive bağlantısı */}
+        <div className="mt-7 rounded-3xl border border-white/50 bg-[#F1EFEA] p-6 shadow-[-7px_-7px_18px_rgba(255,255,255,.72),11px_14px_30px_-10px_rgba(45,42,36,.2)]">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <div className="text-[15px] font-semibold text-[#2A2926]">Google Drive</div>
+              <div className="text-[12.5px] text-[#8C8A84] mt-1">{connected ? 'Bağlı · faturalar Drive’ına yüklenir' : 'Bağlı değil'}</div>
+            </div>
+            <button onClick={() => { setConnected((c) => !c); flash(connected ? 'Drive bağlantısı kesildi.' : 'Drive’a bağlanıldı (demo).'); }}
+              className={`rounded-full px-5 py-2.5 text-sm font-semibold transition ${connected ? 'bg-[#E7E4DE] text-[#57554F] border border-black/10' : 'bg-[#2A2926] text-[#F2F1ED]'}`}>
+              {connected ? 'Bağlantıyı kes' : 'Drive’a bağlan'}
+            </button>
+          </div>
+          <p className="mt-3 text-[11px] text-[#B6B4AD]">Not: Gerçek OAuth/Drive API bağlantısı sonra eklenecek (TODO). Şu an demo akış.</p>
+        </div>
+
+        {/* Yükleme */}
+        <div className="mt-5 rounded-3xl border border-white/50 bg-[#F1EFEA] p-6 shadow-[-7px_-7px_18px_rgba(255,255,255,.72),11px_14px_30px_-10px_rgba(45,42,36,.2)]">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <div className="text-[15px] font-semibold text-[#2A2926]">Fatura / belge yükle</div>
+              <div className="text-[12.5px] text-[#8C8A84] mt-1">PDF, görsel veya tablo — doğrudan Drive’a.</div>
+            </div>
+            <input ref={fileRef} type="file" multiple className="hidden" onChange={onPick} />
+            <button onClick={() => fileRef.current?.click()} disabled={!connected}
+              className="rounded-full px-5 py-2.5 text-sm font-semibold bg-[#2A2926] text-[#F2F1ED] disabled:opacity-40 disabled:cursor-not-allowed">
+              Dosya yükle
+            </button>
+          </div>
+          {files.length > 0 && (
+            <div className="mt-4 divide-y divide-black/5">
+              {files.map((f, i) => (
+                <div key={i} className="flex items-center justify-between py-2.5">
+                  <span className="text-sm text-[#2A2926] truncate">{f.name}</span>
+                  <span className="font-mono text-[11px] text-[#8C8A84] flex-none ml-3">{f.size} · yüklendi ✓</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {files.length === 0 && <p className="mt-4 text-[13px] text-[#8C8A84] italic">Henüz dosya yok.</p>}
+        </div>
+      </div>
+      {toast && <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[70] rounded-full bg-[#131311] px-5 py-2.5 text-sm text-white shadow-lg">{toast}</div>}
+    </div>
+  );
+}
+
+// ============================================================
 // InlineToolBox — collapsible card wrapper for embedded tools
 // ============================================================
 function InlineToolBox({ icon, title, subtitle, children }: {
@@ -772,8 +1209,9 @@ function FormulationPanelLegacy({ state, dispatch, patientId, setPatientId }: { 
   const existing = state.formulations.find(f => f.patientId === patientId);
   const [f, setF] = useState<Formulation>(existing ?? { id: uid(), patientId: patientId ?? "", updatedAt: new Date().toISOString() });
   const [saving, setSaving] = useState(false);
+  const [archMenu, setArchMenu] = useState(false);
   const isCocuk = patient?.patientType === 'cocuk';
-  const [innerTab, setInnerTab] = useState<'formulasyon' | 'ekler' | 'protokol' | 'dongu' | 'sablonlar' | 'model' | 'act' | 'pratik' | 'deger' | 'cocuk-form' | 'cocuk-bdt' | 'oyun-terapisi' | 'mindmap' | 'mindmap1'>(
+  const [innerTab, setInnerTab] = useState<'formulasyon' | 'ekler' | 'protokol' | 'dongu' | 'sablonlar' | 'model' | 'act' | 'pratik' | 'deger' | 'benlik' | 'cocuk-form' | 'cocuk-bdt' | 'oyun-terapisi' | 'mindmap' | 'mindmap1'>(
     isCocuk ? 'cocuk-form' : 'formulasyon'
   );
 
@@ -831,9 +1269,10 @@ function FormulationPanelLegacy({ state, dispatch, patientId, setPatientId }: { 
     </div>
   );
 
-  const archivePatient = async () => {
-    dispatch({ type: "PATIENT_UPDATE", id: patient.id, patch: { status: "archived" } });
-    await fetch(`/api/clients/${patient.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'archived' }) });
+  const archivePatient = async (exitReason: "completed" | "dropout" | "financial") => {
+    setArchMenu(false);
+    dispatch({ type: "PATIENT_UPDATE", id: patient.id, patch: { status: "archived", exitReason } });
+    await fetch(`/api/clients/${patient.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'archived', exitReason }) });
   };
 
   return (
@@ -890,6 +1329,7 @@ function FormulationPanelLegacy({ state, dispatch, patientId, setPatientId }: { 
               { k: 'act',         l: 'ACT Formülasyon'     },
               { k: 'pratik',      l: 'Pratik Yap'          },
               { k: 'deger',       l: 'Değer Kartları'      },
+              { k: 'benlik',      l: '🪞 Benlik & Algı'     },
             ] as const).map(t => (
               <button key={t.k} onClick={() => setInnerTab(t.k)}
                 className={`flex-shrink-0 text-xs px-3 py-1.5 rounded-xl font-medium transition-colors ${
@@ -951,6 +1391,26 @@ function FormulationPanelLegacy({ state, dispatch, patientId, setPatientId }: { 
       {innerTab === 'act' && <ActFormulasyon patientName={patient.adSoyad} patientAge={patient.yas} />}
       {innerTab === 'pratik' && <PratikYap />}
       {innerTab === 'deger' && <DegerKartlari />}
+      {innerTab === 'benlik' && (
+        <BenlikAlgisiPanel
+          patientName={patient.adSoyad}
+          initialData={(() => {
+            try {
+              const raw = (f as any).benlikAlgisiJson;
+              return raw ? JSON.parse(raw) : undefined;
+            } catch { return undefined; }
+          })()}
+          onSave={async (data: BenlikAlgisiData) => {
+            const updated = { ...f, benlikAlgisiJson: JSON.stringify(data), updatedAt: new Date().toISOString() };
+            dispatch({ type: 'FORM_UPSERT', f: updated as any });
+            await fetch(`/api/formulations/${f.id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ benlikAlgisiJson: JSON.stringify(data) }),
+            });
+          }}
+        />
+      )}
 
       {/* ── Ana Formülasyon ── */}
       {innerTab === 'formulasyon' && <>
@@ -1015,9 +1475,19 @@ function FormulationPanelLegacy({ state, dispatch, patientId, setPatientId }: { 
       </InlineToolBox>
 
       <div className="flex justify-between">
-        <Btn variant="outline" size="sm" onClick={archivePatient}>
-          <Archive className="h-3.5 w-3.5" /> Arşivle
-        </Btn>
+        <div className="relative">
+          <Btn variant="outline" size="sm" onClick={() => setArchMenu(v => !v)}>
+            <Archive className="h-3.5 w-3.5" /> Arşivle ▾
+          </Btn>
+          {archMenu && (
+            <div className="absolute left-0 bottom-full mb-1 z-20 w-60 rounded-lg border border-black/10 bg-white shadow-lg p-1">
+              <div className="px-3 py-1.5 text-[10px] uppercase tracking-wide text-gray-400">Ayrılış sebebi</div>
+              <button type="button" className="w-full text-left px-3 py-2 text-sm rounded hover:bg-black/5" onClick={() => archivePatient('completed')}>Süreci tamamlandı</button>
+              <button type="button" className="w-full text-left px-3 py-2 text-sm rounded hover:bg-black/5" onClick={() => archivePatient('dropout')}>Yarıda bıraktı</button>
+              <button type="button" className="w-full text-left px-3 py-2 text-sm rounded hover:bg-black/5" onClick={() => archivePatient('financial')}>Maddi sebeple bıraktı</button>
+            </div>
+          )}
+        </div>
         <Btn size="sm" onClick={save} disabled={saving}><Save className="h-3.5 w-3.5" /> {saving ? "Kaydediliyor…" : "Kaydet"}</Btn>
       </div>
       </>}
@@ -2618,7 +3088,7 @@ function DanisanlarPanelLegacy({ state, dispatch, onOpenFormulation }: {
 // ============================================================
 // ACT Geliştirme — Hub + araç sayfaları
 // ============================================================
-type ActSubTab = 'hub' | 'hexaflex' | 'triflex' | 'sefkat' | 'ekoller';
+type ActSubTab = 'hub' | 'hexaflex' | 'triflex' | 'sefkat' | 'ekoller' | 'smart-hedef';
 
 const ACT_CARDS: {
   id: Exclude<ActSubTab, 'hub'>;
@@ -2672,7 +3142,7 @@ const ACT_CARDS: {
   },
 ];
 
-const ACT_TOOL_TITLES: Record<Exclude<ActSubTab, 'hub'>, string> = {
+const ACT_TOOL_TITLES: Record<Exclude<ActSubTab, 'hub' | 'smart-hedef'>, string> = {
   hexaflex: 'Hexaflex Dancing',
   triflex:  'Triflex Dancing',
   sefkat:   'Şefkatli Hexaflex',
@@ -2754,7 +3224,7 @@ function ActGelistirmePanelLegacy() {
           ACT Geliştirme
         </button>
         <span className="text-white/15">|</span>
-        <span className="text-xs font-semibold text-white/70">{ACT_TOOL_TITLES[sub]}</span>
+        <span className="text-xs font-semibold text-white/70">{ACT_TOOL_TITLES[sub as Exclude<ActSubTab,'hub'|'smart-hedef'>]}</span>
       </div>
       {/* İçerik */}
       <div className="flex-1 overflow-auto">
@@ -2770,18 +3240,15 @@ function ActGelistirmePanelLegacy() {
 // ============================================================
 // Main
 // ============================================================
-type Tab = "home" | "calendar" | "intake" | "formulation" | "terapist" | "tasarim-arsivi" | "mudahale-kutuphanesi" | "act-gelistirme" | "smart-hedef";
+type Tab = "home" | "calendar" | "calisma-alani" | "terapist" | "tasarim-arsivi" | "act-gelistirme" | "mudahale-kutuphanesi";
+type CalismaSubTab = "hub" | "danisanlar" | "formulasyon" | "tasarimlar" | "takvim" | "muhasebe";
 
 const NAV: { id: Tab; label: string; icon: React.ComponentType<any> }[] = [
-  { id: "home", label: "Ana Sayfa", icon: Home },
-  { id: "calendar", label: "Takvim & Randevular", icon: Calendar },
-  { id: "intake", label: "Danışanlar", icon: Users },
-  { id: "formulation", label: "Formülasyon", icon: FileText },
-  { id: "mudahale-kutuphanesi", label: "Kütüphane", icon: BookOpen },
-  { id: "terapist", label: "Terapist Profili", icon: Sparkles },
-  { id: "tasarim-arsivi", label: "Yol Haritası", icon: BookOpen },
-  { id: "act-gelistirme", label: "ACT Geliştirme", icon: Zap },
-  { id: "smart-hedef",   label: "SMART Hedef",    icon: Target },
+  { id: "home",          label: "Ana Sayfa",          icon: Home },
+  { id: "calisma-alani", label: "Çalışma Alanı",      icon: Users },
+  { id: "terapist",      label: "Profil",              icon: Sparkles },
+  { id: "tasarim-arsivi",label: "Yol Haritası",        icon: BookOpen },
+  { id: "act-gelistirme",label: "ACT Geliştirme",      icon: Zap },
 ];
 
 function useIdleTimer(timeout: number, onIdle: () => void, onActive: () => void) {
@@ -2802,13 +3269,367 @@ function useIdleTimer(timeout: number, onIdle: () => void, onActive: () => void)
   }, [timeout, onIdle, onActive]);
 }
 
+// ============================================================
+// Günlük Randevu Özeti Modal
+// ============================================================
+
+const FIRST_SESSION_OUTLINE = [
+  { min: 10, label: 'Tanışma ve ilişki kurma' },
+  { min: 15, label: 'Sunulan sorunun ayrıntılandırılması' },
+  { min:  8, label: 'Psikiyatrik / psikolojik geçmiş' },
+  { min:  7, label: 'Aile geçmişi ve sosyal destek sistemi' },
+  { min:  5, label: 'Motivasyon ve beklentiler' },
+  { min:  5, label: 'Gizlilik, onam ve ücret bilgilendirmesi' },
+  { min:  5, label: 'Sonraki randevu ve gözlem ödevi' },
+];
+
+const DURUM_META: Record<string, { label: string; color: string; bg: string }> = {
+  no_show:  { label: 'No-show',  color: '#B83216', bg: 'rgba(184,50,22,0.08)'  },
+  iptal:    { label: 'İptal',    color: '#7B7C82', bg: 'rgba(14,15,18,0.06)'  },
+  erteleme: { label: 'Erteleme', color: '#2F5D3A', bg: 'rgba(47,93,58,0.08)'  },
+};
+
+/** Demo verisi — gerçek DB boşken briefing'in nasıl göründüğünü göstermek için */
+function makeMockBriefData(todayStr: string) {
+  const d = new Date(todayStr + 'T12:00:00');
+  const fmt = (offset: number) => {
+    const x = new Date(d); x.setDate(d.getDate() + offset);
+    return x.toISOString().slice(0, 10);
+  };
+  const yest = fmt(-1), tom = fmt(1);
+  return {
+    window: { yesterday: yest, today: todayStr, tomorrow: tom },
+    cancellations: [
+      {
+        id: 'mock-1', clientId: 'c1', clientName: 'Ayşe Kaya',
+        seansNo: 7, date: yest, time: '10:00',
+        durum: 'no_show' as const, mazeret: null, ertlemeTarihi: null, createdAt: yest,
+      },
+      {
+        id: 'mock-2', clientId: 'c2', clientName: 'Mert Demir',
+        seansNo: 3, date: yest, time: '14:30',
+        durum: 'iptal' as const,
+        mazeret: 'İş yoğunluğu nedeniyle gelemeyeceğini sabah iletti.',
+        ertlemeTarihi: null, createdAt: yest,
+      },
+      {
+        id: 'mock-3', clientId: 'c3', clientName: 'Zeynep Arslan',
+        seansNo: 12, date: todayStr, time: '09:00',
+        durum: 'erteleme' as const, mazeret: null,
+        ertlemeTarihi: tom, createdAt: todayStr,
+      },
+      {
+        id: 'mock-4', clientId: 'c4', clientName: 'Kemal Şahin',
+        seansNo: 5, date: todayStr, time: '16:00',
+        durum: 'iptal' as const,
+        mazeret: 'Hastalık — doktor raporu var.',
+        ertlemeTarihi: null, createdAt: todayStr,
+      },
+      {
+        id: 'mock-5', clientId: 'c5', clientName: 'Defne Yıldız',
+        seansNo: 2, date: tom, time: '11:00',
+        durum: 'no_show' as const, mazeret: null, ertlemeTarihi: null, createdAt: todayStr,
+      },
+    ],
+    newAppointments: [
+      {
+        id: 'mock-ev1', title: 'Selin Çelik — ilk görüşme',
+        start: `${todayStr}T13:00`, end: `${todayStr}T13:50`,
+        notes: 'Telefonda anksiyete ve uyku bozukluğu bildirdi.', createdAt: todayStr,
+      },
+      {
+        id: 'mock-ev2', title: 'Burak Tan — seans',
+        start: `${tom}T10:00`, end: `${tom}T10:50`,
+        notes: null, createdAt: todayStr,
+      },
+    ],
+  };
+}
+
+function CancellationRow({ row, onSaveMazeret }: {
+  row: any;
+  onSaveMazeret(id: string, mazeret: string): void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft]     = useState(row.mazeret ?? '');
+  const DMETA: Record<string, { cls: string; label: string }> = {
+    iptal:    { cls: 'iptal',    label: 'İptal' },
+    erteleme: { cls: 'erteleme', label: 'Erteleme' },
+    no_show:  { cls: 'noshow',   label: 'No-show' },
+  };
+  const m = DMETA[String(row.durum).replace('-', '_')] ?? DMETA.iptal;
+  const timeStr = row.time ? String(row.time).slice(0, 5) : '';
+  const reschedStr = row.ertlemeTarihi && /^\d{4}-\d{2}-\d{2}/.test(String(row.ertlemeTarihi))
+    ? new Date(row.ertlemeTarihi).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })
+    : row.ertlemeTarihi;
+
+  return (
+    <div className="row">
+      <div className="row-top">
+        <span className={`badge ${m.cls}`}><span className="gl" />{m.label}</span>
+        <span className="who">{row.clientName}</span>
+        {timeStr && <span className="time num">{timeStr}</span>}
+      </div>
+      {row.durum === 'erteleme' && row.ertlemeTarihi && (
+        <div className="reschedule">
+          <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" /></svg>{reschedStr}
+        </div>
+      )}
+      <div className="reason">
+        {editing ? (
+          <div className="reason-edit">
+            <textarea autoFocus value={draft} onChange={e => setDraft(e.target.value)} placeholder="İptal / erteleme gerekçesi, mazeret notu…" />
+            <div className="acts">
+              <button className="btn-sm cancel" type="button" onClick={() => { setDraft(row.mazeret ?? ''); setEditing(false); }}>Vazgeç</button>
+              <button className="btn-sm save" type="button" onClick={() => { onSaveMazeret(row.id, draft.trim()); setEditing(false); }}>Kaydet</button>
+            </div>
+          </div>
+        ) : row.mazeret ? (
+          <div className="reason-view">
+            <span className="q">{row.mazeret}</span>
+            <button className="edit-link" type="button" onClick={() => { setDraft(row.mazeret); setEditing(true); }}>Düzenle</button>
+          </div>
+        ) : (
+          <button className="add-reason" type="button" onClick={() => { setDraft(''); setEditing(true); }}>+ gerekçe ekle</button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function DailyBriefModal({
+  randevuOzet,
+  firstContact,
+  today,
+  onClose,
+  onOpenPatient,
+  onSaveMazeret,
+}: {
+  randevuOzet: { window: { yesterday: string; today: string; tomorrow: string }; cancellations: any[]; newAppointments: any[] } | null;
+  firstContact: { patient: Patient; calEvent: CalEvent | null } | null;
+  today: string;
+  onClose(): void;
+  onOpenPatient(id: string): void;
+  onSaveMazeret(id: string, mazeret: string): void;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  const dateLabel = new Date()
+    .toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+    .toLocaleUpperCase('tr-TR');
+
+  const labelFor = (date: string) => {
+    if (!randevuOzet) return date;
+    if (date === randevuOzet.window.yesterday) return 'Dün';
+    if (date === randevuOzet.window.today)     return 'Bugün';
+    if (date === randevuOzet.window.tomorrow)  return 'Yarın';
+    return date;
+  };
+  const prettyDate = (date: string) => {
+    try { return new Date(date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', weekday: 'long' }); }
+    catch { return date; }
+  };
+
+  const cancellations = randevuOzet?.cancellations ?? [];
+  const newAppts = randevuOzet?.newAppointments ?? [];
+  const hasCancellations = cancellations.length > 0;
+  const hasNew = newAppts.length > 0;
+  const hasFirstContact = !!firstContact;
+  const isEmpty = !hasCancellations && !hasNew && !hasFirstContact;
+  const fi = firstContact?.patient;
+
+  // İptalleri Dün / Bugün / Yarın gruplarına ayır
+  const ORDER = ['Dün', 'Bugün', 'Yarın'];
+  const groups: Record<string, any[]> = {};
+  cancellations.forEach((c: any) => { const k = labelFor(c.date); (groups[k] = groups[k] || []).push(c); });
+  const groupOrder = ORDER.filter(g => groups[g]);
+
+  const total = FIRST_SESSION_OUTLINE.reduce((a, s) => a + s.min, 0);
+
+  return (
+    <div className="gb2">
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600;1,700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+
+      <div className="overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+        <div className="modal" role="dialog" aria-modal="true" aria-labelledby="gbTitle" data-screen-label="Günlük Özet — Bugünün Briefing'i">
+
+          <header className="m-head">
+            <div className="ttl">
+              <span className="m-eyebrow eyebrow">Günlük Özet · <b>{dateLabel}</b></span>
+              <h1 className="m-title" id="gbTitle">Bugünün <i>Briefing</i>&apos;i</h1>
+            </div>
+            <button className="x-btn" type="button" aria-label="Kapat" onClick={onClose}>
+              <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" /></svg>
+            </button>
+          </header>
+
+          <div className="m-body">
+            {isEmpty ? (
+              <div className="empty">
+                <span className="ico"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" /></svg></span>
+                <p>Dün, bugün ve yarın için kayıtlı değişiklik yok.</p>
+                <span className="sub">Tüm randevular planlandığı gibi aktif. İyi seanslar.</span>
+              </div>
+            ) : (
+              <>
+                {hasCancellations && (
+                  <section className="sec">
+                    <div className="sec-eyebrow">
+                      <span className="lab eyebrow">İptal · Erteleme · No-show</span>
+                      <span className="cnt">{cancellations.length} kayıt</span>
+                    </div>
+                    {groupOrder.map(g => (
+                      <div className="grp" key={g}>
+                        <div className="grp-head">{g} <span className="when">· {prettyDate(groups[g][0].date)}</span></div>
+                        {groups[g].map((row: any) => (
+                          <CancellationRow key={row.id} row={row} onSaveMazeret={onSaveMazeret} />
+                        ))}
+                      </div>
+                    ))}
+                  </section>
+                )}
+
+                {hasNew && (
+                  <section className="sec">
+                    <div className="sec-eyebrow">
+                      <span className="lab eyebrow">Yeni oluşturulan randevular</span>
+                      <span className="cnt">{newAppts.length} randevu</span>
+                    </div>
+                    {newAppts.map((ev: any) => {
+                      const dateKey = String(ev.start ?? '').slice(0, 10);
+                      const tStr = String(ev.start ?? '').slice(11, 16);
+                      return (
+                        <div className="nrow" key={ev.id}>
+                          <span className="badge yeni"><span className="gl" />Yeni</span>
+                          <span className="who">{ev.title}</span>
+                          <span className="meta">{labelFor(dateKey)} · {tStr}</span>
+                        </div>
+                      );
+                    })}
+                  </section>
+                )}
+
+                {hasFirstContact && fi && (
+                  <section className="sec">
+                    <div className="sec-eyebrow accent"><span className="lab eyebrow">İlk görüşme · Bugün</span></div>
+                    <div className="fi-grid">
+                      <div className="fi-card">
+                        <h3 className="fi-name">{fi.adSoyad}</h3>
+                        <div className="fi-meta">
+                          {fi.yas && <span>{fi.yas} yaş</span>}
+                          {fi.cinsiyet && <span>{fi.cinsiyet}</span>}
+                          {fi.telefon && <span>{fi.telefon}</span>}
+                        </div>
+                        {fi.sunumSorunu && (
+                          <div className="fi-block"><div className="k">Başvuru nedeni</div><div className="v">{fi.sunumSorunu}</div></div>
+                        )}
+                        {firstContact?.calEvent?.notes && (
+                          <div className="fi-note"><div className="k">Telefon notu</div><div className="v">{firstContact.calEvent.notes}</div></div>
+                        )}
+                      </div>
+                      <div className="fi-outline">
+                        <div className="oh"><span className="k">İlk seans ana hatları</span><span className="tot num">{total} dk</span></div>
+                        <ol className="steps">
+                          {FIRST_SESSION_OUTLINE.map((step, i) => (
+                            <li key={i}><span className="t">{step.label}</span><span className="d">{step.min} dk</span></li>
+                          ))}
+                        </ol>
+                      </div>
+                    </div>
+                  </section>
+                )}
+              </>
+            )}
+          </div>
+
+          <footer className="m-foot">
+            <span className="foot-summary">
+              {!hasCancellations && !hasNew ? 'Tüm randevular aktif' : (
+                <>
+                  {hasCancellations && <><b>{cancellations.length}</b> değişiklik</>}
+                  {hasCancellations && hasNew && ' · '}
+                  {hasNew && <><b>{newAppts.length}</b> yeni randevu</>}
+                </>
+              )}
+            </span>
+            <div className="foot-acts">
+              <button className="btn ghost" type="button" onClick={onClose}>Kapat</button>
+              {hasFirstContact && fi && (
+                <button className="btn solid" type="button" onClick={() => onOpenPatient(fi.id)}>
+                  <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /></svg>
+                  Dosyayı Aç
+                </button>
+              )}
+            </div>
+          </footer>
+
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function HomePage() {
   const router = useRouter();
   const [state, dispatch] = useReducer(reducer, defaultState);
   const [loading, setLoading] = useState(true);
-  const [ready, setReady] = useState(false);
+  const [ready, setReady] = useState(true);
   const [tab, setTab] = useState<Tab>("home");
   const [activePatientId, setActivePatientId] = useState<string | null>(null);
+
+  // Bugün incelenmiş seans dosyaları (havuz işaretleri) — günlük, localStorage
+  const reviewKey = () => `seans-incelendi:${new Date().toISOString().slice(0, 10)}`;
+  const [reviewedToday, setReviewedToday] = useState<string[]>([]);
+  useEffect(() => {
+    try { setReviewedToday(JSON.parse(localStorage.getItem(reviewKey()) || '[]')); } catch {}
+  }, []);
+
+  // Danışan dosyasından "Günün seansları" ile dönüldüyse → havuza kaydır
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (new URLSearchParams(window.location.search).get('focus') !== 'havuz') return;
+    const t = setTimeout(() => {
+      document.getElementById('gunun-seanslari')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 500);
+    return () => clearTimeout(t);
+  }, []);
+  const markReviewed = (id: string) => {
+    try {
+      const set = new Set<string>(JSON.parse(localStorage.getItem(reviewKey()) || '[]'));
+      set.add(String(id));
+      const arr = [...set];
+      localStorage.setItem(reviewKey(), JSON.stringify(arr));
+      setReviewedToday(arr);
+    } catch {}
+  };
+
+  // URL query params'tan tab + client oku (profil sayfasından yönlendirme için)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const sp = new URLSearchParams(window.location.search);
+    const qTab    = sp.get('tab') as string | null;
+    const qClient = sp.get('client');
+    const validTabs: Tab[] = ['home','calendar','calisma-alani','terapist','tasarim-arsivi','act-gelistirme','mudahale-kutuphanesi'];
+    // 'formulation' → Çalışma Alanı'nın formülasyon alt sekmesi (danışan formülasyon hub'ı)
+    if (qTab === 'formulation') { setTab('calisma-alani'); setCalismaSubTab('formulasyon'); }
+    else if (qTab === 'calendar') { setTab('calisma-alani'); setCalismaSubTab('takvim'); } // Takvim artık Çalışma Alanı altında
+    else if (qTab && validTabs.includes(qTab as Tab)) setTab(qTab as Tab);
+    if (qClient) setActivePatientId(qClient);
+    const qTakvim = sp.get('takvim') as TakvimSubTab | null;
+    if (qTakvim && (['takvim','hazirlik','musaitlik','gecmis','sms','gelisim'] as TakvimSubTab[]).includes(qTakvim)) setTakvimSubTab(qTakvim);
+    // Parametre geldiyse landing'i atla
+    if (sp.toString()) {
+      setReady(true);
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [calEvents, setCalEvents] = useState<CalEvent[]>([]);
   const [calLoading, setCalLoading] = useState(false);
   const [idle, setIdle] = useState(false);
@@ -2817,10 +3638,38 @@ export default function HomePage() {
   const [interventions, setInterventions] = useState<Intervention[]>([]);
   const [basket, setBasket] = useState<string[]>([]);
 
+  // ── Home Dashboard — reflections ─────────────────────────────────────
+  const [reflectionsState, setReflectionsState] = useState<any[]>([]);
+
+  // ── Günlük Randevu Özeti Modal ────────────────────────────────────────
+  const [dailyBriefOpen, setDailyBriefOpen] = useState(false);
+  const [randevuOzet, setRandevuOzet] = useState<{
+    window: { yesterday: string; today: string; tomorrow: string };
+    cancellations: any[];
+    newAppointments: any[];
+  } | null>(null);
+  const [firstContactClient, setFirstContactClient] = useState<{ patient: Patient; calEvent: CalEvent | null } | null>(null);
+
+  // ── Yeni danışan modalı (V2 ekranlarından erişilebilir) ───────────────
+  const [newClientOpen, setNewClientOpen] = useState(false);
+  // ── Terapist Profil: düzenle + onam paylaş ────────────────────────────
+  const [editProfileOpen, setEditProfileOpen] = useState(false);
+  const [shareConsentOpen, setShareConsentOpen] = useState(false);
+  const [bookletShare, setBookletShare] = useState<{ open: boolean; booklet?: { title: string; body: string } }>({ open: false });
+  const [profileKey, setProfileKey] = useState(0); // foto değişince TerapistProfilV2 remount
+  const [reflectFocus, setReflectFocus] = useState(false); // Ana Sayfa "yeni yansıma" → terapist tab yansıma bölümü
+
   useEffect(() => {
     fetch('/api/interventions')
       .then(r => r.json())
       .then((data: Intervention[]) => setInterventions(data))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    fetch('/api/reflections?type=daily&limit=3')
+      .then(r => r.json())
+      .then((data: any[]) => setReflectionsState(Array.isArray(data) ? data : []))
       .catch(() => {});
   }, []);
 
@@ -2868,9 +3717,20 @@ export default function HomePage() {
         dropRisk: sessionCount > 0 ? dropRisk : undefined,
         tags: (state.tags as any[]).filter((t) => t.clientId === pid).map((t) => t.label),
         status: panelStatus,
+        exitReason: (p as any).exitReason,
+        takipSikligi: (p as any).takipSikligi,
       } satisfies DanisanClient;
     });
   }, [state.patients, state.seanslar, state.tags, calEvents]);
+
+  // ── Müsaitlik (sablon + bloklar) — #6: stored veriyi yükle ───────────
+  const [availability, setAvailability] = useState<{ sablon: any[]; bloklar: any[] }>({ sablon: [], bloklar: [] });
+  const refreshAvailability = React.useCallback(() => {
+    fetch('/api/musaitlik').then((r) => r.json()).then((d) => {
+      if (d) setAvailability({ sablon: Array.isArray(d.sablon) ? d.sablon : [], bloklar: Array.isArray(d.bloklar) ? d.bloklar : [] });
+    }).catch(() => {});
+  }, []);
+  useEffect(() => { refreshAvailability(); }, [refreshAvailability]);
 
   // ── FormulasyonPanel state ───────────────────────────────────────────
   const [formMode,            setFormMode]            = useState<FormulationViewMode>('focus');
@@ -2884,8 +3744,59 @@ export default function HomePage() {
   } | null>(null);
   const [selectedNodeData, setSelectedNodeData] = useState<SelectedNode | null>(null);
   const [actSubTab, setActSubTab]         = useState<ActSubTab>('hub');
+  const [calismaSubTab, setCalismaSubTab] = useState<CalismaSubTab>('hub');
+  // İsimden danışan id'si çöz (takvim seans isimleri → dosya)
+  const resolvePatientByName = (name: string): string | undefined => {
+    const nm = (s: string) => (s ?? '').trim().toLocaleLowerCase('tr-TR');
+    const t = nm(name);
+    if (!t) return undefined;
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    const first = nm(parts[0] ?? '');
+    const lastInit = parts[1] ? nm(parts[1])[0] : undefined;
+    const named = (state.patients as any[]).filter((p) => (p.adSoyad ?? '').trim());
+    const nameOf = (p: any) => (p.adSoyad ?? '').trim();
+    let hit = named.find((p) => nm(nameOf(p)) === t);
+    if (!hit) hit = named.find((p) => { const np = nameOf(p).split(/\s+/); return nm(np[0]) === first && (!lastInit || nm(np[np.length - 1] ?? '')[0] === lastInit); });
+    if (!hit) { const fm = named.filter((p) => nm(nameOf(p).split(/\s+/)[0]) === first); if (fm.length === 1) hit = fm[0]; }
+    if (!hit) hit = named.find((p) => { const n = nm(nameOf(p)); return n.includes(t) || t.includes(n); });
+    return hit?.id ? String(hit.id) : undefined;
+  };
+
+  // Takvim için: randevu ismini danışana eşle → { id, konu (sunum sorunu) }
+  const resolveClientForCalendar = (name: string): { id?: string; topic?: string; phone?: string; reviewed?: boolean; fileHref?: string; fee?: number } | undefined => {
+    const id = resolvePatientByName(name);
+    if (!id) return undefined;
+    const p = (state.patients as any[]).find((x) => String(x.id) === id);
+    const topic = p?.sunumSorunu ? String(p.sunumSorunu).split(/[,،]/)[0].trim() : undefined;
+    return { id, topic, phone: p?.telefon ?? undefined, reviewed: reviewedToday.includes(id), fileHref: `/profil/${id}`, fee: p?.seansUcreti != null ? Number(p.seansUcreti) : undefined };
+  };
+  // Ortalama seans ücreti — ücreti girilmiş danışanlardan (kazanç tahmini için)
+  const avgClientFee = (() => {
+    const fees = (state.patients as any[]).map((p) => p?.seansUcreti).filter((f) => f != null && !Number.isNaN(Number(f))).map(Number);
+    return fees.length ? Math.round(fees.reduce((s, f) => s + f, 0) / fees.length) : 0;
+  })();
+
+  const goToDanisanlar = () => { setCalismaSubTab('danisanlar'); setTab('calisma-alani'); };
+  const goToTakvim     = () => { setCalismaSubTab('takvim');     setTab('calisma-alani'); };
+  const goToMuhasebe   = () => { setCalismaSubTab('muhasebe');   setTab('calisma-alani'); };
+  const goToFormulasyon = () => { setCalismaSubTab('formulasyon'); setTab('calisma-alani'); };
+  const goToTasarimlar  = () => { setCalismaSubTab('tasarimlar');  setTab('calisma-alani'); };
   const [hexMode,   setHexMode]           = useState<'hexaflex' | 'triflex'>('hexaflex');
   const [takvimSubTab, setTakvimSubTab]   = useState<TakvimSubTab>('takvim');
+  const [gelisimEvents, setGelisimEvents] = useState<import('@/components/TakvimPanel').GelisimEvent[]>([
+    // Örnek: haftada 2x 3 saat ACT eğitimi
+    { id: 'eg-01', title: 'ACT İleri Uygulayıcı Eğitimi — Modül 1',     date: '2026-06-02', time: '09:00', durationMin: 180, done: false },
+    { id: 'eg-02', title: 'ACT İleri Uygulayıcı Eğitimi — Modül 1',     date: '2026-06-04', time: '09:00', durationMin: 180, done: false },
+    { id: 'eg-03', title: 'ACT İleri Uygulayıcı Eğitimi — Modül 2',     date: '2026-06-09', time: '09:00', durationMin: 180, done: false },
+    { id: 'eg-04', title: 'ACT İleri Uygulayıcı Eğitimi — Modül 2',     date: '2026-06-11', time: '09:00', durationMin: 180, done: false },
+    { id: 'eg-05', title: 'ACT İleri Uygulayıcı Eğitimi — Modül 3',     date: '2026-06-16', time: '09:00', durationMin: 180, done: false },
+    { id: 'eg-06', title: 'ACT İleri Uygulayıcı Eğitimi — Modül 3',     date: '2026-06-18', time: '09:00', durationMin: 180, done: false },
+    { id: 'eg-07', title: 'ACT İleri Uygulayıcı Eğitimi — Modül 4',     date: '2026-06-23', time: '09:00', durationMin: 180, done: false },
+    { id: 'eg-08', title: 'ACT İleri Uygulayıcı Eğitimi — Modül 4',     date: '2026-06-25', time: '09:00', durationMin: 180, done: false },
+    // Tamamlananlar
+    { id: 'eg-09', title: 'ACT İleri Uygulayıcı Eğitimi — Modül 0 (Giriş)', date: '2026-05-26', time: '09:00', durationMin: 180, done: true  },
+    { id: 'eg-10', title: 'ACT İleri Uygulayıcı Eğitimi — Modül 0 (Giriş)', date: '2026-05-28', time: '09:00', durationMin: 180, done: true  },
+  ]);
 
   useEffect(() => {
     if (!activePatientId) { setFormulationPanelData(null); return; }
@@ -3003,7 +3914,7 @@ export default function HomePage() {
     } else {
       setActivePatientId(p.id);
     }
-    setTab("formulation");
+    goToFormulasyon();
   };
 
   if (loading) {
@@ -3014,7 +3925,7 @@ export default function HomePage() {
     );
   }
 
-  if (!ready) return <Landing name={state.settings.therapistName} onStart={() => setReady(true)} />;
+  // Landing screen kaldırıldı — uygulama direkt açılır.
 
   return (
     <div className="min-h-screen bg-[#F4F5F8] text-[#0E0F12]">
@@ -3025,278 +3936,535 @@ export default function HomePage() {
         />
       )}
 
-      {/* ── Top nav bar (ElegantPsikoloji style) ── */}
-      <header className="sticky top-0 z-40 w-full border-b border-black/[0.06] bg-[#F4F5F8]/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-screen-xl items-center justify-between px-6 py-3">
+      {/* In-app V2 ekranları kendi .dock'unu render ediyor; alttaki global ana menü (fixed NAV)
+          zaten var → in-app dock'ları gizle (terapist .tp2 hariç — kullanıcı: dokunma). */}
+      <style>{`.siyi-inapp .dock{display:none!important}.siyi-inapp .tp2 .dock{display:flex!important}`}</style>
 
-          {/* Logo ─ two-tone: serif italic + sans */}
-          <button
-            onClick={() => setTab("home")}
-            className="flex-shrink-0 flex items-baseline gap-0 select-none focus:outline-none"
-          >
-            <span
-              className="text-[1.35rem] font-bold italic leading-none text-[#0E0F12] tracking-tight"
-              style={{ fontFamily: "var(--font-fraunces)" }}
-            >
-              Klinik
-            </span>
-            <span
-              className="text-[1.35rem] font-medium leading-none text-[#0E0F12] tracking-tight"
-              style={{ fontFamily: "var(--font-jakarta)" }}
-            >
-              Asistan
-            </span>
-          </button>
+      {/* ── Bekleme (legacy S-İ-Y-İ üst başlığı kaldırıldı — V2 ekranların kendi topbar'ı var) ── */}
+      <button
+        onClick={() => setIdle(true)}
+        title="Bekleme moduna geç"
+        className="fixed top-3 right-4 z-50 flex items-center gap-2 rounded-full bg-[#0E0F12] pl-4 pr-3 py-1.5 text-[12px] font-medium text-white shadow-[0_2px_12px_rgba(0,0,0,0.18)] hover:bg-[#1c1d21] transition-colors"
+      >
+        Bekleme
+        <span className="flex items-center justify-center w-5 h-5 rounded-full bg-white/15">
+          <MonitorOff className="w-3 h-3" />
+        </span>
+      </button>
 
-          {/* Centre pill nav */}
-          <nav className="flex-shrink-0 flex items-center gap-0.5 rounded-full bg-[#0E0F12] px-1.5 py-1.5 shadow-[0_2px_12px_rgba(0,0,0,0.18)]">
-            {NAV.map(n => {
-              const isActive = tab === n.id;
-              return (
-                <button
-                  key={n.id}
-                  onClick={() => setTab(n.id)}
-                  className={cx(
-                    "relative px-4 py-1.5 rounded-full text-[13px] font-medium transition-all whitespace-nowrap",
-                    isActive
-                      ? "bg-white text-[#0E0F12] shadow-sm"
-                      : "text-white/65 hover:text-white/90",
-                  )}
-                >
-                  {n.label}
-                </button>
-              );
-            })}
-          </nav>
-
-          {/* Right CTA — bekleme modu */}
-          <button
-            onClick={() => setIdle(true)}
-            title="Bekleme moduna geç"
-            className="flex-shrink-0 flex items-center gap-2 rounded-full bg-[#0E0F12] pl-5 pr-4 py-2 text-[13px] font-medium text-white shadow-[0_2px_12px_rgba(0,0,0,0.18)] hover:bg-[#1c1d21] transition-colors"
-          >
-            Bekleme
-            <span className="flex items-center justify-center w-5 h-5 rounded-full bg-white/15">
-              <MonitorOff className="w-3 h-3" />
-            </span>
-          </button>
-
-        </div>
-      </header>
-
-      <main className={tab === "home" ? "overflow-x-hidden" : (tab === "act-gelistirme" || tab === "calendar") ? "" : "max-w-6xl mx-auto px-6 py-8"}>
+      <main className={cx(
+        "siyi-inapp pb-24",
+        tab === "home" ? "overflow-x-hidden" : (tab === "act-gelistirme" || tab === "calisma-alani" || tab === "terapist") ? "" : "max-w-6xl mx-auto px-6 py-8"
+      )}>
         <div key={tab} className="animate-fade-in">
-          {tab === "home" && <HomePanel
-            therapist={{
-              firstName: state.settings.therapistName?.split(' ')[0] || 'Terapist',
-              sessionCountToday: state.seanslar.filter((s: any) => s.tarih === new Date().toISOString().slice(0, 10)).length,
-              date: new Date().toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
-            }}
-            onOpenPatient={() => setTab('intake')}
-            onOpenFormulation={() => setTab('formulation')}
-            onOpenBriefing={() => setTab('calendar')}
-            onAskAssistant={() => {}}
-          />}
-          {tab === "calendar" && (
-            <TakvimPanel
-              subTab={takvimSubTab}
-              onChangeSubTab={setTakvimSubTab}
-              weekCalendarSlot={
-                <WeekCalendar
-                  events={calEvents}
-                  onRefresh={refreshCalendar}
-                  loading={calLoading}
-                  patients={state.patients}
-                />
+          {tab === "home" && (() => {
+            const today = new Date().toISOString().slice(0, 10);
+            const sessionsToday = (calEvents as any[])
+              .filter(e => (e.start ?? '').slice(0, 10) === today)
+              .sort((a, b) => (a.start ?? '').localeCompare(b.start ?? ''));
+
+            const totalSessions = (state.seanslar ?? []).length;
+            const activeClients = (state.patients ?? []).filter((p: any) => p.status === 'active').length;
+            const pendingTasks  = (state.pending  ?? []).length;
+
+            const roman = ['I','II','III','IV','V','VI','VII','VIII'];
+            // Takvim olayında patientId yok → danışanı isimden eşle.
+            // Sıra: tam ad → ad + soyad baş harfi → benzersiz ilk isim → alt-dize.
+            const norm = (s: string) => (s ?? '').trim().toLocaleLowerCase('tr-TR');
+            const matchPatientId = (title: string): string | undefined => {
+              const t = norm(title);
+              if (!t) return undefined;
+              const parts = title.trim().split(/\s+/).filter(Boolean);
+              const first = norm(parts[0] ?? '');
+              const lastInit = parts[1] ? norm(parts[1])[0] : undefined;
+              const named = (state.patients as any[]).filter((p: any) => (p.adSoyad ?? '').trim());
+              const nameOf = (p: any) => (p.adSoyad ?? '').trim();
+              // 1) tam ad
+              let hit = named.find((p: any) => norm(nameOf(p)) === t);
+              // 2) ilk isim + soyad baş harfi
+              if (!hit) hit = named.find((p: any) => {
+                const np = nameOf(p).split(/\s+/);
+                return norm(np[0]) === first && (!lastInit || norm(np[np.length - 1] ?? '')[0] === lastInit);
+              });
+              // 3) benzersiz ilk isim
+              if (!hit) {
+                const fm = named.filter((p: any) => norm(nameOf(p).split(/\s+/)[0]) === first);
+                if (fm.length === 1) hit = fm[0];
               }
-              musaitlikSlot={<MusaitlikPanel />}
-              randevuPanelSlot={<RandevuPanel patients={state.patients} />}
-              syncStatus={{ lastSync: '2 dk önce', healthy: true }}
-              onCreateAppointment={() => {}}
+              // 4) alt-dize (her iki yön)
+              if (!hit) hit = named.find((p: any) => { const n = norm(nameOf(p)); return n.includes(t) || t.includes(n); });
+              return hit?.id ? String(hit.id) : undefined;
+            };
+            // Zaman-tabanlı durum: bitmiş seans 'past' (koyu), ilk gelecek olan 'next', kalanlar 'upcoming'.
+            // calEvents client-side yüklendiği için Date.now() SSR/hydration sorunu yaratmaz (SSR'da liste boş).
+            const nowMs = Date.now();
+            const SESSION_MIN = 50; // seans bitiş tahmini (başlangıç + 50dk geçtiyse "geçmiş")
+            // Kart başı kısa briefing: son seans notu → güncel hedef → sunum sorunu
+            const briefForClient = (cid?: string): string | undefined => {
+              if (!cid) return undefined;
+              const sList = (state.seanslar as any[])
+                .filter((s) => String(s.patientId ?? s.client_id ?? '') === String(cid))
+                .sort((a, b) => String(b.tarih ?? '').localeCompare(String(a.tarih ?? '')));
+              const note = sList[0]?.notlar ?? sList[0]?.konu;
+              if (note && String(note).trim()) return `Son seans — ${String(note).trim()}`;
+              const p = (state.patients as any[]).find((x) => String(x.id) === String(cid));
+              if (p?.hedefler && String(p.hedefler).trim()) return `Hedef — ${String(p.hedefler).trim()}`;
+              if (p?.sunumSorunu && String(p.sunumSorunu).trim()) return `Sunum — ${String(p.sunumSorunu).trim()}`;
+              return undefined;
+            };
+            const sessionsList = sessionsToday.map((e: any, i: number) => {
+              const startMs = new Date(e.start).getTime();
+              const endMs   = e.end ? new Date(e.end).getTime() : startMs + SESSION_MIN * 60000;
+              const isPast  = Number.isFinite(endMs) && endMs < nowMs;
+              const cid = (e.clientId ?? e.patientId) ? String(e.clientId ?? e.patientId) : matchPatientId(e.title ?? e.clientName ?? '');
+              return {
+                ix:         roman[i] ?? String(i + 1),
+                time:       new Date(e.start).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
+                clientId:   cid,
+                clientName: e.title ?? e.clientName ?? 'Seans',
+                topic:      e.notes ?? e.topic ?? '—',
+                brief:      briefForClient(cid),
+                modality:   e.modality ?? 'Diğer',
+                sessionNo:  i + 1,
+                sev:        3 as const,
+                nextLabel:  'Bugün, ' + new Date(e.start).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
+                status:     (isPast ? 'past' : 'upcoming') as 'past'|'next'|'upcoming',
+              };
+            });
+            // İlk geçmemiş seansı "next" olarak işaretle (sırada olan).
+            const firstUpcomingIdx = sessionsList.findIndex((s) => s.status !== 'past');
+            if (firstUpcomingIdx >= 0) sessionsList[firstUpcomingIdx].status = 'next';
+
+            const weekStart = new Date();
+            weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
+            // Gün yoğunluğu da takvimden (calEvents) okunur — deck/tablo ile aynı kaynak
+            const days = ['Pzt','Sal','Çar','Per','Cum','Cmt','Paz'].map((label, idx) => {
+              const d = new Date(weekStart);
+              d.setDate(weekStart.getDate() + idx);
+              const dKey = d.toISOString().slice(0, 10);
+              const count = (calEvents as any[]).filter((e: any) => (e.start ?? '').slice(0, 10) === dKey).length;
+              return { label, sessions: count, today: dKey === today };
+            });
+            const totalWeek = days.reduce((s, d) => s + d.sessions, 0);
+
+            // ── Yoğunluk serileri (Hafta/Ay/Yıl) ──────────────────────────
+            // calEvents (canlı takvim) + state.seanslar (tarihsel kayıt) birleşimi;
+            // aynı gün+kişi tekilleştirilir (çift sayım önlenir). Tüm anahtarlar YEREL tarih.
+            const pad2 = (n: number) => String(n).padStart(2, '0');
+            const ymd = (d: Date) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+            const firstName = (s: string) => ((s ?? '').trim().split(/\s+/)[0] ?? '').toLocaleLowerCase('tr-TR');
+            const patientNameById = (id: any) => (state.patients as any[]).find((p) => String(p.id) === String(id))?.adSoyad ?? '';
+            const dayCount: Record<string, number> = {};
+            const seenSession = new Set<string>();
+            const addSession = (rawDate: string, name: string) => {
+              const date = (rawDate ?? '').slice(0, 10);
+              if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+              const key = `${date}|${firstName(name)}`;
+              if (seenSession.has(key)) return;
+              seenSession.add(key);
+              dayCount[date] = (dayCount[date] ?? 0) + 1;
+            };
+            (calEvents as any[]).forEach((e) => addSession(e.start ?? '', e.title ?? e.clientName ?? ''));
+            ((state.seanslar as any[]) ?? []).forEach((s) => addSession(s.tarih ?? '', patientNameById(s.client_id)));
+
+            const nowD = new Date();
+            const curY = nowD.getFullYear(), curM = nowD.getMonth(), todayLocal = ymd(nowD);
+            // Hafta: mevcut haftanın 7 günü
+            const weekSeries = ['Pzt','Sal','Çar','Per','Cum','Cmt','Paz'].map((label, idx) => {
+              const d = new Date(weekStart); d.setDate(weekStart.getDate() + idx);
+              const k = ymd(d);
+              return { label, sessions: dayCount[k] ?? 0, today: k === todayLocal };
+            });
+            // Ay: mevcut ayın haftalık kovaları (1–7, 8–14, …)
+            const daysInMonth = new Date(curY, curM + 1, 0).getDate();
+            const monthSeries: { label: string; sessions: number; today?: boolean }[] = [];
+            for (let s = 1; s <= daysInMonth; s += 7) {
+              const e = Math.min(s + 6, daysInMonth);
+              let sum = 0;
+              for (let dd = s; dd <= e; dd++) sum += dayCount[`${curY}-${pad2(curM + 1)}-${pad2(dd)}`] ?? 0;
+              monthSeries.push({ label: `${s}–${e}`, sessions: sum, today: nowD.getDate() >= s && nowD.getDate() <= e });
+            }
+            // Yıl: 12 ay
+            const AY3 = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
+            const yearSeries = AY3.map((label, m) => {
+              const prefix = `${curY}-${pad2(m + 1)}-`;
+              let sum = 0;
+              for (const k in dayCount) if (k.startsWith(prefix)) sum += dayCount[k];
+              return { label, sessions: sum, today: m === curM };
+            });
+            const intensity = { week: weekSeries, month: monthSeries, year: yearSeries };
+
+            // Drop riski + süreklilik — gerçek panelClients'tan türetilir
+            const dropClients = panelClients.filter((c: any) => c.dropRisk === 'high' || c.dropRisk === 'medium');
+            const dropRiskCard = {
+              count: dropClients.length,
+              copy: '14 günde 1+ iptal / sessizlik',
+              list: dropClients.slice(0, 3).map((c: any) => ({ name: c.name, reason: c.dropRisk === 'high' ? 'yüksek risk' : 'orta risk' })),
+            };
+            const contClients = [...panelClients]
+              .filter((c: any) => c.status !== 'passive' && (c.continuityPct ?? 0) > 0)
+              .sort((a: any, b: any) => (b.continuityPct ?? 0) - (a.continuityPct ?? 0))
+              .slice(0, 5)
+              .map((c: any) => ({ name: c.name, pct: c.continuityPct ?? 0, accent: (c.continuityPct ?? 0) >= 90 }));
+            const continuityCard = contClients.length
+              ? { headline: 'son 30 gün', copy: 'Son 30 günün seans katılım oranı; üst üste 3 seansını tamamlayanlar koyu.', clients: contClients, values: [] }
+              : undefined;
+
+            return (
+              <AnaSayfa
+                onNav={(t) => { if (t === 'calisma-alani') { setCalismaSubTab('hub'); setTab('calisma-alani'); } else if (t === 'calendar') goToTakvim(); else setTab(t as any); }}
+                dropRisk={dropRiskCard}
+                continuity={continuityCard}
+                therapist={{
+                  firstName:         (state.settings.therapistName ?? 'Terapist').split(' ')[0],
+                  dateLabel:         new Date().toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
+                  sessionCountToday: sessionsToday.length,
+                }}
+                stats={{
+                  totalSessions,
+                  activeClients,
+                  continuityPct: 92,
+                  pendingTasks,
+                }}
+                nextSession={sessionsToday[0] ? {
+                  time:       new Date(sessionsToday[0].start).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
+                  clientName: sessionsToday[0].title ?? 'Seans',
+                  meta:       `${sessionsToday.length}. seans · ${sessionsToday[0].modality ?? 'ACT'} · 50 dk`,
+                } : undefined}
+                todaySessions={sessionsList.length > 0 ? sessionsList : undefined}
+                weekly={{ days, totalLabel: `${totalWeek} seans` }}
+                intensity={intensity}
+                reflection={reflectionsState[0] ? {
+                  date:               new Date(reflectionsState[0].created_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' }),
+                  excerpt:            (reflectionsState[0].body ?? '').slice(0, 200),
+                  accentItalicPhrase: reflectionsState[0].accent_word ? ` ${reflectionsState[0].accent_word} ` : undefined,
+                  meta:               reflectionsState[0].meta ?? 'günlük yansıma',
+                } : undefined}
+                onOpenBriefing={() => {
+                  // İlk görüşme danışanı kontrolü (senkron — state'ten)
+                  const newToday = (state.patients as Patient[]).find(p =>
+                    (p.createdAt ?? '').slice(0, 10) === today &&
+                    (p.status === 'intake' || p.status === 'active')
+                  );
+                  const matchedEv = newToday
+                    ? (sessionsToday.find((ev: any) =>
+                        (ev.title ?? '').toLowerCase().includes(
+                          (newToday.adSoyad ?? '').split(' ')[0].toLowerCase()
+                        )
+                      ) ?? sessionsToday[0] ?? null)
+                    : null;
+                  setFirstContactClient(newToday ? { patient: newToday, calEvent: matchedEv } : null);
+
+                  // Anında mock ile aç, arka planda gerçek veriyi çek
+                  setRandevuOzet(makeMockBriefData(today));
+                  setDailyBriefOpen(true);
+
+                  fetch('/api/randevu-ozet')
+                    .then(r => r.json())
+                    .then(data => {
+                      const isEmpty =
+                        (data.cancellations?.length ?? 0) === 0 &&
+                        (data.newAppointments?.length ?? 0) === 0;
+                      setRandevuOzet(isEmpty ? makeMockBriefData(today) : data);
+                    })
+                    .catch(() => { /* mock zaten set edildi */ });
+                }}
+                onAskAssistant={() => console.log('assistant')}
+                resolvePatientId={(name) => matchPatientId(name)}
+                reviewedIds={reviewedToday}
+                onOpenPatient={(id) => {
+                  if (id) { markReviewed(id); router.push(`/danisan/${id}`); }
+                  else goToDanisanlar();
+                }}
+                onOpenPatientSessions={(id) => {
+                  if (id) { markReviewed(id); router.push(`/profil/${id}?from=havuz&focus=seanslar`); }
+                  else goToDanisanlar();
+                }}
+                onOpenFormulation={() => goToFormulasyon()}
+                onOpenProcesses={() => goToDanisanlar()}
+                onSaveWellbeing={async (score, note) => {
+                  await fetch('/api/reflections', {
+                    method:  'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body:    JSON.stringify({ type: 'check-in', score, text: note, meta: 'iyilik hali' }),
+                  });
+                }}
+                onWriteReflection={() => { setReflectFocus(true); setTab('terapist'); }}
+                onOpenContinuity={() => goToDanisanlar()}
+                onOpenWeekly={() => goToTakvim()}
+                onOpenSozluk={() => router.push('/sozluk')}
+              />
+            );
+          })()}
+
+          {/* ── Günlük Randevu Özeti Modal ───────────────────── */}
+          {dailyBriefOpen && (
+            <DailyBriefModal
+              randevuOzet={randevuOzet}
+              firstContact={firstContactClient}
+              today={new Date().toISOString().slice(0, 10)}
+              onClose={() => setDailyBriefOpen(false)}
+              onOpenPatient={(id) => {
+                setDailyBriefOpen(false);
+                setActivePatientId(id);
+                goToFormulasyon();
+              }}
+              onSaveMazeret={async (sbId, mazeret) => {
+                await fetch(`/api/seans-bildirimleri/${sbId}`, {
+                  method: 'PATCH',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ mazeret }),
+                });
+                // Lokal güncelle
+                setRandevuOzet(prev => prev ? {
+                  ...prev,
+                  cancellations: prev.cancellations.map(c =>
+                    c.id === sbId ? { ...c, mazeret } : c
+                  ),
+                } : prev);
+              }}
+            />
+          )}
+
+          {tab === "calisma-alani" && calismaSubTab === "takvim" && (
+            <TakvimRandevular
+              events={calEvents}
+              resolveClient={resolveClientForCalendar}
+              avgFee={avgClientFee}
+              availability={availability}
+              onAddBlock={async (b) => {
+                await fetch('/api/musaitlik/blok', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).catch(() => {});
+                refreshAvailability();
+              }}
+              gelisimEvents={gelisimEvents}
               onManualSync={async () => {
                 await fetch('/api/calendar-sync', { method: 'POST' }).catch(() => {});
+                await refreshCalendar();
               }}
-              onOpenInterventionSuggest={() => setTab('mudahale-kutuphanesi')}
-              onToggleHomework={async (i, done) => {
-                console.log('homework toggle', i, done);
+              onBack={() => setCalismaSubTab('hub')}
+              onNav={(t) => { if (t === 'home') setTab('home'); else if (t === 'calisma-alani') setCalismaSubTab('hub'); else if (t === 'calendar') goToTakvim(); else if (t === 'terapist') setTab('terapist'); else setTab(t as any); }}
+              onOpenClient={(name) => {
+                const id = resolvePatientByName(name);
+                if (id) { markReviewed(id); router.push(`/profil/${id}?from=havuz&focus=seanslar`); }
+                else goToDanisanlar();
               }}
-              onSendBulkSms={() => console.log('bulk-sms')}
-              onEditTemplate={(id) => console.log('edit-template', id)}
-              onCreateTemplate={() => console.log('create-template')}
+              onPrepareSession={(name) => {
+                const id = resolvePatientByName(name);
+                if (id) router.push(`/seansa-hazirlik/${id}`);
+                else goToDanisanlar();
+              }}
+              onNewAppointment={() => router.push('/seans-planlayici')}
+              onOpenInterventionSuggest={() => setTab('terapist')}
             />
           )}
-          {tab === "intake" && (
-            <DanisanlarPanelNew
-              clients={panelClients.length > 0 ? panelClients : undefined}
-              onCreateClient={() => {}}
-              onSelectClient={(id) => setActivePatientId(id)}
-              onOpenFormulation={(id) => { setActivePatientId(id); setTab("formulation"); }}
-              onOpenSessionNote={(id) => setActivePatientId(id)}
-              onScheduleAppointment={() => setTab("calendar")}
+          {tab === "calisma-alani" && calismaSubTab === "danisanlar" && (
+            <DanisanlarV2
+              clients={panelClients}
+              onBack={() => setCalismaSubTab('hub')}
+              onNav={(t) => setTab(t as Tab)}
+              onNewClient={() => setNewClientOpen(true)}
+              onPrefetchClient={(id) => router.prefetch(`/danisan/${id}`)}
+              onOpenClient={(id) => router.push(`/danisan/${id}`)}
             />
           )}
-          {tab === "formulation" && (() => {
-            const activePatient  = state.patients.find((p: any) => p.id === activePatientId);
-            const activeForm     = state.formulations.find((f: any) => f.patientId === activePatientId);
-            const activeSeanslar = (state.seanslar as any[]).filter((s: any) => s.patientId === activePatientId);
-            const hx = formulationPanelData?.hexaflex;
+          {tab === "calisma-alani" && calismaSubTab === "hub" && (() => {
+            const today = new Date().toISOString().slice(0, 10);
+            const activeCount  = panelClients.filter((c) => c.status === 'active' || c.status === 'follow').length;
+            const archiveCount = panelClients.filter((c) => c.status === 'passive').length;
+            const todaySeans   = calEvents.filter((e: any) => (e.start ?? '').slice(0, 10) === today).length;
+            const hubStats = [
+              { v: String(activeCount),  l: 'Aktif danışan' },
+              { v: String(archiveCount), l: 'Arşiv' },
+              { v: String(todaySeans),   l: 'Bugün seans' },
+            ];
+            const hubRecent = [...panelClients]
+              .filter((c) => c.lastSession)
+              .sort((a, b) => String(b.lastSession).localeCompare(String(a.lastSession)))
+              .slice(0, 4)
+              .map((c) => ({ id: c.id, name: c.name, topic: c.issue || '—' }));
             return (
-              <FormulasyonPanelNew
+              <CalismaAlaniV2
+                therapistName={(state.settings.therapistName ?? 'Göksel Akkaya').trim()}
+                stats={hubStats}
+                recent={hubRecent}
+                onBack={() => setTab('home')}
+                onNav={(t) => { if (t === 'calendar') goToTakvim(); else setTab(t as Tab); }}
+                onNewClient={() => setNewClientOpen(true)}
+                onOpenProfile={() => setTab('terapist')}
+                onOpenDanisanlar={goToDanisanlar}
+                onOpenTasarimlar={goToTasarimlar}
+                onOpenTakvim={goToTakvim}
+                onOpenMuhasebe={goToMuhasebe}
+                onOpenClient={(id) => router.push(`/danisan/${id}`)}
+              />
+            );
+          })()}
+          {tab === "calisma-alani" && calismaSubTab === "formulasyon" && (() => {
+            const activePatient = state.patients.find((p: any) => String(p.id) === String(activePatientId));
+            return (
+              <FormulasyonV2
                 client={activePatient ? {
                   id:    String(activePatient.id),
                   name:  activePatient.adSoyad ?? '—',
-                  age:   activePatient.yas ? Number(activePatient.yas) : undefined,
                   issue: activePatient.sunumSorunu ?? '—',
                 } : undefined}
-
-                viewMode={formMode}
-                onViewModeChange={setFormMode}
-
-                vizMode={vizMode}
-                onVizModeChange={setVizMode}
-                vizSlots={{
-                  harita: activePatient ? (
-                    <div style={{ width: '100%', height: '100%' }}>
-                      <DanisanMindMap
-                        patient={activePatient as any}
-                        formulation={activeForm as any}
-                        seanslar={activeSeanslar}
-                      />
-                    </div>
-                  ) : undefined,
-                  radar: (
-                    <div style={{ width: '100%', height: '100%' }}>
-                      <HexaflexRadarDyn
-                        formulationId={activePatient?.id ? Number(activePatient.id) : 0}
-                        initialScores={{
-                          defusion:         hx ? Math.max(1, 10 - hx.fusion)          : 5,
-                          acceptance:       hx ? Math.max(1, 10 - hx.avoidance)       : 5,
-                          present_moment:   hx?.presentMoment    ?? 5,
-                          self_as_context:  hx ? Math.max(1, 10 - hx.selfAsContent)   : 5,
-                          values_clarity:   hx?.values           ?? 5,
-                          committed_action: hx?.committedAction  ?? 5,
-                        }}
-                      />
-                    </div>
-                  ),
-                  dongu: (
-                    <div style={{ width: '100%', height: '100%' }}>
-                      <BozuklukDongusu />
-                    </div>
-                  ),
-                  vaka: (
-                    <div style={{ width: '100%', height: '100%' }}>
-                      <VakaHaritasi />
-                    </div>
-                  ),
-                  sema: (
-                    <div style={{ width: '100%', height: '100%' }}>
-                      <SemaTerapisiDyn />
-                    </div>
-                  ),
-                }}
-
-                isChild={(activePatient?.yas ? Number(activePatient.yas) : 18) < 18}
-                onSwitchToChildFlow={() => activePatientId && router.push(`/clients/${activePatientId}/cocuk`)}
-
                 fourP={formulationPanelData?.fourP}
-                beck={formulationPanelData?.beck}
-                hexaflex={hx ?? undefined}
+                hexaflex={formulationPanelData?.hexaflex ?? undefined}
                 summary={formulationPanelData?.summary ?? undefined}
-                maturityScore={formulationPanelData?.maturity}
-                stats={formulationPanelData?.stats}
-                sessionTimeline={formulationPanelData?.sessionTimeline}
-                selectedNode={selectedNodeData}
-
-                onApplyTemplate={async (id) => {
-                  if (!activePatientId) return;
-                  await fetch(`/api/formulations/${activePatientId}/apply-template`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ templateId: id }),
-                  });
-                }}
-                onCreateTemplate={() => console.log('create-template')}
-                onDownloadAttachment={(id) => window.open(`/api/items/${id}/download`)}
-                onUploadAttachment={() => console.log('upload-attachment')}
-                onAddNote={() => console.log('add-note')}
-                onExportPdf={async () => {
-                  if (!activePatientId) return;
-                  const res = await fetch(`/api/formulations/${activePatientId}/pdf`);
-                  if (res.ok) {
-                    const blob = await res.blob();
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a'); a.href = url;
-                    a.download = `formulasyon-${activePatientId}.pdf`; a.click();
-                    URL.revokeObjectURL(url);
-                  }
-                }}
-                onEmailSummary={() => console.log('email-summary')}
-                onSendToSupervision={() => console.log('send-to-supervision')}
-
-                onCreateIntervention={() => setTab('mudahale-kutuphanesi')}
-                onAddSupervisionNote={() => {}}
-                onRefreshSummary={async () => {
+                maturity={formulationPanelData?.maturity}
+                onBack={() => { setCalismaSubTab('hub'); setTab('calisma-alani'); }}
+                onNav={(t) => setTab(t as Tab)}
+                onSave={async () => {
                   if (!activePatientId) return;
                   const res = await fetch(`/api/formulations/${activePatientId}/panel`);
                   if (res.ok) setFormulationPanelData(await res.json());
                 }}
-                onCheckModelFit={() => console.log('model-fit')}
+                onOpenLibrary={() => setTab('mudahale-kutuphanesi')}
               />
             );
           })()}
+          {tab === "calisma-alani" && calismaSubTab === "tasarimlar" && (
+            <TasarimDosyalariV2
+              onBack={() => setCalismaSubTab('hub')}
+              onNav={(t) => setTab(t as Tab)}
+            />
+          )}
+          {tab === "calisma-alani" && calismaSubTab === "muhasebe" && (
+            <MuhasebePanel onBack={() => setCalismaSubTab('hub')} />
+          )}
           {tab === "terapist" && (
-            <TerapistProfil
-              therapistName={state.settings.therapistName}
-              patients={state.patients}
-              seanslar={state.seanslar as any}
-              onSettingsChange={async patch => {
-                const p: Partial<Settings_> = {};
-                if (patch.therapistName != null) p.therapistName = patch.therapistName;
-                if (patch.smsWebhookUrl != null) p.smsWebhookUrl = patch.smsWebhookUrl;
-                if (Object.keys(p).length) {
-                  dispatch({ type: 'SETTINGS', patch: p });
-                  await fetch('/api/settings', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(p) });
-                }
+            <TerapistProfilV2
+              key={profileKey}
+              focusReflection={reflectFocus}
+              onConsumedFocus={() => setReflectFocus(false)}
+              onBack={() => setTab('home')}
+              onNav={(target) => setTab(target as Tab)}
+              onEditProfile={() => setEditProfileOpen(true)}
+              onShareConsent={() => { window.location.href = 'https://www.elegantpsikoloji.com/onam-onizleme'; }}
+              onShareBooklet={(b) => setBookletShare({ open: true, booklet: b })}
+              gelisimEvents={gelisimEvents}
+              onAddGelisim={(ev) => setGelisimEvents((prev) => [...prev, { id: `gp-${Date.now()}`, done: false, ...ev }])}
+              settings={state.settings}
+              onUpdateSetting={async (patch) => {
+                dispatch({ type: 'SETTINGS', patch });
+                await fetch('/api/settings', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch) }).catch(() => {});
+              }}
+              onExportData={() => {
+                const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a'); a.href = url; a.download = `formulasyon-${new Date().toISOString().slice(0, 10)}.json`; a.click();
+                URL.revokeObjectURL(url);
               }}
             />
           )}
-          {tab === "tasarim-arsivi" && <TasarimArsivi />}
-          {tab === "mudahale-kutuphanesi" && (
-            <KutuphanePaneli
-              state={state}
-              dispatch={dispatch}
-              router={router}
-              interventions={interventions}
-              basket={basket}
-              setBasket={setBasket}
-              setInterventions={setInterventions}
-              activePatientId={activePatientId}
+          {tab === "tasarim-arsivi" && (
+            <YolHaritasiV2
+              onBack={() => { setCalismaSubTab('hub'); setTab('calisma-alani'); }}
+              onNav={(t) => setTab(t as Tab)}
+              onNewTool={() => {}}
             />
           )}
-          {tab === "act-gelistirme" && (() => {
-            const toolSlot =
-              actSubTab === 'hexaflex' ? <ACTDancing key={hexMode} initialMode={hexMode} /> :
-              actSubTab === 'triflex'  ? <ACTDancing key="triflex" initialMode="triflex" /> :
-              actSubTab === 'sefkat'   ? <SefkatCalismasi /> :
-              actSubTab === 'ekoller'  ? <EkolKarsilastirma /> :
-              undefined;
-            return (
-              <ActHubPanelNew
-                subTab={actSubTab}
-                onChangeSubTab={setActSubTab}
-                hexaflexMode={hexMode}
-                onHexaflexModeChange={setHexMode}
-                toolSlot={toolSlot}
-                onAddToSession={() => setTab('mudahale-kutuphanesi')}
-                onArchiveWork={() => console.log('act-archive')}
-                onAddSupervisionNote={() => console.log('act-supervision')}
-              />
-            );
-          })()}
-          {tab === "smart-hedef" && <SMARTHedef />}
+          {tab === "mudahale-kutuphanesi" && (
+            <MudahaleV2
+              interventions={interventions}
+              basket={basket}
+              onBack={() => { setCalismaSubTab('hub'); setTab('calisma-alani'); }}
+              onNav={(t) => setTab(t as Tab)}
+              onToggleFavorite={async (id) => {
+                const r = await fetch(`/api/interventions/${id}/favorite`, { method: 'POST' });
+                if (r.ok) {
+                  const result = await r.json();
+                  setInterventions(prev => prev.map(iv => iv.id === id ? { ...iv, favorite: result.favorite } : iv));
+                }
+              }}
+              onAddToBasket={(id) => setBasket(b => b.includes(id) ? b : [...b, id])}
+              onRemoveFromBasket={(id) => setBasket(b => b.filter(x => x !== id))}
+              onCreateSessionPlan={(ids) => {
+                const base = activePatientId
+                  ? `/seans-planlayici?client=${activePatientId}&from=${ids.join(',')}`
+                  : `/seans-planlayici?from=${ids.join(',')}`;
+                router.push(base);
+                setBasket([]);
+              }}
+            />
+          )}
+          {tab === "act-gelistirme" && (
+            <ACTGelistirmeV2
+              onBack={() => setTab('home')}
+              onNav={(t) => setTab(t as Tab)}
+              slots={{
+                hexaflex: <ACTDancing initialMode="hexaflex" />,
+                triflex:  <ACTDancing initialMode="triflex" />,
+                sefkat:   <SefkatCalismasi />,
+                schools:  <EkolKarsilastirma />,
+                smart:    <SMARTHedef />,
+              }}
+            />
+          )}
         </div>
       </main>
+      {/* ── Yeni danışan modalı (erişilebilir) ── */}
+      <NewClientModal
+        open={newClientOpen}
+        onClose={() => setNewClientOpen(false)}
+        dispatch={dispatch}
+        onCreated={(id) => { setActivePatientId(id); router.push(`/profil/${id}`); }}
+      />
+
+      {/* ── Terapist Profil: düzenle modalı ── */}
+      <ProfileEditModal
+        open={editProfileOpen}
+        onClose={() => setEditProfileOpen(false)}
+        currentName={state.settings.therapistName || 'Göksel Akkaya'}
+        onSaved={(name) => { dispatch({ type: 'SETTINGS', patch: { therapistName: name } }); setProfileKey(k => k + 1); }}
+      />
+
+      {/* ── Terapist Profil: onam formu paylaş modalı ── */}
+      <ShareLinkModal
+        open={bookletShare.open}
+        onClose={() => setBookletShare({ open: false })}
+        patients={state.patients as Patient[]}
+        formTipi="kitapcik"
+        payload={bookletShare.booklet}
+        modalTitle={bookletShare.booklet ? `Kitapçık gönder — ${bookletShare.booklet.title}` : 'Kitapçık gönder'}
+        ctaLabel="Bu danışana gönder"
+        successNoun="kitapçık bağlantısı"
+        note="Danışan bu bağlantıdan bilgilendirme kitapçığını okuyabilir."
+      />
+
+      {/* ── Bottom pill nav ── */}
+      <nav className="fixed bottom-[22px] left-0 right-0 z-[60] flex justify-center pointer-events-none">
+        <div className="pointer-events-auto flex items-center gap-1 rounded-full bg-[#131311] p-[7px] shadow-[0_24px_50px_-22px_rgba(0,0,0,0.55),0_2px_8px_-3px_rgba(0,0,0,0.4)] max-w-[calc(100vw-28px)] overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {NAV.map(n => {
+            const isActive = tab === n.id;
+            return (
+              <button
+                key={n.id}
+                onClick={() => { if (n.id === 'calisma-alani') setCalismaSubTab('hub'); setTab(n.id); }}
+                className={cx(
+                  "relative px-5 py-[11px] rounded-full text-[14px] transition-all whitespace-nowrap",
+                  isActive
+                    ? "bg-white text-[#15171d] font-semibold"
+                    : "font-medium text-[rgba(243,241,234,0.6)] hover:text-white",
+                )}
+              >
+                {n.label}
+              </button>
+            );
+          })}
+          <button
+            key="supervizyon"
+            onClick={() => router.push('/supervizyon')}
+            className={cx(
+              "relative px-5 py-[11px] rounded-full text-[14px] transition-all whitespace-nowrap",
+              "font-medium text-[rgba(243,241,234,0.6)] hover:text-white",
+            )}
+          >
+            Süpervizyon
+          </button>
+        </div>
+      </nav>
+
       {/* Brief floating button — visible when a patient is active */}
       <BriefModal
         patientId={activePatientId ?? undefined}

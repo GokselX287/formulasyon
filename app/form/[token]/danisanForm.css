@@ -1,0 +1,141 @@
+/* DANIŞAN ÖN-FORM (dış) — v2 port · .df2 scope (şasisiz, mobil) */
+
+/* =====================================================================
+   DANIŞAN FORMU (DIŞ) — danışana link ile gönderilen ön-form / ölçek
+   ŞASİSİZ · DOCK YOK · mobil öncelikli · marka hafif.
+   Tek-amaçlı: karşılama → bölümler (adım adım) → gönder → teşekkür.
+   "Klinik Editöryel Dosya" token'larının sadeleştirilmiş, açık varyantı.
+   ===================================================================== */
+.df2{
+  --font-display:'Plus Jakarta Sans','Helvetica Neue',Arial,sans-serif;
+  --font-ui:'Plus Jakarta Sans','Helvetica Neue',Arial,sans-serif;
+  --font-mono:'Space Mono',ui-monospace,monospace;
+  --ink:#2A2926; --ink-soft:#57554F; --ink-mute:#8C8A84; --ink-faint:#B6B4AD;
+  --paper:#FFFFFF; --paper-2:#F4F2ED; --line:rgba(42,41,38,.10); --line-2:rgba(42,41,38,.16);
+  --clay:#2A2926; --on-dark:#F6F4EF; --accent-gray:#A6A6A1; --now:#B5654A; --pos:#6E8A6E;
+  --shadow:0 1px 2px rgba(45,42,36,.06), 0 10px 30px -16px rgba(45,42,36,.18);
+  --r:16px; --r-pill:999px;
+}
+.df2 *{box-sizing:border-box;}
+.df2,.df2{margin:0;padding:0;}
+.df2{font-family:var(--font-ui);color:var(--ink);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+  background:radial-gradient(120% 90% at 50% 0%, #F3F0EA 0%, #E9E6DF 60%, #E1DDD4 100%);background-attachment:fixed;
+  min-height:100vh;}
+.df2 button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;}
+.df2 input,.df2 textarea{font-family:inherit;}
+.df2 .num{font-feature-settings:"tnum" 1;}
+
+.df2 .page{max-width:560px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;padding:0 18px;}
+
+/* marka başlık (hafif) */
+.df2 .brand{display:flex;align-items:center;gap:11px;padding:22px 4px 0;}
+.df2 .brand .mk{width:32px;height:32px;border-radius:10px;background:var(--clay);color:var(--on-dark);display:grid;place-items:center;font-family:var(--font-display);font-weight:700;font-size:15px;}
+.df2 .brand .bt{font-family:var(--font-display);font-weight:600;font-size:14.5px;letter-spacing:-.01em;}
+.df2 .brand .bt span{display:block;font-family:var(--font-mono);font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-mute);margin-top:2px;}
+.df2 .secure{margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--pos);}
+.df2 .secure svg{width:12px;height:12px;stroke:currentColor;stroke-width:2;fill:none;}
+
+/* ilerleme */
+.df2 .prog{position:sticky;top:0;z-index:10;background:linear-gradient(180deg,rgba(243,240,234,.96),rgba(243,240,234,.0));padding:18px 4px 12px;margin-top:14px;}
+.df2 .prog .pt{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:9px;}
+.df2 .prog .st{font-family:var(--font-mono);font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-mute);}
+.df2 .prog .pc{font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--ink);}
+.df2 .prog .track{height:5px;border-radius:var(--r-pill);background:var(--paper-2);overflow:hidden;box-shadow:inset 0 1px 2px rgba(45,42,36,.1);}
+.df2 .prog .fill{display:block;height:100%;border-radius:var(--r-pill);background:var(--clay);transition:width .4s cubic-bezier(.4,0,.2,1);}
+
+/* adım kartı */
+.df2 .step{display:none;flex-direction:column;gap:16px;padding:6px 0 24px;animation:fade .35s ease;}
+.df2 .step.on{display:flex;}
+@keyframes fade{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+.df2 .step-h{margin:4px 0 2px;}
+.df2 .step-h .e{font-family:var(--font-mono);font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--now);}
+.df2 .step-h h1{font-family:var(--font-display);font-weight:600;font-size:clamp(23px,6vw,30px);letter-spacing:-.02em;line-height:1.1;margin:10px 0 0;}
+.df2 .step-h p{font-size:14px;line-height:1.55;color:var(--ink-soft);margin:10px 0 0;}
+
+.df2 .field{display:flex;flex-direction:column;gap:8px;}
+.df2 .field label{font-size:13.5px;font-weight:600;color:var(--ink);}
+.df2 .field .req{color:var(--now);}
+.df2 .field input[type=text],.df2 .field input[type=email],.df2 .field input[type=tel],.df2 .field input[type=date],.df2 .field textarea,.df2 .field select{
+  background:var(--paper);border:1px solid var(--line-2);border-radius:12px;padding:14px 15px;font-size:16px;color:var(--ink);outline:none;
+  box-shadow:inset 0 1px 2px rgba(45,42,36,.04);transition:border-color .15s,box-shadow .15s;width:100%;}
+.df2 .field input:focus,.df2 .field textarea:focus,.df2 .field select:focus{border-color:var(--ink-faint);box-shadow:0 0 0 3px rgba(42,41,38,.08);}
+.df2 .field textarea{resize:vertical;min-height:104px;line-height:1.55;}
+.df2 .field .hint{font-size:12px;color:var(--ink-faint);}
+
+/* segment seçim (radio) */
+.df2 .opts{display:flex;flex-direction:column;gap:9px;}
+.df2 .opt{display:flex;align-items:center;gap:13px;background:var(--paper);border:1px solid var(--line-2);border-radius:13px;padding:14px 16px;transition:.14s;cursor:pointer;}
+.df2 .opt:hover{border-color:var(--ink-faint);}
+.df2 .opt .rb{width:20px;height:20px;border-radius:50%;border:2px solid var(--line-2);flex:none;display:grid;place-items:center;transition:.14s;}
+.df2 .opt .rb::after{content:"";width:9px;height:9px;border-radius:50%;background:var(--clay);transform:scale(0);transition:transform .15s;}
+.df2 .opt.on{border-color:var(--clay);background:#fbfaf7;}
+.df2 .opt.on .rb{border-color:var(--clay);}
+.df2 .opt.on .rb::after{transform:scale(1);}
+.df2 .opt .ol{font-size:14.5px;font-weight:500;}
+
+/* likert ölçek */
+.df2 .likert{display:flex;flex-direction:column;gap:18px;}
+.df2 .lq{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:16px 16px 14px;box-shadow:var(--shadow);}
+.df2 .lq .qt{font-size:14px;font-weight:500;line-height:1.4;margin-bottom:13px;}
+.df2 .lscale{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;}
+.df2 .lscale button{font-size:12px;font-weight:600;color:var(--ink-soft);background:var(--paper-2);border:1px solid var(--line);border-radius:10px;padding:11px 4px;line-height:1.2;transition:.13s;text-align:center;}
+.df2 .lscale button:hover{border-color:var(--ink-faint);}
+.df2 .lscale button.on{background:var(--clay);color:var(--on-dark);border-color:var(--clay);}
+
+/* navigasyon */
+.df2 .nav{display:flex;align-items:center;gap:12px;padding:14px 0 26px;position:sticky;bottom:0;background:linear-gradient(0deg,rgba(237,234,227,.98) 60%,rgba(237,234,227,0));}
+.df2 .nav .prev{font-size:14px;font-weight:600;color:var(--ink-soft);padding:14px 18px;border-radius:var(--r-pill);border:1px solid var(--line-2);background:var(--paper);transition:.14s;}
+.df2 .nav .prev:hover{color:var(--ink);}
+.df2 .nav .prev[disabled]{opacity:.4;pointer-events:none;}
+.df2 .nav .next{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:9px;font-size:15px;font-weight:700;color:var(--on-dark);
+  background:var(--clay);border-radius:var(--r-pill);padding:15px 22px;box-shadow:var(--shadow);transition:.15s;}
+.df2 .nav .next:hover{transform:translateY(-1px);}
+.df2 .nav .next svg{width:16px;height:16px;stroke:currentColor;stroke-width:2.4;fill:none;}
+
+/* onam kutusu */
+.df2 .consent{display:flex;gap:12px;align-items:flex-start;background:var(--paper);border:1px solid var(--line-2);border-radius:13px;padding:15px 16px;cursor:pointer;}
+.df2 .consent .cb{width:22px;height:22px;border-radius:7px;border:2px solid var(--line-2);flex:none;display:grid;place-items:center;transition:.14s;}
+.df2 .consent .cb svg{width:13px;height:13px;stroke:var(--on-dark);stroke-width:3;fill:none;opacity:0;transition:.14s;}
+.df2 .consent.on .cb{background:var(--clay);border-color:var(--clay);}
+.df2 .consent.on .cb svg{opacity:1;}
+.df2 .consent .ct{font-size:12.5px;line-height:1.5;color:var(--ink-soft);}
+.df2 .consent .ct b{color:var(--ink);font-weight:600;}
+
+/* teşekkür */
+.df2 .done-screen{display:none;flex-direction:column;align-items:center;text-align:center;gap:16px;padding:60px 16px;margin:auto 0;}
+.df2 .done-screen.on{display:flex;animation:fade .4s ease;}
+.df2 .done-screen .ring{width:72px;height:72px;border-radius:50%;background:var(--clay);color:var(--on-dark);display:grid;place-items:center;box-shadow:var(--shadow);}
+.df2 .done-screen .ring svg{width:34px;height:34px;stroke:currentColor;stroke-width:2.4;fill:none;}
+.df2 .done-screen h2{font-family:var(--font-display);font-weight:600;font-size:26px;letter-spacing:-.02em;margin:0;}
+.df2 .done-screen p{font-size:14.5px;line-height:1.6;color:var(--ink-soft);max-width:38ch;margin:0;}
+.df2 .done-screen .foot{font-family:var(--font-mono);font-size:10px;letter-spacing:.06em;color:var(--ink-faint);margin-top:8px;}
+
+.df2 .legal{text-align:center;font-size:11px;color:var(--ink-faint);padding:8px 0 28px;line-height:1.5;}
+
+
+/* yardımcılar (port eklemeleri) */
+.df2 .df-spin{width:34px;height:34px;border:4px solid var(--line-2);border-top-color:var(--clay);border-radius:50%;animation:df-rot .8s linear infinite;}
+@keyframes df-rot{to{transform:rotate(360deg);}}
+.df2 .df-band{border-radius:12px;padding:13px 15px;font-size:13.5px;font-weight:500;margin-top:2px;}
+@keyframes df-shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-6px);}75%{transform:translateX(6px);}}
+
+/* ── Hexaflex esneklik anketi (0–6 Likert) ── */
+.df2 .hexq-list{display:flex;flex-direction:column;gap:16px;}
+.df2 .hexq{background:var(--paper-2);border:1px solid var(--line);border-radius:14px;padding:14px 15px;}
+.df2 .hexq-text{font-size:14.5px;line-height:1.45;color:var(--ink);font-weight:500;}
+.df2 .hexq-scale{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:12px;}
+.df2 .hexq-dot{aspect-ratio:1/1;border-radius:10px;border:1px solid var(--line-2);background:var(--paper);
+  font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--ink-soft);cursor:pointer;transition:.12s;}
+.df2 .hexq-dot:hover{border-color:var(--ink-faint);color:var(--ink);}
+.df2 .hexq-dot.on{background:var(--clay);border-color:var(--clay);color:var(--on-dark);}
+.df2 .hexq-ends{display:flex;justify-content:space-between;margin-top:7px;font-family:var(--font-mono);font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint);}
+
+/* C ACT matrisi salt-okunur (danışan) */
+.df2 .mtx-list{display:flex;flex-direction:column;gap:12px;}
+.df2 .mtx-q{background:var(--paper-2);border:1px solid var(--line);border-radius:14px;padding:14px 15px;border-left:4px solid var(--ink-faint);}
+.df2 .mtx-q.toward{border-left-color:var(--pos);}
+.df2 .mtx-q.away{border-left-color:var(--now);}
+.df2 .mtx-side{font-family:var(--font-mono);font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-mute);}
+.df2 .mtx-qtext{font-size:14px;font-weight:600;color:var(--ink);margin-top:5px;}
+.df2 .mtx-items{margin:9px 0 0;padding-left:18px;}
+.df2 .mtx-items li{font-size:13.5px;line-height:1.5;color:var(--ink-soft);margin-top:3px;}

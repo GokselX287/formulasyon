@@ -39,3 +39,14 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# yerel SQLite veritabanı (danışan PII — git'e girmez)
+*.db
+*.db-shm
+*.db-wal
+
+# yerel agent / harness yapılandırması
+.claude/
+
+# yüklenen danışan dosyaları
+/public/uploads/

@@ -521,6 +521,103 @@ export function getDb(): Database.Database {
 
       db.pragma('user_version = 16');
     }
+
+    if (version < 17) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS reflections (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          therapist_id INTEGER,
+          body TEXT,
+          accent_word TEXT,
+          emotions TEXT,
+          created_at TEXT DEFAULT (datetime('now'))
+        )
+      `);
+      db.pragma('user_version = 17');
+    }
+
+    if (version < 18) {
+      // Add type, emotion, meta columns to reflections
+      db.exec(`
+        ALTER TABLE reflections ADD COLUMN type TEXT NOT NULL DEFAULT 'daily';
+        ALTER TABLE reflections ADD COLUMN emotion TEXT;
+        ALTER TABLE reflections ADD COLUMN meta TEXT;
+      `);
+      db.pragma('user_version = 18');
+    }
+
+    if (version < 19) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS supervizyon_notlari (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          note_no TEXT,
+          date TEXT,
+          case_code TEXT,
+          topic TEXT,
+          supervisor_name TEXT,
+          therapist_initials TEXT,
+          segments_json TEXT,
+          themes_json TEXT,
+          difficulty INTEGER,
+          learning INTEGER,
+          red_flag TEXT,
+          created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      db.pragma('user_version = 19');
+    }
+
+    // v20: benlik_algisi_json kolonu formulations tablosuna
+    if (version < 20) {
+      db.exec(`
+        ALTER TABLE formulations ADD COLUMN benlik_algisi_json TEXT;
+      `);
+      db.pragma('user_version = 20');
+    }
+
+    if (version < 21) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS design_files (
+          id          TEXT PRIMARY KEY,
+          name        TEXT NOT NULL,
+          original_name TEXT NOT NULL,
+          mime_type   TEXT NOT NULL,
+          size_bytes  INTEGER NOT NULL,
+          source      TEXT NOT NULL DEFAULT 'upload',  -- 'upload' | 'canva'
+          canva_id    TEXT,                            -- Canva design ID (ileride)
+          thumbnail   TEXT,                            -- /uploads/designs/thumb_*.jpg
+          path        TEXT NOT NULL,                   -- /uploads/designs/*.ext
+          notes       TEXT,
+          created_at  TEXT NOT NULL
+        );
+      `);
+      db.pragma('user_version = 21');
+    }
+
+    if (version < 22) {
+      // Terapist iyilik hali check-in'i: 0-10 skor (reflections type='check-in')
+      try { db.exec(`ALTER TABLE reflections ADD COLUMN score INTEGER`); } catch {}
+      db.pragma('user_version = 22');
+    }
+
+    if (version < 23) {
+      // Danışan seans ücreti (TL) — haftalık kazanç tahmini için
+      try { db.exec(`ALTER TABLE clients ADD COLUMN seans_ucreti INTEGER`); } catch {}
+      db.pragma('user_version = 23');
+    }
+
+    if (version < 24) {
+      // Form-link payload (JSON) — Hexaflex esneklik anketi soruları için
+      try { db.exec(`ALTER TABLE form_linkleri ADD COLUMN payload TEXT`); } catch {}
+      db.pragma('user_version = 24');
+    }
+
+    if (version < 25) {
+      // Danışan: takip sıklığı (aktif danışan kırılımı) + kişilik tipi
+      try { db.exec(`ALTER TABLE clients ADD COLUMN takip_sikligi TEXT`); } catch {}
+      try { db.exec(`ALTER TABLE clients ADD COLUMN kisilik_tipi TEXT`); } catch {}
+      db.pragma('user_version = 25');
+    }
   }
   return db;
 }

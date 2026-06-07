@@ -1,36 +1,90 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ACT Vaka Formulasyonu
 
-## Getting Started
+Psikologlar icin lokal calisan ACT (Acceptance and Commitment Therapy) vaka formulasyon uygulamasi. Tum veriler bilgisayarda saklanir, internete gonderilmez.
 
-First, run the development server:
+## Nasil Calistirilir
+
+### Gereksinimler
+
+- Node.js 18+
+- npm
+
+### Baslangic
 
 ```bash
+cd /Users/ga/formulasyon
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Tarayicida [http://localhost:3000](http://localhost:3000) adresini ac.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Uretim Derlemesi
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build
+npm start
+```
 
-## Learn More
+## Veritabani
 
-To learn more about Next.js, take a look at the following resources:
+**data.db** dosyasi proje klasorunde olusur (`/Users/ga/formulasyon/data.db`).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Uygulama ilk calismada otomatik olusturur.
+- Silinirse tum veriler kaybolur; uygulama temiz baslar.
+- Git tarafindan izlenmez (`.gitignore`'a eklenebilir).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Yedek Alma
 
-## Deploy on Vercel
+```bash
+# Manuel yedek
+cp /Users/ga/formulasyon/data.db /Users/ga/formulasyon/data.db.bak
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+# Tarihli yedek
+cp /Users/ga/formulasyon/data.db "/Users/ga/formulasyon/data_$(date +%Y%m%d_%H%M).db"
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Otomatik Yedek (cron ornegi)
+
+Her gun saat 18:00'de yedek almak icin `crontab -e` ile ekle:
+
+```
+0 18 * * * cp /Users/ga/formulasyon/data.db "/Users/ga/Desktop/formulasyon_yedek_$(date +\%Y\%m\%d).db"
+```
+
+## Klasor Yapisi
+
+```
+formulasyon/
+  data.db              <- SQLite veritabani (runtime'da olusur)
+  lib/
+    db.ts              <- Veritabani baglantisi (WAL modu)
+    schema.sql         <- Tablo tanimlari
+    queries.ts         <- CRUD fonksiyonlari
+  app/
+    page.tsx           <- Danisan listesi
+    clients/[id]/
+      layout.tsx       <- Sol sekme seridi (9 sekme)
+      [tab]/page.tsx   <- Sekme icerikleri
+    api/               <- REST endpoint'leri
+  components/
+    ChipList.tsx       <- Etiket listesi bileseni
+    HexaflexRadar.tsx  <- 6 eksenli ACT radar grafigi (SVG)
+    MatrixGrid.tsx     <- ACT matrisi (4 kadran)
+    Field.tsx          <- Form alani sarmalayici
+    Section.tsx        <- Kart/bolum sarmalayici
+```
+
+## Sekmeler
+
+| Sekme | Icerik |
+|-------|--------|
+| 01 Profil | Danisan demografik bilgileri |
+| 02 Sorun & Hedef | Sunulan sorun, danisan/terapist hedefleri |
+| 03 Bariyerler | Engel dusunceler, duygular, anlar; kontrol stratejileri |
+| 04 Esneklik | Hexaflex radar (slider ile 0-10 puanlama) |
+| 05 Degerler | Temel degerler + ACT matrisi |
+| 06 Guclu Yanlar | Kaynaklar ve guclu yanlar |
+| 07 Hikaye | Serbest anlati metni |
+| 08 Mudahaleler | Yapilan/planlanan mudahaleler, eylem adimlari |
+| 09 Iliski | Klinik notlar, kirilma/onarim, supervizyon sorulari |

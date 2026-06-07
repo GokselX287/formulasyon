@@ -1,0 +1,207 @@
+/* ============================================================
+ * Psikoloji Sözlüğü — bülten sayfası
+ * sz-* prefix · globals.css tokenlarını kullanır
+ * ============================================================ */
+
+.sz {
+  --sz-bg:        var(--bg, #EFEDE8);
+  --sz-paper:     var(--paper, #FAF8F5);
+  --sz-ink:       var(--ink, #0E0F12);
+  --sz-ink-2:     var(--ink-2, #3A3C42);
+  --sz-muted:     var(--muted, #7B7C82);
+  --sz-line:      var(--line, rgba(14, 15, 18, 0.10));
+  --sz-line-2:    var(--line-2, rgba(14, 15, 18, 0.06));
+  --sz-accent:    var(--accent, #C2522A);
+  --sz-accent-soft: rgba(194, 82, 42, 0.10);
+  --sz-green:     var(--green, #2F5D3A);
+
+  --sz-serif: var(--font-fraunces, 'Fraunces'), 'Times New Roman', serif;
+  --sz-sans:  var(--font-jakarta, 'Plus Jakarta Sans'), system-ui, sans-serif;
+  --sz-mono:  var(--font-mono, 'JetBrains Mono'), ui-monospace, monospace;
+
+  min-height: 100vh;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 28px 32px 80px;
+  display: flex; flex-direction: column;
+  gap: 40px;
+  background: var(--sz-bg);
+  color: var(--sz-ink);
+  font: 400 14.5px/1.55 var(--sz-sans);
+}
+
+.sz-eyebrow {
+  display: inline-flex; align-items: center; gap: 6px;
+  font: 500 11px/1 var(--sz-mono);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--sz-muted);
+}
+
+/* ── Üst bar ── */
+.sz-topbar {
+  display: flex; align-items: center; justify-content: space-between;
+}
+.sz-back {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: transparent; border: 0; cursor: pointer;
+  font: 500 13px/1 var(--sz-sans);
+  color: var(--sz-ink-2);
+  padding: 6px 0;
+  transition: color .2s;
+}
+.sz-back:hover { color: var(--sz-accent); }
+
+/* ── Başlık ── */
+.sz-hero { display: flex; flex-direction: column; gap: 16px; }
+.sz-title {
+  margin: 0;
+  font: 300 52px/1.0 var(--sz-serif);
+  letter-spacing: -0.025em;
+}
+.sz-title em { font-style: italic; color: var(--sz-accent); }
+.sz-sub {
+  margin: 0;
+  max-width: 620px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--sz-ink-2);
+}
+
+/* ── Filtre ── */
+.sz-filter {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  margin-top: 4px;
+  border-radius: 12px;
+  background: rgba(14, 15, 18, 0.04);
+  width: fit-content;
+}
+.sz-tab {
+  cursor: pointer;
+  border: 0; background: transparent;
+  padding: 7px 16px;
+  border-radius: 9px;
+  font: 500 12.5px/1 var(--sz-sans);
+  letter-spacing: 0.02em;
+  color: var(--sz-muted);
+  transition: all .18s;
+}
+.sz-tab:hover { color: var(--sz-ink); }
+.sz-tab.on {
+  background: var(--sz-paper);
+  color: var(--sz-ink);
+  box-shadow: 0 1px 4px rgba(16, 24, 40, 0.10);
+}
+
+/* ── Bülten ── */
+.sz-bulten { display: flex; flex-direction: column; gap: 22px; }
+.sz-bulten-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 24px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--sz-line);
+}
+.sz-bulten-head-left { display: flex; gap: 16px; align-items: flex-start; }
+.sz-abbr {
+  flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 52px; height: 52px; padding: 0 12px;
+  border-radius: 14px;
+  font: 600 16px/1 var(--sz-mono);
+  letter-spacing: 0.06em;
+  color: var(--sz-muted);
+  background: rgba(14, 15, 18, 0.05);
+  border: 1px solid var(--sz-line-2);
+}
+.sz-abbr.bdt {
+  color: var(--sz-green);
+  background: rgba(47, 93, 58, 0.08);
+  border-color: rgba(47, 93, 58, 0.20);
+}
+.sz-abbr.act {
+  color: var(--sz-accent);
+  background: var(--sz-accent-soft);
+  border-color: rgba(194, 82, 42, 0.22);
+}
+.sz-bulten-ad {
+  margin: 4px 0 4px;
+  font: 400 24px/1.1 var(--sz-serif);
+  letter-spacing: -0.01em;
+}
+.sz-bulten-ozet {
+  margin: 0;
+  max-width: 540px;
+  font-size: 13.5px;
+  color: var(--sz-muted);
+}
+.sz-bulten-meta {
+  flex-shrink: 0;
+  font: 500 11px/1 var(--sz-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--sz-muted);
+  padding-top: 6px;
+}
+
+/* ── Kartlar ── */
+.sz-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18px;
+}
+.sz-card {
+  padding: 22px 24px;
+  border-radius: 18px;
+  background: var(--sz-paper);
+  border: 1px solid var(--sz-line-2);
+  display: flex; flex-direction: column;
+  gap: 8px;
+  scroll-margin-top: 24px;
+}
+.sz-card-top { display: flex; align-items: center; gap: 8px; }
+.sz-kategori {
+  font: 500 10px/1 var(--sz-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--sz-muted);
+}
+.sz-terim {
+  margin: 0;
+  font: 400 23px/1.12 var(--sz-serif);
+  letter-spacing: -0.015em;
+  color: var(--sz-ink);
+}
+.sz-tanim {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--sz-ink);
+}
+.sz-govde {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--sz-ink-2);
+}
+.sz-etiketler {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  margin-top: 6px;
+}
+.sz-etiket {
+  font: 500 11px/1 var(--sz-sans);
+  padding: 5px 10px;
+  border-radius: 999px;
+  color: var(--sz-muted);
+  background: rgba(14, 15, 18, 0.04);
+  border: 1px solid var(--sz-line-2);
+}
+
+@media (max-width: 720px) {
+  .sz { padding: 22px 18px 64px; gap: 32px; }
+  .sz-title { font-size: 38px; }
+  .sz-grid { grid-template-columns: 1fr; }
+  .sz-bulten-head { flex-direction: column; gap: 14px; }
+}

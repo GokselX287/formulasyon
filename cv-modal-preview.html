@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CV Modal — Eğitim & Kariyer Geçmişi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400&family=Plus+Jakarta+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:       #EFEDE8;
+    --paper:    #FAF8F5;
+    --ink:      #0E0F12;
+    --ink-2:    #3A3C42;
+    --muted:    #7B7C82;
+    --line:     rgba(14,15,18,0.10);
+    --line-2:   rgba(14,15,18,0.06);
+    --serif:    'Fraunces', 'Times New Roman', serif;
+    --sans:     'Plus Jakarta Sans', system-ui, sans-serif;
+    --mono:     'JetBrains Mono', ui-monospace, monospace;
+  }
+
+  body {
+    background: var(--bg);
+    font-family: var(--sans);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 40px 20px;
+  }
+
+  /* ── Modal shell ───────────────────────────────────────── */
+  .modal {
+    background: var(--paper);
+    border-radius: 20px;
+    border: 1px solid var(--line);
+    width: 100%;
+    max-width: 660px;
+    box-shadow: 0 24px 64px rgba(14,15,18,0.16), 0 4px 16px rgba(14,15,18,0.08);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Header ────────────────────────────────────────────── */
+  .modal-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 20px 20px 16px;
+    border-bottom: 1px solid var(--line-2);
+    gap: 12px;
+  }
+  .modal-head-left { display: flex; align-items: flex-start; gap: 14px; }
+  .modal-head-icon {
+    font-size: 20px;
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    background: rgba(14,15,18,0.04);
+    border: 1px solid var(--line-2);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .eyebrow {
+    display: block;
+    font: 600 10px/1 var(--mono);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 5px;
+  }
+  .modal-name {
+    font: 700 19px/1.2 var(--serif);
+    color: var(--ink);
+    margin-bottom: 3px;
+  }
+  .modal-meta {
+    font: 400 12px/1 var(--sans);
+    color: var(--muted);
+  }
+  .modal-close {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    border: 1px solid var(--line);
+    background: transparent;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    color: var(--muted);
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .modal-close:hover { background: rgba(14,15,18,0.06); color: var(--ink); }
+
+  /* ── Stats bandı ───────────────────────────────────────── */
+  .stats {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--line-2);
+    background: rgba(14,15,18,0.02);
+    flex-shrink: 0;
+  }
+  .stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 0 22px;
+  }
+  .stat-num {
+    font: 700 22px/1 var(--serif);
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+  .stat-label {
+    font: 500 10px/1 var(--mono);
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .stat-divider { width: 1px; height: 28px; background: var(--line); flex-shrink: 0; }
+
+  /* ── Gövde ─────────────────────────────────────────────── */
+  .body { overflow-y: auto; max-height: 62vh; }
+
+  /* Section label */
+  .section-label {
+    display: block;
+    font: 600 10px/1 var(--mono);
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  /* Temel 2-sütun */
+  .foundation {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    padding: 14px 14px 0;
+  }
+  .block {
+    border: 1px solid var(--block-color-border);
+    border-radius: 12px;
+    padding: 11px 13px 12px;
+    background: var(--block-bg);
+  }
+  .block-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font: 600 10px/1 var(--mono);
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--block-color);
+    margin-bottom: 9px;
+  }
+  .block-row {
+    display: flex;
+    gap: 8px;
+    padding: 6px 0;
+    border-top: 1px solid var(--line-2);
+  }
+  .block-row:first-of-type { border-top: none; }
+  .block-year {
+    font: 600 10px/1.6 var(--mono);
+    letter-spacing: 0.04em;
+    color: var(--block-color);
+    flex-shrink: 0;
+    width: 40px;
+  }
+  .block-title {
+    display: block;
+    font: 500 12.5px/1.3 var(--sans);
+    color: var(--ink);
+  }
+  .block-inst {
+    display: block;
+    font: 400 11px/1.3 var(--sans);
+    color: var(--muted);
+  }
+  .block-detail {
+    display: block;
+    font: 400 10.5px/1.4 var(--sans);
+    color: var(--muted);
+    font-style: italic;
+    margin-top: 2px;
+  }
+
+  /* Zaman çizelgesi */
+  .tl-section { padding: 14px 14px 0; }
+  .tl { display: flex; flex-direction: column; }
+  .tl-row { display: grid; grid-template-columns: 46px 16px 1fr; gap: 0 8px; }
+  .tl-year {
+    font: 600 10px/1 var(--mono);
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    text-align: right;
+    padding-top: 4px;
+  }
+  .tl-spine { display: flex; flex-direction: column; align-items: center; }
+  .tl-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 4px;
+  }
+  .tl-line { width: 2px; flex: 1; min-height: 14px; margin-top: 2px; opacity: 0.5; }
+  .tl-content { padding-bottom: 12px; }
+  .tl-group {
+    display: block;
+    font: 600 9px/1 var(--mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+  .tl-title {
+    display: block;
+    font: 500 13px/1.3 var(--sans);
+    color: var(--ink);
+  }
+  .tl-inst {
+    display: block;
+    font: 400 11.5px/1.3 var(--sans);
+    color: var(--muted);
+  }
+  .tl-detail {
+    display: block;
+    font: 400 10.5px/1.4 var(--sans);
+    color: var(--muted);
+    font-style: italic;
+    margin-top: 2px;
+  }
+
+  /* Alt bant */
+  .bottom {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 10px;
+    padding: 14px;
+    align-items: start;
+  }
+  .badge {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 11px 13px;
+    background: rgba(184,134,11,0.06);
+    border: 1px solid rgba(184,134,11,0.22);
+    border-radius: 12px;
+  }
+  .badge-icon { font-size: 18px; margin-top: 1px; }
+  .badge-title { display: block; font: 600 12.5px/1.3 var(--sans); color: var(--ink); }
+  .badge-inst  { display: block; font: 400 10.5px/1.4 var(--sans); color: var(--muted); }
+  .badge-year  { display: block; font: 600 10px/1 var(--mono); letter-spacing: 0.06em; color: #b8860b; margin-top: 4px; }
+
+  .specs {
+    padding: 11px 13px;
+    background: rgba(74,74,106,0.04);
+    border: 1px solid rgba(74,74,106,0.13);
+    border-radius: 12px;
+  }
+  .spec-pills { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+  .pill {
+    font: 400 11.5px/1 var(--sans);
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: rgba(74,74,106,0.07);
+    border: 1px solid rgba(74,74,106,0.15);
+    color: #4a4a6a;
+  }
+  .pill.hi { font-weight: 600; background: rgba(74,74,106,0.13); border-color: rgba(74,74,106,0.28); }
+</style>
+</head>
+<body>
+
+<div class="modal">
+
+  <!-- Header -->
+  <div class="modal-head">
+    <div class="modal-head-left">
+      <div class="modal-head-icon">📋</div>
+      <div>
+        <span class="eyebrow">eğitim &amp; kariyer geçmişi</span>
+        <h3 class="modal-name">Göksel Akkaya</h3>
+        <p class="modal-meta">Psikolojik Danışman · BDT · ACT · MKT</p>
+      </div>
+    </div>
+    <button class="modal-close" onclick="document.body.style.opacity='0.5'">✕</button>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat">
+      <span class="stat-num">10</span>
+      <span class="stat-label">yıl pratik</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat">
+      <span class="stat-num">12</span>
+      <span class="stat-label">terapi eğitimi</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat">
+      <span class="stat-num">5K+</span>
+      <span class="stat-label">bireysel görüşme</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat">
+      <span class="stat-num">EABCT</span>
+      <span class="stat-label">akredite</span>
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div class="body">
+
+    <!-- Temel 2-sütun -->
+    <div class="foundation">
+
+      <!-- Akademik -->
+      <div class="block" style="--block-color:#3B6EA5; --block-color-border:rgba(59,110,165,0.22); --block-bg:rgba(59,110,165,0.04);">
+        <div class="block-head"><span>🎓</span><span>Akademik Eğitim</span></div>
+        <div class="block-row">
+          <span class="block-year">–2014</span>
+          <div>
+            <span class="block-title">PDR Lisans (İngilizce)</span>
+            <span class="block-inst">Orta Doğu Teknik Üniversitesi</span>
+          </div>
+        </div>
+        <div class="block-row">
+          <span class="block-year">–2016</span>
+          <div>
+            <span class="block-title">Yönetim ve Organizasyon (MBA)</span>
+            <span class="block-inst">Marmara Üniversitesi</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Deneyim -->
+      <div class="block" style="--block-color:#C2522A; --block-color-border:rgba(194,82,42,0.22); --block-bg:rgba(194,82,42,0.04);">
+        <div class="block-head"><span>🏥</span><span>Mesleki Deneyim</span></div>
+        <div class="block-row">
+          <span class="block-year">2016–</span>
+          <div>
+            <span class="block-title">Psikolojik Danışman</span>
+            <span class="block-inst">Elegant Psikoloji — Tekirdağ</span>
+            <span class="block-detail">5.000+ bireysel görüşme · BDT, ACT, MKT</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Zaman çizelgesi -->
+    <div class="tl-section">
+      <span class="section-label">Eğitim Kronolojisi</span>
+      <div class="tl">
+
+        <div class="tl-row">
+          <span class="tl-year">2016</span>
+          <div class="tl-spine">
+            <span class="tl-dot" style="background:#7A6A3F;"></span>
+            <span class="tl-line" style="background:linear-gradient(#7A6A3F,#7A6A3F);"></span>
+          </div>
+          <div class="tl-content">
+            <span class="tl-group" style="color:#7A6A3F;">Diğer Eğitimler</span>
+            <span class="tl-title">İletişim &amp; Müşteri Deneyimi Sertifikaları</span>
+            <span class="tl-inst">TelephoneDoctor, İstanbul</span>
+          </div>
+        </div>
+
+        <div class="tl-row">
+          <span class="tl-year">2019</span>
+          <div class="tl-spine">
+            <span class="tl-dot" style="background:#7A6A3F;"></span>
+            <span class="tl-line" style="background:linear-gradient(#7A6A3F,#7A6A3F);"></span>
+          </div>
+          <div class="tl-content">
+            <span class="tl-group" style="color:#7A6A3F;">Diğer Eğitimler</span>
+            <span class="tl-title">Uygulayıcı Test Sertifikaları</span>
+            <span class="tl-inst">Bilgelik Enstitüsü &amp; BDT Derneği, İstanbul</span>
+            <span class="tl-detail">WISC-R, D2, Burdon, Raven, Peabody, Catell 2-A, Metropolitan, AGTE</span>
+          </div>
+        </div>
+
+        <div class="tl-row">
+          <span class="tl-year">2019</span>
+          <div class="tl-spine">
+            <span class="tl-dot" style="background:#7A6A3F;"></span>
+            <span class="tl-line" style="background:linear-gradient(#7A6A3F,#1a6b4a);"></span>
+          </div>
+          <div class="tl-content">
+            <span class="tl-group" style="color:#7A6A3F;">Diğer Eğitimler</span>
+            <span class="tl-title">Hipnoterapi &amp; Cinsel Terapide Hipnoterapi</span>
+            <span class="tl-inst">Bülent URAN — Cinsel Sağlık Enstitüsü, İstanbul</span>
+          </div>
+        </div>
+
+        <div class="tl-row">
+          <span class="tl-year">2020</span>
+          <div class="tl-spine">
+            <span class="tl-dot" style="background:#1a6b4a;"></span>
+            <span class="tl-line" style="background:linear-gradient(#1a6b4a,#1a6b4a);"></span>
+          </div>
+          <div class="tl-content">
+            <span class="tl-group" style="color:#1a6b4a;">BDT Eğitimleri</span>
+            <span class="tl-title">BDT Teorik Eğitim</span>
+            <span class="tl-inst">M. Hakan TÜRKÇAPAR — BDT Derneği, İstanbul</span>
+            <span class="tl-detail">Depresyon, Panik, OKB, Sosyal Anksiyete, TSSB, YAB</span>
+          </div>
+        </div>
+
+        <div class="tl-row">
+          <span class="tl-year">2021</span>
+          <div class="tl-spine">
+            <span class="tl-dot" style="background:#1a6b4a;"></span>
+            <span class="tl-line" style="background:linear-gradient(#1a6b4a,#1a6b4a);"></span>
+          </div>
+          <div class="tl-content">
+            <span class="tl-group" style="color:#1a6b4a;">BDT Eğitimleri</span>
+            <span class="tl-title">BDT Beceri Kazandırma Eğitimi</span>
+            <span class="tl-inst">M. Hakan TÜRKÇAPAR — BDT Derneği, İstanbul</span>
+          </div>
+        </div>
+
+        <div class="tl-row">
+          <span class="tl-year">2021</span>
+          <div class="tl-spine">
+            <span class="tl-dot" style="background:#1a6b4a;"></span>
+            <span class="tl-line" style="background:linear-gradient(#1a6b4a,#1a6b4a);"></span>
+          </div>
+          <div class="tl-content">
+            <span class="tl-group" style="color:#1a6b4a;">BDT Eğitimleri</span>
+            <span class="tl-title">BDT Süpervizyon — 1. Süpervizyon</span>
+            <span class="tl-inst">M. Hakan TÜRKÇAPAR — BDT Derneği, Antalya</span>
+          </div>
+        </div>
+
+        <div class="tl-row">
+          <span class="tl-year">2022</span>
+          <div class="tl-spine">
+            <span class="tl-dot" style="background:#1a6b4a;"></span>
+            <span class="tl-line" style="background:linear-gradient(#1a6b4a,#1a6b4a);"></span>
+          </div>
+          <div class="tl-content">
+            <span class="tl-group" style="color:#1a6b4a;">BDT Eğitimleri</span>
+            <span class="tl-title">BDT İleri Düzey 2. Modül</span>
+            <span class="tl-inst">M. Hakan TÜRKÇAPAR — BDT Derneği, Ankara</span>
+            <span class="tl-detail">Yeme Bozuklukları, Bağımlılık, Psikoz, TSSB Oxford, ACT, Farkındalık, OKB, Şema, CFT</span>
+          </div>
+        </div>
+
+        <div class="tl-row">
+          <span class="tl-year">2022–23</span>
+          <div class="tl-spine">
+            <span class="tl-dot" style="background:#1a6b4a;"></span>
+            <span class="tl-line" style="background:linear-gradient(#1a6b4a,#1a6b4a);"></span>
+          </div>
+          <div class="tl-content">
+            <span class="tl-group" style="color:#1a6b4a;">BDT Eğitimleri</span>
+            <span class="tl-title">BDT Süpervizyon — 2. Süpervizyon</span>
+            <span class="tl-inst">M. Hakan TÜRKÇAPAR — BDT Derneği, İstanbul</span>
+          </div>
+        </div>
+
+        <div class="tl-row">
+          <span class="tl-year">2023–24</span>
+          <div class="tl-spine">
+            <span class="tl-dot" style="background:#1a6b4a;"></span>
+            <span class="tl-line" style="background:linear-gradient(#1a6b4a,#1a6b4a);"></span>
+          </div>
+          <div class="tl-content">
+            <span class="tl-group" style="color:#1a6b4a;">BDT Eğitimleri</span>
+            <span class="tl-title">BDT Süpervizyon — 3. Süpervizyon</span>
+            <span class="tl-inst">M. Hakan TÜRKÇAPAR — BDT Derneği, İstanbul</span>
+          </div>
+        </div>
+
+        <div class="tl-row">
+          <span class="tl-year">2023–24</span>
+          <div class="tl-spine">
+            <span class="tl-dot" style="background:#1a6b4a;"></span>
+            <span class="tl-line" style="background:linear-gradient(#1a6b4a,#5a3e9b);"></span>
+          </div>
+          <div class="tl-content">
+            <span class="tl-group" style="color:#1a6b4a;">BDT Eğitimleri</span>
+            <span class="tl-title">Çocuk &amp; Ergenlere Yönelik BDT</span>
+            <span class="tl-inst">Vahdet GÖRMEZ — BDT Derneği, İstanbul</span>
+          </div>
+        </div>
+
+        <div class="tl-row">
+          <span class="tl-year">2025</span>
+          <div class="tl-spine">
+            <span class="tl-dot" style="background:#5a3e9b;"></span>
+            <span class="tl-line" style="background:linear-gradient(#5a3e9b,#5a3e9b);"></span>
+          </div>
+          <div class="tl-content">
+            <span class="tl-group" style="color:#5a3e9b;">ACT Eğitimleri</span>
+            <span class="tl-title">ACT Temel Eğitim</span>
+            <span class="tl-inst">Dr. İbrahim BİLGEN — ACT TÜRKİYE</span>
+          </div>
+        </div>
+
+        <div class="tl-row">
+          <span class="tl-year">2025</span>
+          <div class="tl-spine">
+            <span class="tl-dot" style="background:#5a3e9b;"></span>
+            <span class="tl-line" style="background:linear-gradient(#5a3e9b,#5a3e9b);"></span>
+          </div>
+          <div class="tl-content">
+            <span class="tl-group" style="color:#5a3e9b;">ACT Eğitimleri</span>
+            <span class="tl-title">ACT Temel Eğitim</span>
+            <span class="tl-inst">Fatih YAVUZ — TÜRBAD</span>
+          </div>
+        </div>
+
+        <div class="tl-row">
+          <span class="tl-year">2025</span>
+          <div class="tl-spine">
+            <span class="tl-dot" style="background:#5a3e9b;"></span>
+            <span class="tl-line" style="background:linear-gradient(#5a3e9b,#5a3e9b);"></span>
+          </div>
+          <div class="tl-content">
+            <span class="tl-group" style="color:#5a3e9b;">ACT Eğitimleri</span>
+            <span class="tl-title">ACT Orta Seviye Eğitimi</span>
+            <span class="tl-inst">Dr. İbrahim BİLGEN — ACT TÜRKİYE</span>
+          </div>
+        </div>
+
+        <div class="tl-row">
+          <span class="tl-year">2026</span>
+          <div class="tl-spine">
+            <span class="tl-dot" style="background:#5a3e9b;"></span>
+            <span class="tl-line" style="background:linear-gradient(#5a3e9b,#5a3e9b);"></span>
+          </div>
+          <div class="tl-content">
+            <span class="tl-group" style="color:#5a3e9b;">ACT Eğitimleri</span>
+            <span class="tl-title">ACT İleri Düzey Eğitimi</span>
+            <span class="tl-inst">Dr. İbrahim BİLGEN — ACT TÜRKİYE</span>
+          </div>
+        </div>
+
+        <div class="tl-row">
+          <span class="tl-year">2026</span>
+          <div class="tl-spine">
+            <span class="tl-dot" style="background:#5a3e9b;"></span>
+          </div>
+          <div class="tl-content">
+            <span class="tl-group" style="color:#5a3e9b;">ACT Eğitimleri</span>
+            <span class="tl-title">ACT Süreç Odaklı Terapi Eğitimi</span>
+            <span class="tl-inst">Dr. İbrahim BİLGEN — ACT TÜRKİYE</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Alt bant -->
+    <div class="bottom">
+
+      <div class="badge">
+        <span class="badge-icon">🏅</span>
+        <div>
+          <span class="badge-title">EABCT Akredite Üye</span>
+          <span class="badge-inst">European Association for Behavioural &amp; Cognitive Therapies</span>
+          <span class="badge-year">2025–2030</span>
+        </div>
+      </div>
+
+      <div class="specs">
+        <span class="section-label">🎯 Uzmanlık Alanları</span>
+        <div class="spec-pills">
+          <span class="pill hi">Kaygı Bozuklukları &amp; OKB</span>
+          <span class="pill">Depresyon</span>
+          <span class="pill">Travma &amp; TSSB</span>
+          <span class="pill">Yeme Bozuklukları &amp; Bağımlılık</span>
+          <span class="pill">Ergen &amp; Yetişkin Danışmanlığı</span>
+        </div>
+      </div>
+
+    </div>
+
+  </div><!-- /body -->
+</div><!-- /modal -->
+
+</body>
+</html>

@@ -1,26 +1,383 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg:          #EFEDE8;
+  --bg-warm:     #F4F1EC;
+  --surface:     #FAF8F5;
+  --paper:       #FAF8F5;
+  --ink:         #0E0F12;
+  --ink-2:       #3A3C42;
+  --ink-soft:    #5a5a5a;
+  --muted:       #7B7C82;
+  --line:        rgba(14, 15, 18, 0.10);
+  --line-2:      rgba(14, 15, 18, 0.06);
+  --line-strong: rgba(14, 15, 18, 0.18);
+  --accent:      #C2522A;
+  --accent-light:#E8A87C;
+  --accent-deep: #6B2810;
+  --accent-soft: #faf6ee;
+  --green:       #2F5D3A;
+
+  --serif: var(--font-fraunces), 'Times New Roman', serif;
+  --sans:  var(--font-jakarta), system-ui, sans-serif;
+  --mono:  var(--font-mono), ui-monospace, monospace;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
+
+textarea { resize: vertical; }
+
+/* ── Design system ── */
+.glass {
+  background: rgba(255,255,255,0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.6);
+}
+
+.card {
+  background: rgba(255,255,255,0.88);
+  border: 1px solid rgba(255,255,255,0.72);
+  border-radius: 1.5rem;
+  box-shadow:
+    0 1px 2px rgba(16,24,40,0.04),
+    0 4px 24px rgba(16,24,40,0.06),
+    inset 0 1px 0 rgba(255,255,255,0.9);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.card-dark {
+  background: linear-gradient(135deg, #12131A 0%, #1A1B26 60%, #1e1428 100%);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 1.5rem;
+  box-shadow:
+    0 4px 32px rgba(0,0,0,0.28),
+    inset 0 1px 0 rgba(255,255,255,0.06);
+}
+
+.card-stat {
+  background: rgba(255,255,255,0.72);
+  border: 1px solid rgba(255,255,255,0.7);
+  border-radius: 1.25rem;
+  box-shadow:
+    0 2px 12px rgba(16,24,40,0.07),
+    inset 0 1px 0 rgba(255,255,255,0.95);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.hover-3d {
+  transition: transform .35s cubic-bezier(.2,.7,.2,1), box-shadow .35s;
+  transform-style: preserve-3d;
+}
+.hover-3d:hover {
+  transform: translateY(-5px) rotateX(2deg) rotateY(-2deg);
+  box-shadow:
+    0 24px 60px -20px rgba(16,24,40,0.22),
+    0 8px 24px -8px rgba(16,24,40,0.14);
+}
+
+.pill-toggle {
+  background: rgba(0,0,0,0.04);
+  border-radius: 0.875rem;
+  padding: 3px;
+  display: flex;
+  gap: 2px;
+}
+.pill-toggle button {
+  font-size: 11px;
+  padding: 5px 14px;
+  border-radius: 0.75rem;
+  font-weight: 500;
+  transition: all .18s;
+  color: #9CA3AF;
+}
+.pill-toggle button.active {
+  background: #fff;
+  color: #0E0F12;
+  box-shadow: 0 1px 4px rgba(16,24,40,0.1);
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+.animate-fade-in { animation: fade-in 0.3s ease forwards; }
+
+/* ─── Marquee animations ──────────────────────────────────── */
+@theme inline {
+  --animate-marquee: marquee var(--duration) infinite linear;
+  --animate-marquee-vertical: marquee-vertical var(--duration) linear infinite;
+}
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(calc(-100% - var(--gap))); }
+}
+
+@keyframes marquee-vertical {
+  from { transform: translateY(0); }
+  to   { transform: translateY(calc(-100% - var(--gap))); }
+}
+
+/* ── Müdahale Kütüphanesi sayfası ────────────────────────── */
+.mudahale-page {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 64px);
+}
+.mudahale-page-topbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 28px;
+  border-bottom: 1px solid rgba(14,15,18,0.08);
+  background: #FAF8F5;
+  position: sticky;
+  top: 64px;
+  z-index: 10;
+}
+.mudahale-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px 8px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(14,15,18,0.12);
+  background: #fff;
+  font: 500 13px/1 system-ui;
+  color: rgba(14,15,18,0.65);
+  cursor: pointer;
+  transition: all .15s ease;
+  white-space: nowrap;
+}
+.mudahale-back-btn:hover {
+  border-color: rgba(14,15,18,0.25);
+  color: #0E0F12;
+  transform: translateX(-2px);
+}
+.mudahale-page-title {
+  font: 600 14px/1 system-ui;
+  color: rgba(14,15,18,0.40);
+  letter-spacing: 0.01em;
+}
+
+/* ── Çalışma Alanı Hub ────────────────────────────────────── */
+.ca-sub-page {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 64px);
+}
+.ca-sub-topbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 28px;
+  border-bottom: 1px solid rgba(14,15,18,0.08);
+  background: #FAF8F5;
+  position: sticky;
+  top: 64px;
+  z-index: 10;
+}
+
+.ca-hub {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 56px 40px 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  width: 100%;
+}
+
+.ca-hub-header { display: flex; flex-direction: column; gap: 8px; }
+.ca-hub-eyebrow {
+  font: 600 11px/1 'JetBrains Mono', monospace;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(14,15,18,0.35);
+}
+.ca-hub-title {
+  margin: 0;
+  font: 300 52px/1.04 'Fraunces', serif;
+  letter-spacing: -0.025em;
+  color: #0E0F12;
+}
+.ca-hub-title em { font-style: italic; color: #C2522A; }
+.ca-hub-sub {
+  margin: 0;
+  font-size: 15px;
+  color: rgba(14,15,18,0.45);
+  max-width: 480px;
+  line-height: 1.55;
+}
+
+/* Üç sütun grid */
+.ca-hub-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+/* Ana kartlar */
+.ca-hub-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border-radius: 24px;
+  border: 1px solid rgba(14,15,18,0.08);
+  background: #FAF8F5;
+  cursor: pointer;
+  text-align: left;
+  overflow: hidden;
+  transition: border-color .2s ease, box-shadow .2s ease, transform .18s ease;
+  padding: 0;
+}
+.ca-hub-card:hover {
+  border-color: rgba(14,15,18,0.16);
+  box-shadow: 0 12px 40px rgba(14,15,18,0.10);
+  transform: translateY(-3px);
+}
+
+/* Görsel alanı */
+.ca-hub-card-vis {
+  height: 140px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ca-hub-card--danisan .ca-hub-card-vis {
+  background: radial-gradient(140% 120% at 50% 50%, rgba(59,110,165,0.12), transparent 70%);
+  color: #3B6EA5;
+}
+.ca-hub-card--formulasyon .ca-hub-card-vis {
+  background: radial-gradient(140% 120% at 50% 50%, rgba(194,82,42,0.12), transparent 70%);
+  color: #C2522A;
+}
+.ca-hub-card--tasarim .ca-hub-card-vis {
+  background: radial-gradient(140% 120% at 50% 50%, rgba(139,61,255,0.10), transparent 70%);
+  color: #8B3DFF;
+}
+.ca-hub-card--tasarim .ca-hub-card-eyebrow { color: #8B3DFF; }
+.ca-hub-card--tasarim .ca-hub-card-title em { color: #8B3DFF; }
+
+/* İçerik */
+.ca-hub-card-body {
+  padding: 20px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+.ca-hub-card-eyebrow {
+  font: 600 10.5px/1 'JetBrains Mono', monospace;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(14,15,18,0.35);
+}
+.ca-hub-card--danisan .ca-hub-card-eyebrow { color: #3B6EA5; }
+.ca-hub-card--formulasyon .ca-hub-card-eyebrow { color: #C2522A; }
+
+.ca-hub-card-title {
+  margin: 0;
+  font: 300 28px/1.1 'Fraunces', serif;
+  letter-spacing: -0.015em;
+  color: #0E0F12;
+}
+.ca-hub-card-title em {
+  font-style: italic;
+  color: #C2522A;
+}
+.ca-hub-card--danisan .ca-hub-card-title em { color: #3B6EA5; }
+
+.ca-hub-card-desc {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: rgba(14,15,18,0.50);
+}
+.ca-hub-card-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: 4px;
+}
+.ca-hub-card-count {
+  font: 700 28px/1 'Fraunces', serif;
+  color: #0E0F12;
+  letter-spacing: -0.02em;
+}
+.ca-hub-card-count-label {
+  font: 500 12px/1 system-ui;
+  color: rgba(14,15,18,0.38);
+}
+.ca-hub-card-active {
+  font: 500 13px/1 system-ui;
+  color: #C2522A;
+}
+
+/* Ok */
+.ca-hub-card-arrow {
+  position: absolute;
+  bottom: 22px;
+  right: 24px;
+  font-size: 18px;
+  color: rgba(14,15,18,0.20);
+  transition: color .18s ease, transform .18s ease;
+  line-height: 1;
+}
+.ca-hub-card:hover .ca-hub-card-arrow {
+  color: rgba(14,15,18,0.55);
+  transform: translateX(3px);
+}
+
+.ca-hub-ekol-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(14,15,18,0.08);
+  margin-top: 8px;
+}
+.ca-hub-ekol-eyebrow {
+  font: 600 11px/1 var(--font-mono, monospace);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(14,15,18,0.4);
+}
+.ca-hub-ekol-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 960px) {
+  .ca-hub-grid { grid-template-columns: 1fr 1fr; }
+  .ca-hub-ekol-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 700px) {
+  .ca-hub-grid { grid-template-columns: 1fr; }
+  .ca-hub-ekol-grid { grid-template-columns: 1fr; }
+  .ca-hub-title { font-size: 36px; }
+  .ca-hub { padding: 36px 20px 60px; }
+}
+
+/* =====================================================================
+   Çift kabuk fix (2026-06-04): page.tsx içi (in-app) V2 ekranları kendi
+   .dock'larını render ediyor; alttaki global ana menü (fixed NAV) zaten var.
+   In-app dock'ları gizle — terapist (.tp2) hariç (kullanıcı: dokunma).
+   ===================================================================== */
+.siyi-inapp .dock { display: none !important; }
+.siyi-inapp .tp2 .dock { display: flex !important; }

@@ -1,0 +1,322 @@
+/* DesignFilesPanel.css — df-* prefix */
+
+.df-root {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 28px 32px 48px;
+  max-width: 1100px;
+}
+
+/* ── Canva banner ──────────────────────────────────────────── */
+.df-canva-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  border-radius: 16px;
+  border: 1px solid rgba(139,61,255,0.18);
+  background: linear-gradient(135deg, rgba(139,61,255,0.05) 0%, rgba(255,255,255,0) 60%);
+  flex-wrap: wrap;
+}
+.df-canva-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.df-canva-logo { flex-shrink: 0; }
+.df-canva-title {
+  font: 600 14px/1 system-ui;
+  color: #0E0F12;
+  margin-bottom: 4px;
+}
+.df-canva-sub {
+  font: 400 12.5px/1.35 system-ui;
+  color: rgba(14,15,18,0.50);
+  max-width: 380px;
+}
+.df-canva-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.df-canva-hint {
+  font: 400 11px/1 'JetBrains Mono', monospace;
+  color: rgba(14,15,18,0.35);
+}
+.df-canva-hint code {
+  background: rgba(14,15,18,0.06);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+/* ── Upload zone ───────────────────────────────────────────── */
+.df-upload-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 32px 24px;
+  border-radius: 18px;
+  border: 2px dashed rgba(14,15,18,0.14);
+  background: rgba(14,15,18,0.015);
+  cursor: pointer;
+  transition: border-color .18s ease, background .18s ease;
+  text-align: center;
+  min-height: 140px;
+}
+.df-upload-zone:hover,
+.df-upload-zone--over {
+  border-color: #C2522A;
+  background: rgba(194,82,42,0.04);
+}
+.df-upload-zone--busy { cursor: wait; opacity: 0.7; }
+.df-hidden-input { display: none; }
+.df-upload-icon { color: rgba(14,15,18,0.28); }
+.df-upload-label {
+  font: 500 14px/1 system-ui;
+  color: rgba(14,15,18,0.55);
+}
+.df-upload-hint {
+  font: 400 12px/1 system-ui;
+  color: rgba(14,15,18,0.35);
+}
+.df-upload-error {
+  font: 400 12px/1 system-ui;
+  color: #DC2626;
+  margin-top: 4px;
+}
+.df-upload-busy {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font: 500 14px/1 system-ui;
+  color: rgba(14,15,18,0.50);
+}
+
+/* ── Toolbar ───────────────────────────────────────────────── */
+.df-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.df-filter-group {
+  display: flex;
+  gap: 4px;
+}
+.df-filter-btn {
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(14,15,18,0.10);
+  background: transparent;
+  font: 500 12px/1 system-ui;
+  color: rgba(14,15,18,0.50);
+  cursor: pointer;
+  transition: all .15s ease;
+}
+.df-filter-btn:hover { border-color: rgba(14,15,18,0.20); color: #0E0F12; }
+.df-filter-btn--on {
+  border-color: #C2522A;
+  background: rgba(194,82,42,0.07);
+  color: #C2522A;
+  font-weight: 600;
+}
+
+/* ── Shared buttons ────────────────────────────────────────── */
+.df-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(14,15,18,0.12);
+  background: #fff;
+  font: 500 13px/1 system-ui;
+  color: #0E0F12;
+  cursor: pointer;
+  transition: all .15s ease;
+  white-space: nowrap;
+}
+.df-btn:hover { border-color: rgba(14,15,18,0.25); box-shadow: 0 2px 8px rgba(14,15,18,0.07); }
+.df-btn--canva {
+  border-color: rgba(139,61,255,0.30);
+  background: rgba(139,61,255,0.06);
+  color: #6B21C8;
+}
+.df-btn--canva:hover { background: rgba(139,61,255,0.12); }
+.df-btn--refresh {
+  padding: 8px;
+  border-radius: 10px;
+}
+
+/* ── Grid ──────────────────────────────────────────────────── */
+.df-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+/* ── Card ──────────────────────────────────────────────────── */
+.df-card {
+  display: flex;
+  flex-direction: column;
+  border-radius: 16px;
+  border: 1px solid rgba(14,15,18,0.08);
+  background: #FAF8F5;
+  overflow: hidden;
+  transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+.df-card:hover {
+  border-color: rgba(14,15,18,0.15);
+  box-shadow: 0 6px 20px rgba(14,15,18,0.08);
+  transform: translateY(-2px);
+}
+
+/* Thumb */
+.df-card-thumb {
+  position: relative;
+  aspect-ratio: 4/3;
+  overflow: hidden;
+  background: rgba(14,15,18,0.04);
+}
+.df-card-img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+}
+.df-card-pdf-placeholder {
+  width: 100%; height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: rgba(14,15,18,0.35);
+  font: 500 12px/1 system-ui;
+}
+.df-file-icon { flex-shrink: 0; }
+.df-file-icon.pdf { color: #DC2626; }
+.df-file-icon.img { color: #3B6EA5; }
+
+/* Hover overlay */
+.df-card-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(14,15,18,0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity .15s ease;
+}
+.df-card:hover .df-card-overlay { opacity: 1; }
+.df-card-action {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,0.35);
+  background: rgba(255,255,255,0.12);
+  color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background .12s ease;
+}
+.df-card-action:hover { background: rgba(255,255,255,0.25); }
+.df-card-action--del:hover { background: rgba(220,38,38,0.55); border-color: transparent; }
+.df-card-source-badge {
+  position: absolute;
+  top: 8px; left: 8px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(139,61,255,0.80);
+  color: #fff;
+  font: 600 9.5px/1 'JetBrains Mono', monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* Info */
+.df-card-info {
+  padding: 10px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.df-card-name {
+  font: 500 13px/1.3 system-ui;
+  color: #0E0F12;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+}
+.df-card-meta {
+  font: 400 11px/1 'JetBrains Mono', monospace;
+  color: rgba(14,15,18,0.38);
+  margin: 0;
+  letter-spacing: 0.04em;
+}
+.df-card-note {
+  font: 400 italic 12px/1.4 system-ui;
+  color: rgba(14,15,18,0.50);
+  margin: 4px 0 0;
+  cursor: pointer;
+}
+.df-card-note-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 4px;
+}
+.df-card-note-input {
+  border: 1px solid rgba(14,15,18,0.14);
+  border-radius: 8px;
+  padding: 6px 8px;
+  font: 400 12px/1.4 system-ui;
+  resize: none;
+  outline: none;
+  background: #fff;
+}
+.df-card-note-input:focus { border-color: #C2522A; }
+.df-card-note-actions {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+}
+.df-note-btn {
+  width: 24px; height: 24px;
+  border-radius: 6px;
+  border: 1px solid rgba(14,15,18,0.12);
+  background: transparent;
+  color: rgba(14,15,18,0.55);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: all .12s ease;
+}
+.df-note-btn:hover { background: rgba(14,15,18,0.06); color: #0E0F12; }
+
+/* ── Empty / loading ───────────────────────────────────────── */
+.df-loading, .df-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 48px;
+  color: rgba(14,15,18,0.30);
+  text-align: center;
+}
+.df-empty-icon { opacity: 0.4; }
+.df-empty p  { margin: 0; font-size: 14px; }
+.df-empty-hint { font-size: 12.5px !important; }
+
+/* Spin animation */
+.df-spin { animation: df-spin 1s linear infinite; }
+@keyframes df-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}

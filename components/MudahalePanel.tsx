@@ -7,6 +7,8 @@ import {
   Users, Calendar as CalendarIcon, FileDown, ExternalLink,
   AlertTriangle, GripVertical, Trash2, BookOpen,
 } from 'lucide-react';
+import MudahaleDetayModal from './MudahaleDetayModal';
+import './MudahaleDetayModal.css';
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -708,16 +710,48 @@ export default function MudahalePanel({
       </div>
 
       {/* ── DETAIL MODAL ────────────────────────────────── */}
-      {detailOpen && selected && (
-        <DetailModal
-          it={selected}
-          favorite={favorites.has(selected.id)}
+      {selected && (
+        <MudahaleDetayModal
+          open={detailOpen}
           onClose={() => setDetailOpen(false)}
+          id={selected.id}
+          title={selected.title}
+          modality={selected.modality}
+          evidence={selected.evidence}
+          short={selected.description}
+          problems={selected.problems}
+          durationMin={selected.durationMinutes ?? 15}
+          favorite={favorites.has(selected.id)}
+          protocol={selected.protocol?.map((step, i) =>
+            typeof step === 'string'
+              ? { num: String(i + 1).padStart(2, '0'), title: step, body: step }
+              : step as any
+          )}
+          contraindications={selected.contraindications}
+          materials={selected.materials}
+          variants={selected.variants?.map((v) => ({
+            id:    `${selected.id}-v${v.age}`,
+            group: (v.age === 'yetiskin' ? 'yetişkin'
+                  : v.age === 'ergen'    ? 'ergen'
+                  : v.age === 'cocuk-7-11' || v.age === 'cocuk-4-6' ? 'çocuk'
+                  : v.age === 'cift'     ? 'çift'
+                  : 'yetişkin') as 'yetişkin'|'ergen'|'çocuk'|'çift'|'grup',
+            label: v.label,
+            body:  v.notes,
+          }))}
+          personalNotes={selected.personalNotes}
+          references={selected.references?.map((r) => ({
+            title:   r.title,
+            authors: '',
+            year:    0,
+            doi:     r.doi,
+            url:     r.url,
+          }))}
+          onSavePersonalNotes={(text) => updatePersonalNotes(selected.id, text)}
           onToggleFavorite={() => toggleFav(selected.id)}
           onAddToBasket={() => addBasket(selected.id)}
-          onAssign={() => setAssignFor(selected.id)}
+          onAssignToClient={() => setAssignFor(selected.id)}
           onExportPdf={() => onExportPdf?.(selected.id)}
-          onSaveNotes={(n) => updatePersonalNotes(selected.id, n)}
         />
       )}
 

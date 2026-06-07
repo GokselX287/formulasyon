@@ -1,0 +1,215 @@
+'use client';
+
+import { useState } from 'react';
+import './ACTGelistirmeV2.css';
+
+// ──────────────────────────────────────────────────────────────────────────
+// ACT Geliştirme — "Klinik Editöryel Dosya" · ACT Geliştirme v2.html port.
+// Terapistin kişisel gelişim atölyesi (statik/referans + kişisel öz-değerlendirme):
+// Hexaflex radar · Triflex · Öz-şefkat · 11 Ekol Haritası · SMART Hedef · haftalık.
+// ──────────────────────────────────────────────────────────────────────────
+
+export type ACTGelistirmeV2Props = {
+  onBack?(): void;
+  onNav?(target: string): void;
+  // Çalışan interaktif araçlar (ACTDancing/SefkatCalismasi/EkolKarsilastirma/SMARTHedef).
+  // Bir araç için slot verilirse statik v2 içerik yerine o render edilir.
+  slots?: Partial<Record<'hexaflex' | 'triflex' | 'sefkat' | 'schools' | 'smart', React.ReactNode>>;
+};
+
+const DATA = {
+  hexaflex: [
+    { ax: 'Şimdiki an', val: 8 }, { ax: 'Kabul', val: 7 }, { ax: 'Defüzyon', val: 9 },
+    { ax: 'Bağlamsal benlik', val: 6 }, { ax: 'Değerler', val: 8 }, { ax: 'Kararlı eylem', val: 7 },
+  ],
+  triflex: [
+    { e: 'Aç & farkında ol', t: 'Açıklık', p: 'Acıya alan açmak; düşünceden ayrışmak.', procs: ['Kabul', 'Defüzyon'] },
+    { e: 'Şimdi & burada', t: 'Merkezlenme', p: 'Esnek dikkat; gözlemleyen benlikte durmak.', procs: ['Şimdiki an', 'Bağlamsal benlik'] },
+    { e: 'Yap & yaşa', t: 'Adanmışlık', p: 'Değer yönünde somut, kararlı eylem.', procs: ['Değerler', 'Kararlı eylem'] },
+  ],
+  sefkat: [
+    { e: 'Tehdit sistemi', t: 'Koruma / tehdit', p: 'Kaygı, öfke, kaçınma — koruyucu ama aşırı uyarılırsa tüketici.', procs: ['Yatıştırma ihtiyacı'] },
+    { e: 'Harekete geçiş', t: 'Arayış / başarı', p: 'Motivasyon, heyecan; öz-eleştiriyle dengesizleşebilir.', procs: ['Değer odaklı çaba'] },
+    { e: 'Yatıştırma sistemi', t: 'Şefkat / dinginlik', p: 'Güvende hissetme, bağ; klinik gelişimin hedefi.', procs: ['Şefkatli imgelem', 'Nefes ritmi'] },
+  ],
+  schools: [
+    { t: 'Bilişsel Davranışçı', abbr: 'BDT', p: 'Düşünce-davranış zinciri; kanıtla sınama ve davranış değişimi.', lens: 'Bilişsel çarpıtma' },
+    { t: 'Kabul ve Kararlılık', abbr: 'ACT', p: 'Psikolojik esneklik; değer yönünde kararlı eylem.', lens: 'Deneyimsel kaçınma' },
+    { t: 'Şema Terapi', abbr: 'ŞT', p: 'Erken uyumsuz şemalar ve mod çalışması.', lens: 'Çekirdek şema' },
+    { t: 'Şefkat Odaklı', abbr: 'CFT', p: 'Utanç/öz-eleştiri; üç duygu sistemini dengeleme.', lens: 'Yatıştırma açığı' },
+    { t: 'Metakognitif', abbr: 'MKT', p: 'Endişeye dair üst-inançlar; dikkat eğitimi.', lens: 'CAS döngüsü' },
+    { t: 'Duygu Odaklı', abbr: 'EFT', p: 'Duygusal işleme; uyumsuz duyguyu dönüştürme.', lens: 'Birincil duygu' },
+    { t: 'Psikodinamik', abbr: 'PD', p: 'Bilinçdışı örüntü, aktarım ve savunmalar.', lens: 'Aktarım' },
+    { t: 'Çözüm Odaklı', abbr: 'SFT', p: 'İstisnalar ve kaynaklar; küçük somut adımlar.', lens: 'İstisna anları' },
+    { t: 'Diyalektik Davranışçı', abbr: 'DBT', p: 'Duygu düzenleme + kabul; beceri eğitimi.', lens: 'Duygu dürtüsü' },
+    { t: 'Varoluşçu', abbr: 'VT', p: 'Anlam, özgürlük, sorumluluk ve sonluluk.', lens: 'Anlam boşluğu' },
+    { t: 'Sistemik / Aile', abbr: 'ST', p: 'İlişki örüntüleri; bağlamı birim olarak görmek.', lens: 'Döngüsel örüntü' },
+  ],
+  goals: [
+    { t: 'ACT İleri Düzey süpervizyon', p: 'Aylık grup süpervizyonunu 6 oturuma tamamla.', meta: ['Ölçülebilir', 'Haz 2026'], pct: 50, live: true },
+    { t: 'Şefkatli imgelem kişisel pratiği', p: 'Haftada 3 gün 10 dk yatıştırma sistemi çalışması.', meta: ['Spesifik', 'Sürekli'], pct: 72, live: true },
+    { t: '11 ekol haritasını seans formülasyonuna kat', p: 'Her yeni vakada en az 2 farklı pencere notu.', meta: ['Ulaşılabilir', 'Q3'], pct: 30, live: false },
+  ],
+  weekly: [
+    { d: 'Pzt', v: 20 }, { d: 'Sal', v: 35 }, { d: 'Çar', v: 0 }, { d: 'Per', v: 25 },
+    { d: 'Cum', v: 40 }, { d: 'Cmt', v: 15 }, { d: 'Bgn', v: 30, cur: true },
+  ],
+};
+
+const TOOLS = [
+  { id: 'hexaflex', label: 'Hexaflex', icon: <polygon points="12 3 20 9 17 19 7 19 4 9" /> },
+  { id: 'triflex', label: 'Triflex', icon: <path d="M12 3 3 18h18z" /> },
+  { id: 'sefkat', label: 'Öz-şefkat', icon: <><circle cx="8" cy="10" r="5" /><circle cx="16" cy="10" r="5" /><circle cx="12" cy="16" r="5" /></> },
+  { id: 'schools', label: '11 Ekol Haritası', icon: <><rect x="3" y="4" width="7" height="7" rx="1.5" /><rect x="14" y="4" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="6" rx="1.5" /><rect x="14" y="14" width="7" height="6" rx="1.5" /></> },
+  { id: 'smart', label: 'SMART Hedef', icon: <><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="4" /></> },
+] as const;
+
+type Tool = typeof TOOLS[number]['id'];
+
+const r1 = (n: number) => Math.round(n * 10) / 10;
+
+function Radar({ axes }: { axes: { ax: string; val: number }[] }) {
+  const W = 380, H = 340, cx = W / 2, cy = H / 2 + 6, R = 118, max = 10, n = axes.length;
+  const pt = (i: number, r: number): [number, number] => { const ang = -Math.PI / 2 + i * 2 * Math.PI / n; return [r1(cx + r * Math.cos(ang)), r1(cy + r * Math.sin(ang))]; };
+  const rings = [1, 2, 3, 4].map((g) => { const rr = R * g / 4; const d = axes.map((_, i) => (i ? 'L' : 'M') + pt(i, rr).join(' ')).join('') + 'Z'; return <path key={g} d={d} fill="none" stroke="rgba(42,41,38,.10)" strokeWidth="1" />; });
+  const poly = axes.map((a, i) => (i ? 'L' : 'M') + pt(i, R * (a.val / max)).join(' ')).join('') + 'Z';
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Hexaflex radar">
+      <defs>
+        <linearGradient id="ag2vg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#FF9A86" /><stop offset="0.55" stopColor="#FB6F8E" /><stop offset="1" stopColor="#8E72C2" /></linearGradient>
+        <linearGradient id="ag2vgf" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#FF9A86" stopOpacity="0.30" /><stop offset="1" stopColor="#8E72C2" stopOpacity="0.22" /></linearGradient>
+      </defs>
+      {rings}
+      {axes.map((_, i) => { const [x, y] = pt(i, R); return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="rgba(42,41,38,.10)" strokeWidth="1" />; })}
+      <path d={poly} fill="url(#ag2vgf)" stroke="url(#ag2vg)" strokeWidth="2.5" strokeLinejoin="round" />
+      {axes.map((a, i) => { const [x, y] = pt(i, R * (a.val / max)); return <circle key={i} cx={x} cy={y} r="3.5" fill="#fff" stroke="url(#ag2vg)" strokeWidth="2" />; })}
+      {axes.map((a, i) => { const [lx, ly] = pt(i, R + 22); const anchor = Math.abs(lx - cx) < 8 ? 'middle' : (lx > cx ? 'start' : 'end'); return <text key={i} x={lx} y={ly} textAnchor={anchor} dominantBaseline="middle" fontFamily="'Space Mono',monospace" fontSize="10" fontWeight="700" fill="#57554F">{a.ax}</text>; })}
+    </svg>
+  );
+}
+
+const PHead = ({ e, t, p }: { e: string; t: React.ReactNode; p: string }) => (
+  <div className="phead"><span className="eyebrow">{e}</span><h2>{t}</h2><p>{p}</p></div>
+);
+
+const TriCards = ({ items }: { items: typeof DATA.triflex }) => (
+  <div className="tri">{items.map((c, i) => (
+    <div className="tcard" key={i}><div className="te">{c.e}</div><h3>{c.t}</h3><p>{c.p}</p><div className="procs">{c.procs.map((x, j) => <span key={j}>{x}</span>)}</div></div>
+  ))}</div>
+);
+
+const DOCK = [
+  { label: 'Ana Sayfa', target: 'home' },
+  { label: 'Çalışma Alanı', target: 'calisma-alani' },
+  { label: 'Profil', target: 'terapist' },
+  { label: 'Yol Haritası', target: 'tasarim-arsivi' },
+  { label: 'ACT Geliştirme', target: 'act-gelistirme', active: true },
+];
+
+export default function ACTGelistirmeV2(props: ACTGelistirmeV2Props) {
+  const { onBack, onNav, slots } = props;
+  const [tool, setTool] = useState<Tool>('hexaflex');
+  const avg = (DATA.hexaflex.reduce((n, a) => n + a.val, 0) / DATA.hexaflex.length).toFixed(1).replace('.', ',');
+  const weekMax = Math.max(...DATA.weekly.map((d) => d.v), 1);
+  const weekTotal = DATA.weekly.reduce((n, d) => n + d.v, 0);
+
+  return (
+    <>
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,300;1,400;1,500;1,600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+
+      <div className="ag2" data-tool={tool}>
+        <div className="shell">
+
+          <div className="topbar">
+            <button className="back" type="button" onClick={() => onBack?.()}><span className="chev">‹</span>Ana Sayfa</button>
+            <span className="tb-tag">Kişisel gelişim · ekol pratiği</span>
+          </div>
+
+          <div className="modal-body">
+            <div className="hero">
+              <span className="eyebrow">Mesleki Gelişim · ACT &amp; Ekoller</span>
+              <h1>ACT <i>geliştirme</i> atölyesi</h1>
+              <p>Aynı vakaya farklı pencerelerden bakmayı çalıştığın kişisel alan. Modeli seç; kendi esnekliğini, ekol bilgini ve hedeflerini izle.</p>
+            </div>
+
+            <div className="toolbar">
+              <div className="tools">
+                {TOOLS.map((t) => (
+                  <button key={t.id} className={`tool-tab${tool === t.id ? ' on' : ''}`} onClick={() => setTool(t.id)}><svg viewBox="0 0 24 24">{t.icon}</svg>{t.label}</button>
+                ))}
+              </div>
+            </div>
+
+            <div className="wrap">
+              {tool === 'hexaflex' && (
+                <div className="panel on">{slots?.hexaflex ? <div className="tool-slot">{slots.hexaflex}</div> : (<>
+                  <PHead e="ACT · psikolojik esneklik" t={<>Hexaflex <i>radarı</i></>} p="Altı çekirdek süreçte kendi modelleme/uygulama gücün — kişisel öz-değerlendirme." />
+                  <div className="viz-wrap">
+                    <div className="viz-card"><Radar axes={DATA.hexaflex} /></div>
+                    <div>
+                      <div className="side-score"><div className="l">Ortalama esneklik</div><div className="v num">{avg}<em>/10</em></div></div>
+                      <div className="axes">{DATA.hexaflex.map((a, i) => (
+                        <div className="axrow" key={i}><div className="top"><span className="an">{a.ax}</span><span className="av num">{a.val}/10</span></div><span className="at"><span className="af" style={{ width: `${a.val * 10}%` }} /></span></div>
+                      ))}</div>
+                    </div>
+                  </div>
+                </>)}</div>
+              )}
+
+              {tool === 'triflex' && (
+                <div className="panel on">{slots?.triflex ? <div className="tool-slot">{slots.triflex}</div> : (<>
+                  <PHead e="act çekirdeği · üçlü" t={<>Triflex — <i>üç tepki stili</i></>} p="Hexaflex'in altı sürecini üç pratik kümeye toplar: açıklık, merkezlenme, adanmışlık." />
+                  <TriCards items={DATA.triflex} />
+                </>)}</div>
+              )}
+
+              {tool === 'sefkat' && (
+                <div className="panel on">{slots?.sefkat ? <div className="tool-slot">{slots.sefkat}</div> : (<>
+                  <PHead e="cft · üç duygu sistemi" t={<>Öz-<i>şefkat</i> sistemleri</>} p="Tehdit, arayış ve yatıştırma sistemleri; klinik denge yatıştırmayı güçlendirmektir." />
+                  <TriCards items={DATA.sefkat} />
+                </>)}</div>
+              )}
+
+              {tool === 'schools' && (
+                <div className="panel on">{slots?.schools ? <div className="tool-slot">{slots.schools}</div> : (<>
+                  <PHead e="ekol haritası · 11 pencere" t={<>Aynı vakaya <i>farklı pencereler</i></>} p="Her ekolün vakayı gördüğü temel mercek. Formülasyonu zenginleştirmek için referans." />
+                  <div className="schools">{DATA.schools.map((s, i) => (
+                    <div className="school" key={i}><div className="sn"><h3>{s.t}</h3><span className="abbr">{s.abbr}</span></div><p>{s.p}</p><span className="lens">{s.lens}</span></div>
+                  ))}</div>
+                </>)}</div>
+              )}
+
+              {tool === 'smart' && (
+                <div className="panel on">{slots?.smart ? <div className="tool-slot">{slots.smart}</div> : (<>
+                  <PHead e="gelişim hedefleri · SMART" t={<>SMART <i>hedefler</i></>} p="Spesifik, ölçülebilir, ulaşılabilir hedeflerle kişisel gelişimini izle." />
+                  <div className="smart">{DATA.goals.map((g, i) => (
+                    <div className={`goal${g.live ? ' live' : ''}`} key={i}>
+                      <div className="g-main"><h3>{g.t}</h3><p>{g.p}</p><div className="g-meta">{g.meta.map((m, j) => <span key={j}>{m}</span>)}</div></div>
+                      <div className="prog"><span className="pct num">{g.pct}%</span><span className="track"><span className="fill" style={{ width: `${g.pct}%` }} /></span></div>
+                    </div>
+                  ))}</div>
+                </>)}</div>
+              )}
+
+              <div className="weekly">
+                <div className="wh"><span className="e">Bu hafta · pratik dakikası</span><span className="now">{weekTotal} dk toplam</span></div>
+                <div className="bars">{DATA.weekly.map((d, i) => (
+                  <div className={`bar${d.cur ? ' cur' : ''}`} key={i}><div className="col" style={{ height: `${Math.max(4, d.v / weekMax * 100)}%` }} /><div className="d">{d.d}</div></div>
+                ))}</div>
+              </div>
+            </div>
+          </div>
+
+          <nav className="dock" aria-label="Bölümler">
+            {DOCK.map((d) => (
+              <a key={d.target} href="#" className={d.active ? 'active' : ''} onClick={(e) => { e.preventDefault(); if (!d.active) onNav?.(d.target); }}>{d.label}</a>
+            ))}
+          </nav>
+
+        </div>
+      </div>
+    </>
+  );
+}

@@ -1,0 +1,135 @@
+/* SEANSA HAZIRLIK — "Klinik Editöryel Dosya" · v2 port · .sh2 scope */
+
+/* =====================================================================
+   SEANSA HAZIRLIK / BRIEF — "Klinik Editöryel Dosya" dili
+   Seans öncesi tek ekran: hero(geri sayım) · tek niyet · vital(SUDS/ruh) ·
+   son sözler · hazır toolkit · seans planı (blok süre). Veri yoksa blok gizli.
+   ===================================================================== */
+.sh2{
+  --font-display:'Plus Jakarta Sans','Helvetica Neue',Arial,sans-serif;
+  --font-ui:'Plus Jakarta Sans','Helvetica Neue',Arial,sans-serif;
+  --font-mono:'Space Mono',ui-monospace,'SFMono-Regular',monospace;
+  --ink:#2A2926; --ink-soft:#57554F; --ink-mute:#8C8A84; --ink-faint:#B6B4AD;
+  --on-dark:#F2F1ED; --on-dark-mute:rgba(242,241,237,.66);
+  --stage:#E6E4DF; --paper:#F1EFEA; --paper-2:#E7E4DE; --panel:#1B1A18;
+  --clay:#2A2926; --clay-soft:#D6D3CD; --sage:#6E6C66; --accent-gray:#A6A6A1;
+  --now:#B5654A; --now-soft:rgba(181,101,74,.14); --pos:#6E8A6E; --pos-soft:rgba(110,138,110,.16);
+  --line:rgba(42,41,38,.07); --line-2:rgba(42,41,38,.13); --line-dark:rgba(242,241,237,.14);
+  --shadow-sm:-3px -3px 8px rgba(255,255,255,.62), 4px 6px 13px -5px rgba(45,42,36,.16);
+  --shadow-card:-7px -7px 18px rgba(255,255,255,.72), 11px 14px 30px -10px rgba(45,42,36,.20);
+  --shadow-pop:-10px -10px 24px rgba(255,255,255,.7), 16px 20px 46px -12px rgba(45,42,36,.26);
+  --r-card:24px; --r-lg:18px; --r-md:13px; --r-pill:999px;
+}
+.sh2 *{box-sizing:border-box;}
+.sh2,.sh2{margin:0;padding:0;}
+.sh2{font-family:var(--font-ui);color:var(--ink);
+  background:radial-gradient(120% 120% at 50% 32%, #EFEDE9 0%, #E4E2DC 58%, #D7D5CE 100%);
+  background-attachment:fixed;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+  font-feature-settings:"kern" 1,"liga" 1,"calt" 1;height:100vh;overflow:hidden;display:flex;}
+.sh2 a{color:inherit;text-decoration:none;}
+.sh2 button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;}
+.sh2 ::selection{background:var(--clay-soft);}
+.sh2 .eyebrow{font-family:var(--font-mono);font-size:10.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-mute);}
+.sh2 .num{font-feature-settings:"tnum" 1;}
+
+.sh2 .shell{position:relative;width:min(1240px, calc(100vw - clamp(24px,6vw,120px)));height:100vh;margin:0 auto;
+  background:#EFEDE9;border-left:1px solid rgba(255,255,255,.6);border-right:1px solid rgba(42,41,38,.05);
+  box-shadow:0 0 0 1px rgba(255,255,255,.5) inset, 0 40px 110px -36px rgba(45,42,36,.4), 0 10px 50px -22px rgba(45,42,36,.26);
+  overflow:hidden;display:flex;flex-direction:column;}
+.sh2 .modal-body{flex:1;min-height:0;position:relative;overflow-y:auto;overflow-x:hidden;}
+.sh2 .modal-body::-webkit-scrollbar{width:10px;}
+.sh2 .modal-body::-webkit-scrollbar-thumb{background:rgba(28,28,24,.18);border-radius:8px;border:3px solid transparent;background-clip:content-box;}
+
+.sh2 .topbar{display:flex;align-items:center;justify-content:space-between;gap:18px;flex:none;position:relative;z-index:50;
+  padding:15px clamp(20px,4vw,40px);background:rgba(239,237,233,.85);
+  -webkit-backdrop-filter:blur(18px) saturate(1.2);backdrop-filter:blur(18px) saturate(1.2);border-bottom:1px solid rgba(42,41,38,.07);}
+.sh2 .back{display:inline-flex;align-items:center;gap:9px;font-size:13.5px;font-weight:500;color:var(--ink-soft);
+  padding:9px 16px 9px 13px;border-radius:var(--r-pill);background:var(--paper);border:1px solid var(--line);box-shadow:var(--shadow-sm);transition:.15s;}
+.sh2 .back:hover{transform:translateX(-2px);box-shadow:var(--shadow-card);color:var(--ink);}
+.sh2 .back .chev{font-size:15px;color:var(--accent-gray);}
+.sh2 .tb-open{display:inline-flex;align-items:center;gap:9px;font-size:13px;font-weight:600;color:var(--on-dark);
+  background:var(--clay);border-radius:var(--r-pill);padding:10px 17px;box-shadow:var(--shadow-card);transition:.15s;}
+.sh2 .tb-open:hover{transform:translateY(-1px);}
+.sh2 .tb-open svg{width:15px;height:15px;stroke:currentColor;stroke-width:2;fill:none;}
+
+/* HERO — koyu, geri sayım */
+.sh2 .hero{position:relative;overflow:hidden;background:
+  radial-gradient(60% 50% at 82% 30%, #3A3835 0%, rgba(58,56,53,0) 60%),
+  linear-gradient(140deg,#22211D 0%,#16150F 60%,#0E0D0A 100%);
+  padding:clamp(28px,4.4vh,46px) clamp(20px,4.5vw,64px);}
+.sh2 .hero-in{max-width:1080px;margin:0 auto;display:grid;grid-template-columns:1fr auto;gap:24px;align-items:center;}
+@media(max-width:680px){.sh2 .hero-in{grid-template-columns:1fr;}}
+.sh2 .hero .eyebrow{color:rgba(242,241,237,.55);display:block;margin-bottom:14px;}
+.sh2 .hero .who{display:flex;align-items:center;gap:16px;}
+.sh2 .hero .av{width:58px;height:58px;border-radius:18px;flex:none;display:grid;place-items:center;font-size:18px;font-weight:700;box-shadow:0 8px 20px -8px rgba(0,0,0,.5);}
+.sh2 .hero h1{font-family:var(--font-display);font-weight:500;font-size:clamp(26px,3.4vw,40px);letter-spacing:-.02em;color:var(--on-dark);margin:0;line-height:1.0;}
+.sh2 .hero .sub{font-family:var(--font-mono);font-size:11px;letter-spacing:.04em;color:rgba(242,241,237,.6);margin-top:8px;}
+.sh2 .countdown{text-align:right;}
+.sh2 .countdown .l{font-family:var(--font-mono);font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(242,241,237,.5);}
+.sh2 .countdown .t{font-family:var(--font-display);font-weight:700;font-size:clamp(34px,5vw,54px);letter-spacing:-.02em;line-height:1;margin-top:6px;color:var(--now);}
+.sh2 .countdown .at{font-family:var(--font-mono);font-size:11px;color:rgba(242,241,237,.6);margin-top:6px;}
+@media(max-width:680px){.sh2 .countdown{text-align:left;}}
+
+/* gövde grid */
+.sh2 .body{max-width:1080px;margin:0 auto;width:100%;padding:clamp(22px,3.4vh,34px) clamp(20px,4.5vw,64px) 8px;
+  display:grid;grid-template-columns:1.4fr 1fr;gap:16px;}
+@media(max-width:820px){.sh2 .body{grid-template-columns:1fr;}}
+.sh2 .col{display:flex;flex-direction:column;gap:16px;min-width:0;}
+
+.sh2 .block{background:var(--paper);border:1px solid rgba(255,255,255,.5);border-radius:var(--r-card);padding:22px 24px;box-shadow:var(--shadow-card);}
+.sh2 .block .bh{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;}
+.sh2 .block .bh .eyebrow{color:var(--ink-mute);}
+.sh2 .block .bh .edit{font-family:var(--font-mono);font-size:9.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--accent-gray);}
+
+/* tek niyet */
+.sh2 .intent .txt{font-family:var(--font-display);font-weight:500;font-size:clamp(19px,2.3vw,26px);line-height:1.28;letter-spacing:-.01em;color:var(--ink);outline:none;border-radius:8px;}
+.sh2 .intent .txt[contenteditable="true"]{box-shadow:0 0 0 2px rgba(42,41,38,.16);background:rgba(255,255,255,.5);padding:6px 9px;margin:-6px -9px;}
+.sh2 .intent .hint{font-size:12px;color:var(--ink-faint);margin-top:14px;}
+
+/* vital — SUDS/ruh hali spark */
+.sh2 .vital .rows{display:flex;flex-direction:column;gap:18px;}
+.sh2 .spark{display:grid;grid-template-columns:88px 1fr auto;gap:14px;align-items:center;}
+.sh2 .spark .sl{font-family:var(--font-mono);font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-mute);}
+.sh2 .spark svg{width:100%;height:42px;overflow:visible;}
+.sh2 .spark .val{font-family:var(--font-mono);font-size:15px;font-weight:700;color:var(--ink);text-align:right;}
+.sh2 .spark .val .dir{font-size:11px;}
+.sh2 .spark .val .dir.up{color:var(--now);} .sh2 .spark .val .dir.down{color:var(--pos);}
+
+/* son sözler */
+.sh2 .lastwords blockquote{margin:0;font-family:var(--font-display);font-style:italic;font-weight:400;font-size:16.5px;line-height:1.5;color:var(--ink-soft);
+  padding-left:18px;border-left:3px solid var(--clay-soft);}
+.sh2 .lastwords .src{font-family:var(--font-mono);font-size:10px;color:var(--ink-faint);margin-top:12px;}
+
+/* toolkit */
+.sh2 .toolkit .chips{display:flex;flex-wrap:wrap;gap:9px;}
+.sh2 .toolkit .chip{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--ink-soft);
+  background:var(--paper-2);border:1px solid var(--line);border-radius:var(--r-pill);padding:9px 15px;box-shadow:var(--shadow-sm);transition:.14s;cursor:pointer;}
+.sh2 .toolkit .chip:hover{color:var(--ink);transform:translateY(-1px);box-shadow:var(--shadow-card);}
+.sh2 .toolkit .chip svg{width:14px;height:14px;stroke:var(--ink-mute);stroke-width:1.8;fill:none;}
+
+/* seans planı — blok süre */
+.sh2 .plan .blocks{display:flex;flex-direction:column;}
+.sh2 .pblock{display:grid;grid-template-columns:58px 1fr;gap:16px;padding:14px 0;border-top:1px solid var(--line);align-items:start;}
+.sh2 .pblock:first-child{border-top:none;}
+.sh2 .pblock .dur{font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--ink-soft);padding-top:2px;}
+.sh2 .pblock .dur span{display:block;font-size:9px;font-weight:400;color:var(--ink-faint);letter-spacing:.04em;text-transform:uppercase;margin-top:2px;}
+.sh2 .pblock .pc{min-width:0;}
+.sh2 .pblock .pt{font-size:14.5px;font-weight:600;color:var(--ink);}
+.sh2 .pblock .pd{font-size:12.5px;line-height:1.5;color:var(--ink-soft);margin-top:4px;}
+.sh2 .pblock .ph{display:inline-block;font-family:var(--font-mono);font-size:8.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink-mute);background:var(--paper-2);border:1px solid var(--line);border-radius:var(--r-pill);padding:3px 9px;margin-top:8px;}
+.sh2 .plan .total{display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:14px;border-top:1px solid var(--line);
+  font-family:var(--font-mono);font-size:11px;color:var(--ink-mute);}
+.sh2 .plan .total b{font-size:14px;color:var(--ink);}
+
+.sh2 .note-empty{font-size:12.5px;color:var(--ink-faint);font-style:italic;}
+
+.sh2 .dock{position:relative;align-self:center;flex:none;z-index:60;margin:12px auto 16px;display:flex;align-items:center;gap:4px;
+  background:#1A1A1A;border-radius:var(--r-pill);padding:6px;box-shadow:0 18px 40px -20px rgba(0,0,0,.55),0 2px 8px -3px rgba(0,0,0,.4);
+  max-width:calc(100% - 28px);overflow-x:auto;scrollbar-width:none;}
+.sh2 .dock::-webkit-scrollbar{display:none;}
+.sh2 .dock a{font-size:13.5px;font-weight:500;color:rgba(242,237,228,.6);white-space:nowrap;padding:10px 18px;border-radius:var(--r-pill);transition:.2s;}
+.sh2 .dock a:hover{color:#fff;}
+.sh2 .dock a.active{background:#fff;color:#1A1A1A;font-weight:600;}
+@media(max-width:820px){.sh2 .shell{width:100vw;}}
+

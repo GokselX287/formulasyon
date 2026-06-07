@@ -1,0 +1,834 @@
+/* ─── BenlikAlgisiPanel — ba-* prefix ─────────────────────────────────────── */
+
+.ba-root {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ─── Header ──────────────────────────────────────────────────────────────── */
+
+.ba-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px 24px;
+  background: linear-gradient(135deg, #0E0F12 0%, #1e2030 100%);
+  border-radius: 20px;
+  color: white;
+}
+
+.ba-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: -0.02em;
+  margin: 0 0 4px;
+}
+
+.ba-subtitle {
+  font-size: 11px;
+  color: rgba(255,255,255,0.45);
+  letter-spacing: 0.03em;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  margin: 0;
+}
+
+.ba-save-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border-radius: 100px;
+  background: rgba(255,255,255,0.10);
+  border: 1px solid rgba(255,255,255,0.18);
+  color: rgba(255,255,255,0.85);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.ba-save-btn:hover { background: rgba(255,255,255,0.18); }
+.ba-save-btn--saved { background: rgba(74,222,128,0.20); border-color: rgba(74,222,128,0.40); color: #4ADE80; }
+
+/* ─── Ayna bölümü ──────────────────────────────────────────────────────────── */
+
+.ba-mirror {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 12px;
+  align-items: start;
+}
+/* Danışan modu: yalnızca sol sütun + wise mind görünür */
+.ba-mirror--solo {
+  grid-template-columns: 1fr auto;
+}
+
+@media (max-width: 768px) {
+  .ba-mirror {
+    grid-template-columns: 1fr;
+  }
+  .ba-center { order: -1; }
+}
+
+/* ─── Sol / Sağ yan ────────────────────────────────────────────────────────── */
+
+.ba-side {
+  border-radius: 18px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ba-side--self {
+  background: #EFF6FF;
+  border: 1px solid #BFDBFE;
+}
+
+.ba-side--ext {
+  background: #FFF7ED;
+  border: 1px solid #FED7AA;
+}
+
+.ba-side-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.ba-side-icon {
+  font-size: 20px;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.ba-side-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0E0F12;
+  margin: 0 0 2px;
+}
+
+.ba-side-meta {
+  font-size: 10px;
+  color: #7B7C82;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  letter-spacing: 0.02em;
+  margin: 0;
+}
+
+/* ─── Orta — Wise Mind ──────────────────────────────────────────────────────── */
+
+.ba-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding-top: 8px;
+  width: 180px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .ba-center { width: 100%; }
+}
+
+.ba-wise {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.ba-wise-svg {
+  width: 100%;
+  max-width: 180px;
+}
+
+.ba-wise-slider-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.ba-wise-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: #7B7C82;
+  white-space: nowrap;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ba-wise-caption {
+  font-size: 9px;
+  color: #9CA3AF;
+  text-align: center;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  margin: 0;
+}
+
+/* ─── Bölünme göstergesi ───────────────────────────────────────────────────── */
+
+.ba-split {
+  width: 100%;
+  background: white;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.ba-split-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 700;
+  color: #7B7C82;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  margin: 0 0 6px;
+}
+
+.ba-split-bar-wrap {
+  height: 6px;
+  background: #F1F5F9;
+  border-radius: 100px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.ba-split-bar {
+  height: 100%;
+  border-radius: 100px;
+  transition: width 0.4s, background 0.4s;
+}
+
+.ba-split-val {
+  font-size: 10px;
+  color: #64748B;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* ─── Field & Label ─────────────────────────────────────────────────────────── */
+
+.ba-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ba-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #64748B;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ba-label-hint {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: #94A3B8;
+  font-size: 9px;
+}
+
+/* ─── Tag input ──────────────────────────────────────────────────────────────── */
+
+.ba-tag-area {
+  background: white;
+  border: 1px solid rgba(14,15,18,0.10);
+  border-radius: 12px;
+  padding: 6px 8px;
+}
+
+.ba-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-items: center;
+}
+
+.ba-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px 3px 8px;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.ba-tag--self {
+  background: #DBEAFE;
+  color: #1E40AF;
+}
+
+.ba-tag--ext {
+  background: #FED7AA;
+  color: #92400E;
+}
+
+.ba-tag-del {
+  display: flex;
+  align-items: center;
+  opacity: 0.5;
+  cursor: pointer;
+  padding: 0;
+  background: none;
+  border: none;
+  transition: opacity 0.15s;
+}
+.ba-tag-del:hover { opacity: 1; }
+
+.ba-tag-input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 11px;
+  color: #0E0F12;
+  min-width: 80px;
+  flex: 1;
+}
+.ba-tag-input::placeholder { color: #CBD5E1; }
+
+/* ─── Slider ──────────────────────────────────────────────────────────────── */
+
+.ba-slider-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ba-slider-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  color: #64748B;
+}
+
+.ba-slider-track-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ba-slider-side-label {
+  font-size: 9px;
+  color: #94A3B8;
+  white-space: nowrap;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  flex-shrink: 0;
+  min-width: 36px;
+}
+.ba-slider-side-label.left { text-align: right; }
+.ba-slider-side-label.right { text-align: left; }
+
+.ba-slider-track {
+  flex: 1;
+  height: 8px;
+  border-radius: 100px;
+  position: relative;
+}
+
+.ba-range {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 2;
+  margin: 0;
+}
+
+.ba-range--wise {
+  position: static;
+  width: 100%;
+  opacity: 1;
+  height: 4px;
+  accent-color: #0E0F12;
+  cursor: pointer;
+}
+
+.ba-slider-thumb {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 18px;
+  height: 18px;
+  background: white;
+  border: 2px solid rgba(14,15,18,0.25);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 1;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+}
+
+.ba-slider-val {
+  font-size: 7px;
+  font-weight: 700;
+  color: #374151;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  line-height: 1;
+}
+
+/* ─── Textarea ──────────────────────────────────────────────────────────────── */
+
+.ba-textarea {
+  width: 100%;
+  border: 1px solid rgba(14,15,18,0.10);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 12px;
+  color: #0E0F12;
+  background: white;
+  resize: vertical;
+  outline: none;
+  font-family: inherit;
+  line-height: 1.55;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+.ba-textarea:focus { border-color: #6366F1; }
+.ba-textarea::placeholder { color: #CBD5E1; }
+
+/* ─── Card & Section ─────────────────────────────────────────────────────────── */
+
+.ba-card {
+  background: white;
+  border: 1px solid #E2E8F0;
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.ba-section-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 16px 20px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+  gap: 8px;
+}
+.ba-section-toggle:hover { background: #F8FAFC; }
+
+.ba-section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0E0F12;
+  margin: 0;
+}
+
+.ba-section-meta {
+  font-size: 10px;
+  color: #94A3B8;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  margin: 2px 0 0;
+}
+
+/* ─── Mode table ─────────────────────────────────────────────────────────────── */
+
+.ba-mode-table {
+  padding: 0 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ba-mode-header-row {
+  display: grid;
+  grid-template-columns: 1fr 90px 90px;
+  gap: 8px;
+  padding: 0 0 4px;
+  border-bottom: 1px solid #F1F5F9;
+}
+
+.ba-mode-col-label {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  text-align: center;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}
+
+.ba-mode-col-label--ic  { color: #3B5BDB; }
+.ba-mode-col-label--dis { color: #64748B; }
+
+.ba-mode-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.ba-mode-group-label {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid;
+  align-self: flex-start;
+  margin-bottom: 4px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}
+
+.ba-mode-row {
+  display: grid;
+  grid-template-columns: 1fr 90px 90px;
+  gap: 8px;
+  align-items: center;
+  padding: 5px 0;
+  border-bottom: 1px solid #F8FAFC;
+}
+.ba-mode-row:last-child { border-bottom: none; }
+
+.ba-mode-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+}
+
+.ba-mode-emoji { font-size: 13px; line-height: 1; flex-shrink: 0; }
+
+.ba-mode-label {
+  font-size: 11.5px;
+  color: #1E293B;
+  font-weight: 500;
+}
+
+.ba-mode-info {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #CBD5E1;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  position: relative;
+  transition: color 0.15s;
+}
+.ba-mode-info:hover { color: #7B7C82; }
+
+.ba-tooltip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  width: 220px;
+  background: #1E293B;
+  color: #E2E8F0;
+  font-size: 10.5px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  z-index: 50;
+  line-height: 1.45;
+  pointer-events: none;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.20);
+}
+
+.ba-gap-badge {
+  font-size: 9px;
+  font-weight: 700;
+  color: #9333EA;
+  background: #F3E8FF;
+  border-radius: 100px;
+  padding: 1px 6px;
+  border: 1px solid #DDD6FE;
+  flex-shrink: 0;
+}
+
+.ba-mode-ic,
+.ba-mode-dis {
+  display: flex;
+  justify-content: center;
+}
+
+.ba-dots {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.ba-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.12s, opacity 0.12s;
+  padding: 0;
+}
+.ba-dot:hover { transform: scale(1.25); }
+
+.ba-mode-legend {
+  font-size: 10px;
+  color: #94A3B8;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding-top: 8px;
+  border-top: 1px solid #F1F5F9;
+}
+
+.ba-legend-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+/* ─── Schema chips ───────────────────────────────────────────────────────────── */
+
+.ba-sema-grid {
+  padding: 4px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ba-sema-group-title {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: #94A3B8;
+  margin: 0 0 8px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}
+
+.ba-sema-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ba-sema-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid #E2E8F0;
+  border-radius: 100px;
+  background: #F8FAFC;
+  transition: all 0.15s;
+}
+
+.ba-sema-chip--on {
+  background: #1E1B4B;
+  border-color: #3730A3;
+}
+
+.ba-sema-toggle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #475569;
+  background: none;
+  border: none;
+  cursor: pointer;
+  border-radius: 100px;
+  white-space: nowrap;
+  transition: color 0.15s;
+}
+.ba-sema-chip--on .ba-sema-toggle { color: #E0E7FF; }
+
+.ba-sema-check {
+  font-size: 9px;
+  font-weight: 700;
+  color: #818CF8;
+}
+
+.ba-sema-siddet {
+  display: flex;
+  gap: 2px;
+  padding-right: 6px;
+}
+
+.ba-siddet-btn {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid #CBD5E1;
+  background: white;
+  font-size: 9px;
+  font-weight: 700;
+  cursor: pointer;
+  color: #7B7C82;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.ba-siddet-btn:hover { border-color: #7B7C82; }
+.ba-siddet-btn--on { color: white !important; }
+
+/* ─── Eklentiler picker ──────────────────────────────────────────────────── */
+
+.ba-ext-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ba-ext-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px;
+  border-radius: 14px;
+  border: 1.5px dashed rgba(14,15,18,0.15);
+  background: transparent;
+  color: #7B7C82;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all .18s;
+  width: 100%;
+  text-align: left;
+}
+.ba-ext-toggle-btn:hover {
+  border-color: rgba(14,15,18,0.30);
+  background: rgba(14,15,18,0.03);
+  color: #0E0F12;
+}
+
+.ba-ext-count {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #0E0F12;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.ba-ext-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  animation: ba-ext-fade-in .18s ease both;
+}
+
+@keyframes ba-ext-fade-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.ba-ext-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  border: 1.5px solid rgba(14,15,18,0.10);
+  background: white;
+  cursor: pointer;
+  text-align: left;
+  transition: all .18s;
+  width: 100%;
+}
+.ba-ext-card:hover {
+  border-color: rgba(14,15,18,0.22);
+  background: #FAFAF9;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(14,15,18,0.06);
+}
+.ba-ext-card--on {
+  border-color: #0E0F12;
+  background: #0E0F12;
+}
+.ba-ext-card--on:hover {
+  background: #1e2030;
+  border-color: #1e2030;
+}
+
+.ba-ext-icon {
+  font-size: 22px;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(14,15,18,0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ba-ext-card--on .ba-ext-icon {
+  background: rgba(255,255,255,0.10);
+}
+
+.ba-ext-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+.ba-ext-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0E0F12;
+  letter-spacing: -0.01em;
+}
+.ba-ext-desc {
+  font-size: 11.5px;
+  color: #7B7C82;
+  line-height: 1.45;
+}
+.ba-ext-card--on .ba-ext-title { color: #fff; }
+.ba-ext-card--on .ba-ext-desc  { color: rgba(255,255,255,0.55); }
+
+.ba-ext-check {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(14,15,18,0.15);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #7B7C82;
+  flex-shrink: 0;
+  transition: all .15s;
+}
+.ba-ext-check.on {
+  background: white;
+  border-color: transparent;
+  color: #0E0F12;
+}
+
+/* Eklenti kartları için hafif vurgu */
+.ba-card--ext {
+  border: 1.5px solid rgba(14,15,18,0.10);
+  box-shadow: 0 2px 12px rgba(14,15,18,0.05);
+  animation: ba-ext-fade-in .22s ease both;
+}

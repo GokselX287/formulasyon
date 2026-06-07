@@ -1,0 +1,167 @@
+/* ============================================================
+ * DictationButton.css
+ * dct-* prefix — dikte/ses kaydı UI
+ * ============================================================ */
+
+.dct-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+
+/* ── Ana mikrofon butonu ──────────────────────────────────── */
+
+.dct-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1.5px solid rgba(14, 15, 18, 0.12);
+  background: #fff;
+  color: rgba(14, 15, 18, 0.45);
+  cursor: pointer;
+  transition: all 0.18s ease;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+/* Boyutlar */
+.dct-btn--md { width: 36px; height: 36px; }
+.dct-btn--sm { width: 28px; height: 28px; }
+
+.dct-btn:hover {
+  border-color: rgba(14, 15, 18, 0.28);
+  color: #0E0F12;
+  background: #F8F6F3;
+}
+
+/* Kayıt modu */
+.dct-btn--recording {
+  border-color: #C2522A;
+  background: rgba(194, 82, 42, 0.06);
+  color: #C2522A;
+  animation: dct-pulse-border 2s ease-in-out infinite;
+}
+.dct-btn--recording:hover {
+  background: rgba(194, 82, 42, 0.12);
+  color: #A03A1A;
+}
+
+/* Hata modu */
+.dct-btn--error {
+  border-color: #DC2626;
+  color: #DC2626;
+  background: rgba(220, 38, 38, 0.06);
+}
+
+/* ── Dalga (ripple) animasyonu ────────────────────────────── */
+
+.dct-ripple {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid rgba(194, 82, 42, 0.35);
+  animation: dct-ripple-out 1.6s ease-out infinite;
+  pointer-events: none;
+}
+
+@keyframes dct-ripple-out {
+  0%   { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+@keyframes dct-pulse-border {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(194, 82, 42, 0.25); }
+  50%       { box-shadow: 0 0 0 5px rgba(194, 82, 42, 0); }
+}
+
+/* ── Canlı kayıt badge ────────────────────────────────────── */
+
+.dct-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font: 700 9.5px/1 'JetBrains Mono', monospace;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #C2522A;
+  padding: 3px 8px 3px 6px;
+  border-radius: 999px;
+  background: rgba(194, 82, 42, 0.08);
+  border: 1px solid rgba(194, 82, 42, 0.18);
+  white-space: nowrap;
+}
+
+.dct-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #C2522A;
+  animation: dct-blink 1s step-end infinite;
+}
+
+@keyframes dct-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+/* ── Anlık transkript balonu ──────────────────────────────── */
+
+.dct-interim {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: rgba(14, 15, 18, 0.03);
+  border: 1px dashed rgba(194, 82, 42, 0.25);
+  font: 400 13px/1.45 system-ui;
+  color: rgba(14, 15, 18, 0.55);
+  font-style: italic;
+  max-width: 420px;
+  animation: dct-slide-in 0.15s ease;
+}
+
+.dct-interim-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #C2522A;
+  flex-shrink: 0;
+  margin-top: 5px;
+  animation: dct-blink 0.8s step-end infinite;
+}
+
+@keyframes dct-slide-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Hata bandı ───────────────────────────────────────────── */
+
+.dct-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: rgba(220, 38, 38, 0.06);
+  border: 1px solid rgba(220, 38, 38, 0.20);
+  font: 400 12px/1 system-ui;
+  color: #DC2626;
+  max-width: 320px;
+}
+
+.dct-error-dismiss {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: rgba(220, 38, 38, 0.55);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 0;
+  line-height: 1;
+}
+.dct-error-dismiss:hover { color: #DC2626; }
