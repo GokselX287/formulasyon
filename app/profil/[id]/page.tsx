@@ -67,6 +67,8 @@ export default function DanisanProfilPage({ params }: { params: Promise<{ id: st
         return {
           seansNo: s.no ?? (i + 1),
           date: (s.tarih ?? '').slice(0, 10).replace(/-/g, '.'),
+          isoDate: (s.tarih ?? '').slice(0, 10),
+          durum: ['katildi', 'katilmadi', 'ertelendi', 'iptal'].includes(s.durum) ? s.durum : 'katildi',
           title: n.seansOdagi || (s.tip === 'anamnez' ? 'Anamnez' : 'Seans'),
           modality: s.tip === 'anamnez' ? 'Anamnez' : 'Seans',
           durationMin: 50,
@@ -117,6 +119,21 @@ export default function DanisanProfilPage({ params }: { params: Promise<{ id: st
             } else if (p.self && p.outer) { benlikAlgisi = p; }
           }
         } catch {}
+      }
+
+      // ── Danışanın KENDİ hedefleri (terapist hedeflerinden AYRI koleksiyon) ──
+      let danisanHedefleri: { hedef: string; durum: string }[] = [];
+      try {
+        const raw = (fd as any)?.danisanHedefleriJson;
+        if (raw) {
+          const p = JSON.parse(raw);
+          if (Array.isArray(p)) danisanHedefleri = p.filter((x: any) => x && x.hedef)
+            .map((x: any) => ({ hedef: String(x.hedef), durum: ['tamamlandi', 'devam', 'baslanmadi'].includes(x.durum) ? x.durum : 'baslanmadi' }));
+        }
+      } catch { /* ignore */ }
+      // Yapısal veri yoksa danışanın metin hedeflerinden türet (durum: başlanmadı) — bölüm boş kalmasın
+      if (danisanHedefleri.length === 0) {
+        danisanHedefleri = splitField(sec.clientGoal).map((t: string) => ({ hedef: t, durum: 'baslanmadi' }));
       }
 
       // ── Hikaye (narrative) ──
@@ -195,6 +212,7 @@ export default function DanisanProfilPage({ params }: { params: Promise<{ id: st
           kisilikTipi:      valid ? ((c as any).kisilikTipi ?? null) : null,
         },
         sessionRecords,
+        danisanHedefleri,
         scaleScores,
         fourP,
         flexibility,

@@ -52,6 +52,8 @@ export interface Formulation {
   act_degerler: string | null;
   act_eylem: string | null;
   act_yaratici_caresizlik: string | null;
+  benlik_algisi_json: string | null;
+  danisan_hedefleri_json: string | null;
   updated_at: string;
 }
 
@@ -83,6 +85,7 @@ export interface Seans {
   konu: string | null;
   notlar: string | null;
   odev: string | null;
+  durum: 'katildi' | 'katilmadi' | 'ertelendi' | 'iptal';
   created_at: string;
 }
 
@@ -233,7 +236,7 @@ export function updateFormulation(id: number, data: Partial<Formulation>): void 
     'duygu_bedensel', 'davranislar', 'smart_spesifik', 'smart_olculebilir',
     'smart_zaman', 'ana_sikayetler', 'yonlendirme_nedeni',
     'act_kabul', 'act_defuzyon', 'act_simdi', 'act_baglam', 'act_degerler', 'act_eylem', 'act_yaratici_caresizlik',
-    'benlik_algisi_json',
+    'benlik_algisi_json', 'danisan_hedefleri_json',
   ];
   const updates: string[] = [];
   const values: unknown[] = [];

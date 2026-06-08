@@ -75,6 +75,53 @@ export default function DanisanRaporu(props: DanisanRaporuProps) {
     const recs = D.sessionRecords;
     const dotJoin = (arr: any[]) => (arr || []).map(esc).join(' · ');
 
+    // ---- DANIŞANIN HEDEFLERİNE ULAŞMA ORANI (danışanın KENDİ hedefleri — terapist hedeflerinden AYRI) ----
+    {
+      const dh: any[] = D.danisanHedefleri || [];
+      const DLBL: Record<string, string> = { tamamlandi: 'Tamamlandı', devam: 'Devam ediyor', baslanmadi: 'Başlanmadı' };
+      const cnt: Record<string, number> = { tamamlandi: 0, devam: 0, baslanmadi: 0 };
+      dh.forEach((g) => { cnt[(['tamamlandi', 'devam', 'baslanmadi'].includes(g.durum) ? g.durum : 'baslanmadi')]++; });
+      const tot = dh.length;
+      const pct = tot ? Math.round((cnt.tamamlandi / tot) * 100) : 0;
+      const ringSvg = (p: number) => { const R = 20, C = 2 * Math.PI * R, on = C * (Math.max(0, Math.min(100, p)) / 100);
+        return `<svg viewBox="0 0 50 50" class="gh-ring-svg" role="img" aria-label="Danışan hedeflerine ulaşma oranı yüzde ${p}. ${cnt.tamamlandi} tamamlandı, ${cnt.devam} devam ediyor, ${cnt.baslanmadi} başlanmadı; toplam ${tot} hedef.">
+          <circle cx="25" cy="25" r="${R}" fill="none" stroke="var(--gh-track)" stroke-width="5"/>
+          <circle cx="25" cy="25" r="${R}" fill="none" stroke="var(--gh-tamamlandi)" stroke-width="5" stroke-linecap="round" stroke-dasharray="${on.toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 25 25)"/>
+        </svg>`; };
+      if (tot === 0) {
+        m.push(`<section class="section" id="danisan-hedefleri" data-screen-label="Danışan hedefleri">
+          ${head('Danışan dosyası · danışan hedefleri', 'Danışanın <i>hedeflerine ulaşma oranı</i>', 'Danışanın kendi belirlediği hedeflerin tamamlanma yüzdesi — terapistin terapi hedeflerinden ayrı.')}
+          <div class="gh-empty">Danışan henüz kendi hedefini tanımlamadı — hedefler eklendikçe ulaşma oranı burada görünür.</div>
+        </section>`);
+      } else {
+        const list = dh.map((g) => { const d = ['tamamlandi', 'devam', 'baslanmadi'].includes(g.durum) ? g.durum : 'baslanmadi';
+          return `<li class="gh-item"><span class="gh-pill gh-${d}">${esc(DLBL[d])}</span><span class="gh-txt">${esc(g.hedef)}</span></li>`; }).join('');
+        m.push(`<section class="section" id="danisan-hedefleri" data-screen-label="Danışan hedefleri">
+          ${head('Danışan dosyası · danışan hedefleri', 'Danışanın <i>hedeflerine ulaşma oranı</i>', 'Danışanın kendi belirlediği hedeflerin tamamlanma yüzdesi — terapistin terapi hedeflerinden ayrı tutulur.')}
+          <div class="gh-card">
+            <div class="gh-top">
+              <div class="gh-ring">${ringSvg(pct)}<span class="gh-ring-val">${pct}<em>%</em></span></div>
+              <div class="gh-meta">
+                <span class="gh-cap">Ulaşma oranı</span>
+                <span class="gh-sub">${cnt.tamamlandi}/${tot} hedef tamamlandı${cnt.devam ? ` · ${cnt.devam} devam ediyor` : ''}</span>
+                <div class="gh-bar" role="img" aria-label="Kırılım: ${cnt.tamamlandi} tamamlandı, ${cnt.devam} devam ediyor, ${cnt.baslanmadi} başlanmadı.">
+                  <span class="gh-seg gh-tamamlandi" style="flex:${cnt.tamamlandi}"></span>
+                  <span class="gh-seg gh-devam" style="flex:${cnt.devam}"></span>
+                  <span class="gh-seg gh-baslanmadi" style="flex:${cnt.baslanmadi}"></span>
+                </div>
+                <div class="gh-legend">
+                  <span class="gh-lg"><i class="gh-dot gh-tamamlandi"></i>Tamamlandı<b>${cnt.tamamlandi}</b></span>
+                  <span class="gh-lg"><i class="gh-dot gh-devam"></i>Devam<b>${cnt.devam}</b></span>
+                  <span class="gh-lg"><i class="gh-dot gh-baslanmadi"></i>Başlanmadı<b>${cnt.baslanmadi}</b></span>
+                </div>
+              </div>
+            </div>
+            <ul class="gh-list">${list}</ul>
+          </div>
+        </section>`);
+      }
+    }
+
     // ---- TERAPİ HEDEFLERİ — ilerleme grafiği (Cv görsel-18)
     // Gerçek ölçüm zaman serisi gelirse D.hedefProgress kullanılır; yoksa örnek görünüm.
     {
@@ -131,8 +178,8 @@ export default function DanisanRaporu(props: DanisanRaporuProps) {
         <div class="th-name"><div class="th-ad">${esc(h.ad)}</div><div class="th-seans">${h.noktalar.length} seans</div></div>
         ${spark(h)}${ring(h.ilerleme)}
       </div>`).join('');
-      m.push(`<section class="section" id="hedefler" data-screen-label="Terapi Hedefleri">
-        ${head('Danışan dosyası · ilerleme', 'Terapi <i>Hedefleri</i>', 'Her hedefin seanslar boyunca ilerlemesi — teal: ilerleme, turuncu: geri çekilme, sarı üçgen: engel (üzerine gel).')}
+      m.push(`<section class="section" id="hedefler" data-screen-label="Terapist hedefleri">
+        ${head('Terapist · terapi hedefleri', 'Terapistin <i>terapi hedefleri</i>', 'Terapistin bu danışan için belirlediği hedeflerin seanslar boyunca ilerlemesi — teal: ilerleme, turuncu: geri çekilme, sarı üçgen: engel (üzerine gel).')}
         <div class="th-card">
           <div class="th-top">
             <div class="th-avg"><b>${avgG}%</b><span>ortalama<br>ilerleme</span></div>
@@ -174,6 +221,98 @@ export default function DanisanRaporu(props: DanisanRaporuProps) {
           </article>`).join('')}
       </div></div>
     </section>`);
+
+    // ── Katılım + Erteleme/İptal görselleştirmesi (saf SVG, token-bazlı, dark-uyumlu) ──
+    {
+      const DURUM_LBL: Record<string, string> = { katildi: 'Katıldı', katilmadi: 'Katılmadı', ertelendi: 'Ertelendi', iptal: 'İptal' };
+      const norm = (v: any) => (['katildi', 'katilmadi', 'ertelendi', 'iptal'].includes(v) ? v : 'katildi');
+      const ordered = (recs as any[]).slice().sort((a, b) => {
+        const da = a.isoDate || '', db2 = b.isoDate || '';
+        if (da !== db2) return da < db2 ? -1 : 1;
+        return (a.seansNo || 0) - (b.seansNo || 0);
+      });
+      const cnt: Record<string, number> = { katildi: 0, katilmadi: 0, ertelendi: 0, iptal: 0 };
+      ordered.forEach((r) => { cnt[norm(r.durum)]++; });
+      const held = cnt.katildi + cnt.katilmadi;
+      const oran = held > 0 ? Math.round((cnt.katildi / held) * 100) : null;
+
+      // Tek durum işareti — renge EK olarak şekil (erişilebilir): ● katıldı, ⨯ katılmadı, ◆ ertelendi, ▪ iptal
+      const marker = (cx: number, cy: number, durum: string, r: number) => {
+        const v = `var(--att-${durum})`;
+        if (durum === 'katilmadi') { const k = r * 0.52; return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${v}"/><path d="M${cx - k} ${cy - k}L${cx + k} ${cy + k}M${cx + k} ${cy - k}L${cx - k} ${cy + k}" stroke="#fff" stroke-width="2" stroke-linecap="round"/>`; }
+        if (durum === 'ertelendi') return `<path d="M${cx} ${cy - r}L${cx + r} ${cy}L${cx} ${cy + r}L${cx - r} ${cy}Z" fill="${v}"/>`;
+        if (durum === 'iptal') { const s = r * 0.92; return `<rect x="${cx - s}" y="${cy - s}" width="${s * 2}" height="${s * 2}" rx="2" fill="${v}"/><path d="M${cx - s} ${cy + s}L${cx + s} ${cy - s}" stroke="#fff" stroke-width="2" stroke-linecap="round"/>`; }
+        return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${v}"/>`;
+      };
+      const legendItem = (durum: string) => `<span class="att-lg"><svg viewBox="-9 -9 18 18" width="15" height="15" aria-hidden="true">${marker(0, 0, durum, 7)}</svg>${esc(DURUM_LBL[durum])}<b>${cnt[durum]}</b></span>`;
+
+      // ---- KATILIM ----
+      const N = ordered.length;
+      if (N === 0) {
+        m.push(`<section class="section" id="katilim" data-screen-label="Katılım">
+          ${head('Danışan dosyası · katılım', 'Seans <i>Katılımı</i>', 'Katıldı / katılmadı, ertelenen ve iptal edilen seansların özeti.')}
+          <div class="att-empty">Henüz seans kaydı yok — katılım görselleştirmesi ilk seanslarla dolacak.</div>
+        </section>`);
+      } else {
+        const sp = 46, padX = 28, W = padX * 2 + Math.max(N - 1, 0) * sp, cy = 30, rr = 9;
+        const dots = ordered.map((r, i) => { const cx = padX + i * sp; const dd = norm(r.durum);
+          return `<g><title>Seans ${esc(r.seansNo)} · ${esc(r.date)} · ${esc(DURUM_LBL[dd])}</title>${marker(cx, cy, dd, rr)}<text x="${cx}" y="${cy + 23}" text-anchor="middle" class="att-num">${String(r.seansNo).padStart(2, '0')}</text></g>`;
+        }).join('');
+        const aria = `Seans katılımı: ${N} seans. ${cnt.katildi} katıldı, ${cnt.katilmadi} katılmadı, ${cnt.ertelendi} ertelendi, ${cnt.iptal} iptal.${oran != null ? ` Katılım oranı yüzde ${oran}.` : ''}`;
+        const present = ['katildi', 'katilmadi', 'ertelendi', 'iptal'].filter((k) => cnt[k] > 0);
+        m.push(`<section class="section" id="katilim" data-screen-label="Katılım">
+          ${head('Danışan dosyası · katılım', 'Seans <i>Katılımı</i>', 'Her seansın katılım durumu, kronolojik. Yeşil = katıldı, kırmızı = katılmadı; ertelenen ve iptal ayrı şekillerle.')}
+          <div class="att-wrap">
+            <div class="att-stat">
+              <div class="att-ratio"><span class="att-big">${oran != null ? oran : '—'}<em>%</em></span><span class="att-cap">katılım oranı</span><span class="att-sub">${cnt.katildi}/${held} gerçekleşen seans${cnt.ertelendi || cnt.iptal ? ` · ${cnt.ertelendi} ertelendi, ${cnt.iptal} iptal` : ''}</span></div>
+              <div class="att-legend">${present.map(legendItem).join('')}</div>
+            </div>
+            <div class="att-tl-scroll">
+              <svg class="att-tl" width="${W}" height="62" viewBox="0 0 ${W} 62" role="img" aria-label="${esc(aria)}">
+                <line x1="${padX}" y1="${cy}" x2="${W - padX}" y2="${cy}" class="att-track"/>
+                ${dots}
+              </svg>
+            </div>
+          </div>
+        </section>`);
+      }
+
+      // ---- ERTELEME / İPTAL HARİTASI ----
+      const ec = ordered.filter((r) => r.durum === 'ertelendi' || r.durum === 'iptal');
+      if (ec.length === 0) {
+        m.push(`<section class="section" id="erteleme-iptal" data-screen-label="Erteleme / İptal">
+          ${head('Danışan dosyası · süreklilik', 'Erteleme / <i>İptal</i> Haritası', 'Zaman ekseninde ertelenen ve iptal edilen seanslar — renk ve şekille ayrışır.')}
+          <div class="att-empty att-ok">Bu danışanda ertelenen veya iptal edilen seans bulunmuyor — süreklilik korunuyor.</div>
+        </section>`);
+      } else {
+        const W = 720, ay = 64, x0 = 48, x1 = W - 48;
+        const ts = (iso: string) => { if (!iso) return null; const t = new Date(iso + 'T00:00:00').getTime(); return isNaN(t) ? null : t; };
+        const times = ordered.map((r) => ts(r.isoDate)).filter((x) => x != null) as number[];
+        let minT = times.length ? Math.min(...times) : 0, maxT = times.length ? Math.max(...times) : 1;
+        if (minT === maxT) { minT -= 86400000; maxT += 86400000; }
+        const xOf = (r: any, i: number) => { const t = ts(r.isoDate); if (t == null) return x0 + (x1 - x0) * (i / Math.max(ec.length - 1, 1)); return x0 + (x1 - x0) * ((t - minT) / (maxT - minT)); };
+        const fmtT = (t: number) => { const d = new Date(t); return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getFullYear()).slice(2)}`; };
+        const marks = ec.map((r, i) => { const cx = xOf(r, i); const isErt = r.durum === 'ertelendi'; const my = isErt ? ay - 22 : ay + 22;
+          return `<g><title>${esc(DURUM_LBL[r.durum])} · Seans ${esc(r.seansNo)} · ${esc(r.date)}</title><line x1="${cx}" y1="${ay}" x2="${cx}" y2="${my}" class="att-stem"/>${marker(cx, my, r.durum, 8)}<text x="${cx}" y="${isErt ? my - 13 : my + 19}" text-anchor="middle" class="att-mlbl">${String(r.seansNo).padStart(2, '0')}</text></g>`;
+        }).join('');
+        const ne = ec.filter((r) => r.durum === 'ertelendi').length, ni = ec.filter((r) => r.durum === 'iptal').length;
+        const aria = `Erteleme ve iptal haritası: ${ne} ertelenen, ${ni} iptal edilen seans; zaman ekseni ${fmtT(minT)} – ${fmtT(maxT)}. Üstte elmas ertelendi, altta kare iptal.`;
+        m.push(`<section class="section" id="erteleme-iptal" data-screen-label="Erteleme / İptal">
+          ${head('Danışan dosyası · süreklilik', 'Erteleme / <i>İptal</i> Haritası', 'Zaman ekseninde ertelenen (üstte elmas) ve iptal edilen (altta kare) seanslar — renk ve şekille ayrışır.')}
+          <div class="att-wrap">
+            <div class="att-legend att-legend-row"><span class="att-lg"><svg viewBox="-9 -9 18 18" width="15" height="15" aria-hidden="true">${marker(0, 0, 'ertelendi', 7)}</svg>Ertelendi<b>${ne}</b></span><span class="att-lg"><svg viewBox="-9 -9 18 18" width="15" height="15" aria-hidden="true">${marker(0, 0, 'iptal', 7)}</svg>İptal<b>${ni}</b></span></div>
+            <div class="att-tl-scroll">
+              <svg class="att-map" width="${W}" height="118" viewBox="0 0 ${W} 118" role="img" aria-label="${esc(aria)}">
+                <line x1="${x0}" y1="${ay}" x2="${x1}" y2="${ay}" class="att-axis"/>
+                <text x="${x0}" y="${ay + 40}" class="att-axislbl" text-anchor="start">${fmtT(minT)}</text>
+                <text x="${x1}" y="${ay + 40}" class="att-axislbl" text-anchor="end">${fmtT(maxT)}</text>
+                ${marks}
+              </svg>
+            </div>
+          </div>
+        </section>`);
+      }
+    }
 
     const sw = D.strengthsWeaknesses;
     m.push(`<section class="section" id="bariyerler" data-screen-label="Güçlü &amp; Zayıf">

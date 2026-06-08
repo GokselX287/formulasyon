@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
 import { CheckCircle2, Circle, Plus, Trash2, Target, Clock, ChevronDown, ChevronUp, BookOpen, Award, RotateCcw } from 'lucide-react';
+import './actMotion.css';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Urgency = 'ivedi' | 'kisa' | 'orta' | 'uzun';
@@ -280,7 +281,7 @@ function GoalCard({
               <label className="text-xs font-semibold text-gray-500 mb-1 block">Bağlı Değer</label>
               <input type="text" value={goal.value} onChange={e => onChange({ value: e.target.value })}
                 placeholder="Aile, özgürlük, bağlantı…"
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-rose-300 transition-colors" />
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-[#D7AD9C] transition-colors" />
               <p className="text-xs text-gray-400 mt-1">Tüm hedef ve davranışlar danışanın değerleriyle bağlantılı olmalı.</p>
             </div>
           </div>
@@ -534,12 +535,12 @@ function PratikTab() {
       {/* ── Progress legend ── */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
         <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-          <Award size={14} className="text-rose-500" />
+          <Award size={14} className="text-[#B5654A]" />
           İlerleme nasıl hesaplanıyor?
         </h3>
         <div className="space-y-2 text-xs text-gray-500">
           <div className="flex items-start gap-2">
-            <span className="font-mono text-rose-500 mt-0.5">%75</span>
+            <span className="font-mono text-[#B5654A] mt-0.5">%75</span>
             <span>Quiz sorularından: her doğru cevap ~%9,4 katkı sağlar ({QUIZ_QUESTIONS.length} soru × %75).</span>
           </div>
           <div className="flex items-start gap-2">
@@ -572,12 +573,12 @@ export default function SMARTHedef() {
   const overallPct = calcPercent(savedProgress);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-blue-50 py-8 px-4">
+    <div className="act-fade-in min-h-screen bg-gradient-to-br from-[#F2EFEA] via-[#EFEDE9] to-[#E7E4DE] py-8 px-4">
       <div className="max-w-3xl mx-auto">
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-1">
-            <Target size={22} className="text-rose-500" />
+            <Target size={22} className="text-[#B5654A]" />
             <h1 className="text-2xl font-bold text-gray-900">SMART Hedef</h1>
           </div>
           <p className="text-sm text-gray-500">ACT değer odaklı, adanmış eylem planlaması</p>
@@ -614,7 +615,7 @@ export default function SMARTHedef() {
             <BookOpen size={14} />
             Pratik & Öğrenme
             {overallPct > 0 && (
-              <span className={`text-xs px-1.5 py-0.5 rounded-full font-mono ${activeTab === 'pratik' ? 'bg-white/20 text-white' : 'bg-rose-100 text-rose-700'}`}>
+              <span className={`text-xs px-1.5 py-0.5 rounded-full font-mono ${activeTab === 'pratik' ? 'bg-white/20 text-white' : 'bg-[#EFE4DD] text-[#8F4F39]'}`}>
                 {overallPct}%
               </span>
             )}
@@ -631,7 +632,7 @@ export default function SMARTHedef() {
                 value={clientName}
                 onChange={e => setClientName(e.target.value)}
                 placeholder="Danışan adı (isteğe bağlı)"
-                className="border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none focus:border-rose-300 w-52"
+                className="border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none focus:border-[#D7AD9C] w-52"
               />
               {clientName && <span className="text-sm text-gray-600"><strong>{clientName}</strong> için hedefler</span>}
             </div>
@@ -679,14 +680,14 @@ export default function SMARTHedef() {
 
             {/* Add button */}
             <button onClick={addGoal}
-              className="mt-5 w-full flex items-center justify-center gap-2 border-2 border-dashed border-gray-300 hover:border-rose-400 rounded-2xl py-4 text-sm text-gray-400 hover:text-rose-500 transition-all">
+              className="mt-5 w-full flex items-center justify-center gap-2 border-2 border-dashed border-gray-300 hover:border-[#C68A74] rounded-2xl py-4 text-sm text-gray-400 hover:text-[#B5654A] transition-all">
               <Plus size={16} /> Yeni SMART Hedef Ekle
             </button>
 
             {/* ACT reminder footer */}
             <div className="mt-8 p-5 bg-white rounded-2xl border border-gray-100 shadow-sm">
               <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                <Clock size={14} className="text-rose-500" />
+                <Clock size={14} className="text-[#B5654A]" />
                 Zaman Dilimi Rehberi
               </h3>
               <div className="grid grid-cols-2 gap-3">
@@ -703,7 +704,7 @@ export default function SMARTHedef() {
                   );
                 })}
               </div>
-              <div className="mt-4 p-3 bg-rose-50 rounded-xl border border-rose-100 text-xs text-rose-700 space-y-1">
+              <div className="mt-4 p-3 bg-[#F6EFEA] rounded-xl border border-[#EFE4DD] text-xs text-[#8F4F39] space-y-1">
                 <p><strong>Ölü Adam Hedefi:</strong> "Asla tartışmayacağım" gibi bir hedef — bir ölü adam da yapabilir. Gözlemlenebilir, aktif davranış hedefle.</p>
                 <p><strong>Değer Bağlantısı:</strong> Tüm hedefler danışanın değerlerine bağlantılı ve onlarla tutarlı olmalıdır.</p>
               </div>

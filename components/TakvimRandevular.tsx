@@ -16,6 +16,7 @@ export type TakvimRandevularProps = {
   events?: RawCalEvent[];
   resolveClient?: (name: string) => ClientMatch | undefined;
   avgFee?: number;
+  missingFeeCount?: number;
   availability?: { sablon: any[]; bloklar: any[] };
   onAddBlock?: (b: { tarih: string; baslangic: string; bitis: string; aciklama?: string; renk: string }) => void;
   gelisimEvents?: GelisimEv[];
@@ -26,6 +27,7 @@ export type TakvimRandevularProps = {
   onNewAppointment?(): void;
   onManualSync?(): Promise<void> | void;
   onOpenInterventionSuggest?(): void;
+  onEditMissingFees?(): void;
 };
 
 type SubTab = 'takvim' | 'hazirlik' | 'musaitlik' | 'gecmis' | 'sms' | 'gelisim';
@@ -72,7 +74,7 @@ const DOCK = [
 const AXIS_START = 9 * 60, AXIS_END = 18 * 60, HOUR_PX = 58;
 
 export default function TakvimRandevular(props: TakvimRandevularProps) {
-  const { events, resolveClient, avgFee = 0, availability, onAddBlock, gelisimEvents, onBack, onNav, onOpenClient, onPrepareSession, onNewAppointment, onManualSync, onOpenInterventionSuggest } = props;
+  const { events, resolveClient, avgFee = 0, missingFeeCount = 0, availability, onAddBlock, gelisimEvents, onBack, onNav, onOpenClient, onPrepareSession, onNewAppointment, onManualSync, onOpenInterventionSuggest, onEditMissingFees } = props;
   // #6 Müsaitlik blok tipleri
   const BLOCK_TYPES: { key: string; label: string }[] = [
     { key: 'kapali', label: 'Kapalı' }, { key: 'yemek', label: 'Yemek' },
@@ -216,14 +218,14 @@ export default function TakvimRandevular(props: TakvimRandevularProps) {
     const peakIdx = counts.indexOf(Math.max(...counts));
     const peakFull = { Pzt: 'Pazartesi', Sal: 'Salı', Çar: 'Çarşamba', Per: 'Perşembe', Cum: 'Cuma', Cmt: 'Cumartesi', Paz: 'Pazar' }[week[peakIdx].name];
 
-    // ── Tahmini haftalık kazanç ──
+    // ── Tahmini haftalık kazanç (fiyatı OLMAYAN danışanlar hesaba KATILMAZ) ──
     const weekDates = new Set(week.map((d) => d.date));
     const weekAppts = ALL.filter((a) => weekDates.has(a.date));
-    const exactCount = weekAppts.filter((a) => a.fee != null).length;
-    const estFee = (a: Appt) => (a.fee != null ? a.fee : avgFee);
-    const weekEarn = weekAppts.reduce((s, a) => s + estFee(a), 0);
-    const perSession = weekAppts.length ? Math.round(weekEarn / weekAppts.length) : 0;
-    const hasFeeData = exactCount > 0 || avgFee > 0;
+    const feeAppts = weekAppts.filter((a) => a.fee != null);
+    const feeCount = feeAppts.length;
+    const excludedCount = weekAppts.length - feeCount; // fiyatsız → hariç tutulan seans
+    const weekEarn = feeAppts.reduce((s, a) => s + (a.fee as number), 0);
+    const perSession = feeCount ? Math.round(weekEarn / feeCount) : 0;
     const tl = (n: number) => `₺${Math.round(n).toLocaleString('tr-TR')}`;
 
     return (
@@ -248,19 +250,25 @@ export default function TakvimRandevular(props: TakvimRandevularProps) {
 
         <div className="side-card earn">
           <span className="eyebrow">tahmini haftalık kazanç</span>
-          {hasFeeData ? (
+          {feeCount > 0 ? (
             <>
               <div className="earn-big num">{tl(weekEarn)}</div>
               <div className="earn-sub">
                 <span><b className="num">{tl(perSession)}</b> ort. / seans</span>
-                <span><b className="num">{total}</b> seans</span>
+                <span><b className="num">{feeCount}</b> ücretli seans</span>
               </div>
-              {exactCount < weekAppts.length && (
-                <p className="earn-note">{exactCount > 0 ? `${exactCount} seans gerçek ücret, kalanı ortalamayla (${tl(avgFee)}) tahmin edildi.` : `Tüm hesap ortalama ücretle (${tl(avgFee)}) tahmin edildi.`}</p>
+              {excludedCount > 0 && (
+                <p className="earn-note">{excludedCount} fiyatsız seans hesaba katılmadı (yalnızca ücreti girilmiş danışanlar sayılır).</p>
               )}
             </>
           ) : (
-            <p className="earn-empty">Henüz seans ücreti girilmemiş. Danışan dosyasındaki <b>“seans ücreti”</b> alanını doldurunca haftalık kazanç burada hesaplanır.</p>
+            <p className="earn-empty">Henüz fiyatlı seans yok. Danışan dosyasındaki <b>“seans ücreti”</b> alanını doldurunca haftalık kazanç burada hesaplanır.</p>
+          )}
+          {missingFeeCount > 0 && (
+            <button type="button" className="earn-warn" onClick={() => onEditMissingFees?.()}>
+              <span className="ew-ic" aria-hidden="true">!</span>
+              <span className="ew-tx"><b>{missingFeeCount}</b> sayıda danışanın fiyat bilgisi girilmemiştir. <u>Düzenleyin.</u></span>
+            </button>
           )}
         </div>
         {conflict && (

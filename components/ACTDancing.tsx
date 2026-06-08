@@ -1,1097 +1,448 @@
 'use client';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Play, Pause, RotateCcw, Users, Zap, ChevronRight, Eye, EyeOff, BookOpen, PanelRightOpen, PanelRightClose, Lightbulb, ChevronDown, ChevronUp, PenLine } from 'lucide-react';
+import { Play, Pause, RotateCcw, Maximize2, Minimize2, BookOpen, Lightbulb, ChevronRight } from 'lucide-react';
+import './actMotion.css';
+import './ACTDancing.css';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────────────
+// ACT DANCING — "ACT TÜRKİYE logo dili" yeniden tasarım (Claude Design handoff)
+// Glossy yuvarlatılmış-altıgen rozetler (gri düğüm + kırmızı merkez), marka
+// kırmızısı #ED1C24, beyaz hexgrid zemin, premium eğitici paneli, tam ekran
+// (native + fake) + ACT TÜRKİYE logosu. Figür tekniği Hexaflex.html'den,
+// geometri/token'lar README'den (bağlayıcı hifi spec).
+// ──────────────────────────────────────────────────────────────────────────
+
 type Phase = 'setup' | 'running' | 'paused' | 'done';
 type DancingMode = 'hexaflex' | 'triflex';
-type Category = 'farkinda' | 'aktif' | 'acik' | 'all';
-
+type Cat = 'farkinda' | 'aktif' | 'acik' | 'all';
 interface Participant { name: string; role: string }
-interface Config {
-  duration: number;
-  speed: number;
-  sequential: boolean;
-  educatorName: string;
-  therapistName: string;
-  participants: Participant[];
-}
+interface Config { dur: number; speed: number; seq: boolean; educatorName: string; therapistName: string; participants: Participant[] }
 
-// ─── ACT Data ─────────────────────────────────────────────────────────────────
+const CAT: Record<Cat, { label: string; hex: string }> = {
+  farkinda: { label: 'FARKINDA',       hex: '#C0392B' },
+  aktif:    { label: 'AKTİF (ANGAJE)', hex: '#1A5276' },
+  acik:     { label: 'AÇIK',           hex: '#784212' },
+  all:      { label: '',               hex: '#1E8449' },
+};
+
+// 6 ACT süreci — deg 0..300 (0=tepe, saat yönü). badge=rozet etiketi, nm/desc/iv=panel.
 const NODES = [
-  {
-    i: 0, key: 'simdiki-an', label: 'Şimdiki Anla\nTemas', category: 'farkinda' as Category,
-    angleDeg: 0,
-    desc: 'Şimdiki An Farkındalığı: Dikkati "Şimdi ve Burada" ya vermek',
-    interventions: [
-      'Şu an ne fark ediyorsunuz?',
-      'Bu anda bedeninizde neler oluyor?',
-      'Tam olarak şu an ne yaşıyorsunuz?',
-      'Etrafınızda şu an neler görüyorsunuz, duyuyorsunuz?',
-      'Nefes alırken bedeninizde ne hissediyorsunuz?',
-    ],
-    triflexHint: 'Şimdiki an farkındalığı → FARKINDA',
-  },
-  {
-    i: 1, key: 'degerler', label: 'Değerler', category: 'aktif' as Category,
-    angleDeg: 60,
-    desc: 'Değerlere Temas: Hayatta sizin için neyin önemli olduğunu anlamak/tanımak',
-    interventions: [
-      'Hayatınızda gerçekten önemli olan ne?',
-      'Nasıl bir insan olmak istiyorsunuz?',
-      'Bu alanda değerleriniz nelerdir?',
-      'Hayatınız tam istediğiniz gibi olsaydı, ne farklı olurdu?',
-      'Bu alanda en önem verdiğiniz şey nedir?',
-    ],
-    triflexHint: 'Değer netleştirme → AKTİF / ANGAJE',
-  },
-  {
-    i: 2, key: 'adanmis-eylem', label: 'Adanmış\nEylem', category: 'aktif' as Category,
-    angleDeg: 120,
-    desc: 'Adanmış Eylem: Zor olsa bile sizin için önemli olan şeyleri yapmak',
-    interventions: [
-      'Değerlerinize doğru şimdi ne yapabilirsiniz?',
-      'Bu hafta ne deneyebilirsiniz?',
-      'Bu değer doğrultusunda atacağınız en küçük adım ne olabilir?',
-      'Zor olsa bile önemli olan eylemleri nasıl sürdürürsünüz?',
-      'Bu eylemi gerçekleştirmenizi neler kolaylaştırır?',
-    ],
-    triflexHint: 'Adanmış eylem / davranış aktivasyonu → AKTİF / ANGAJE',
-  },
-  {
-    i: 3, key: 'baglamsal-benlik', label: 'Bağlamsal\nBenlik', category: 'all' as Category,
-    angleDeg: 180,
-    desc: 'Bağlamsal Benlik: Kendini gözlemleme / esnek perspektif-alma',
-    interventions: [
-      'Düşünceleri izleyen kim fark edebilir?',
-      'Siz o düşüncenin kendisi misiniz, yoksa onu fark eden mi?',
-      'Kendinizi bir gözlemci gözüyle görebilir misiniz?',
-      'On yıl önce de aynı siz vardınız, o dönemden bakabilir misiniz?',
-      'Bu perspektiften bakıldığında ne görüyorsunuz?',
-    ],
-    triflexHint: 'Perspektif alma → tüm boyutları köprüler',
-  },
-  {
-    i: 4, key: 'bilissel-ayrisma', label: 'Bilişsel\nAyrışma', category: 'acik' as Category,
-    angleDeg: 240,
-    desc: 'Defüzyon (Bilişsel Ayrışma): Düşüncelerden Ayrışma',
-    interventions: [
-      '"... diye düşünüyorum" diyebilir misiniz?',
-      'Zihniniz size ne söylüyor?',
-      'Bu düşünce bir gerçek mi, yoksa bir tahmin mi?',
-      'Bu düşünceyi bir bulut gibi geçip giderken izleyebilir misiniz?',
-      'Bu düşüncenin sizi ne kadar kontrol etmesine izin veriyorsunuz?',
-    ],
-    triflexHint: 'Bilişsel ayrışma / defüzyon → AÇIK',
-  },
-  {
-    i: 5, key: 'kabul', label: 'Kabul', category: 'acik' as Category,
-    angleDeg: 300,
-    desc: 'Deneyimlemeye isteklilik: Ortaya çıkan her şeyin orada olmasına izin vermek',
-    interventions: [
-      'Bu duyguya yer açabilir misiniz?',
-      'Kaçmak yerine bu deneyimle kalabilir misiniz?',
-      'Bu hissin tam olarak nerede olduğunu hissedebilir misiniz?',
-      'Buna karşı savaşmak yerine onu gözlemleyebilir misiniz?',
-      'Duygunuzun sadece orada kalmasına izin verebilir misiniz?',
-    ],
-    triflexHint: 'Kabul / isteklilik → AÇIK',
-  },
+  { deg: 0, badge: ['ŞİMDİKİ AN', 'TEMAS'], nm: 'Şimdiki Anla Temas', cat: 'farkinda' as Cat,
+    desc: 'Şimdiki An Farkındalığı: Dikkati "Şimdi ve Burada"ya vermek; yargısız, açık ve esnek dikkat.',
+    iv: ['Şu an ne fark ediyorsunuz?', 'Bu anda bedeninizde neler oluyor?', 'Tam olarak şu an ne yaşıyorsunuz?', 'Etrafınızda şu an neler görüyor, duyuyorsunuz?', 'Nefes alırken bedeninizde ne hissediyorsunuz?'] },
+  { deg: 60, badge: ['DEĞERLER'], nm: 'Değerler', cat: 'aktif' as Cat,
+    desc: 'Değerlere Temas: Hayatta sizin için neyin önemli olduğunu tanımak — hedef değil, pusula.',
+    iv: ['Hayatınızda gerçekten önemli olan ne?', 'Nasıl bir insan olmak istiyorsunuz?', 'Bu alanda değerleriniz nelerdir?', 'Hayatınız tam istediğiniz gibi olsaydı ne farklı olurdu?', 'En önem verdiğiniz şey nedir?'] },
+  { deg: 120, badge: ['ADANMIŞ', 'EYLEM'], nm: 'Adanmış Eylem', cat: 'aktif' as Cat,
+    desc: 'Adanmış Eylem: Zor olsa bile değerler yönünde sürdürülen somut, kararlı adımlar.',
+    iv: ['Değerlerinize doğru şimdi ne yapabilirsiniz?', 'Bu hafta ne deneyebilirsiniz?', 'En küçük adım ne olabilir?', 'Zor olsa bile nasıl sürdürürsünüz?', 'Bunu ne kolaylaştırır?'] },
+  { deg: 180, badge: ['BAĞLAMSAL', 'BENLİK'], nm: 'Bağlamsal Benlik', cat: 'all' as Cat,
+    desc: 'Bağlamsal Benlik: Gözlemleyen benlik; içeriğin değil onu fark edenin perspektifinden bakmak.',
+    iv: ['Düşünceleri izleyen kim fark edebilir?', 'Düşüncenin kendisi misiniz, onu fark eden mi?', 'Kendinizi gözlemci gözüyle görebilir misiniz?', 'On yıl önceki sizden bakabilir misiniz?', 'Bu perspektiften ne görüyorsunuz?'] },
+  { deg: 240, badge: ['BİLİŞSEL', 'AYRIŞMA'], nm: 'Bilişsel Ayrışma', cat: 'acik' as Cat,
+    desc: 'Defüzyon (Bilişsel Ayrışma): Düşüncelere kapılmak yerine onları düşünce olarak görmek.',
+    iv: ['"... diye düşünüyorum" diyebilir misiniz?', 'Zihniniz size ne söylüyor?', 'Bu düşünce gerçek mi, tahmin mi?', 'Bulut gibi geçerken izleyebilir misiniz?', 'Sizi ne kadar kontrol etmesine izin veriyorsunuz?'] },
+  { deg: 300, badge: ['KABUL'], nm: 'Kabul', cat: 'acik' as Cat,
+    desc: 'İsteklilik: Ortaya çıkan duygu ve duyumlara, onlarla savaşmadan yer açmak.',
+    iv: ['Bu duyguya yer açabilir misiniz?', 'Kaçmak yerine kalabilir misiniz?', 'Tam olarak nerede olduğunu hissedebilir misiniz?', 'Savaşmak yerine gözlemleyebilir misiniz?', 'Sadece orada kalmasına izin verebilir misiniz?'] },
 ];
 
-const CAT_STYLE: Record<Category, { label: string; color: string; bg: string; textColor: string }> = {
-  farkinda: { label: 'FARKINDA',      color: '#C0392B', bg: 'rgba(192,57,43,0.15)',  textColor: '#C0392B' },
-  aktif:    { label: 'AKTİF (ANGAJE)',color: '#1A5276', bg: 'rgba(26,82,118,0.15)',  textColor: '#1A5276' },
-  acik:     { label: 'AÇIK',          color: '#784212', bg: 'rgba(120,66,18,0.15)',  textColor: '#784212' },
-  all:      { label: '',              color: '#1E8449', bg: 'rgba(30,132,73,0.12)',  textColor: '#1E8449' },
-};
-
-const DURATIONS = [5, 10, 12, 15, 20];
-const SPEEDS    = [
-  { label: 'Yavaş', value: 20, desc: '20 sn/boyut' },
-  { label: 'Orta',  value: 12, desc: '12 sn/boyut' },
-  { label: 'Hızlı', value: 7,  desc: '7 sn/boyut'  },
+// Triflex — 6 Hexaflex süreci → 3 tepki stili. Her grup 2 düğüm + kendi müdahaleleri.
+// nodes: NODES indeksleri (0 Şimdiki An, 1 Değerler, 2 Adanmış, 3 Bağlamsal, 4 Bilişsel, 5 Kabul)
+const TRIFLEX = [
+  { cat: 'acik' as Cat, nm: 'Açıklık', eyebrow: 'Aç & farkında ol', nodes: [5, 4],
+    desc: 'Acıya ve zor düşüncelere alan açmak; onlarla savaşmadan yer vermek (Kabul + Bilişsel Ayrışma).',
+    iv: ['Bu deneyime karşı savaşmak yerine ona yer açabilir misiniz?', 'Bu düşünceyi bir gerçek değil, bir düşünce olarak görebilir misiniz?', 'Zor duyguyu değiştirmeye çalışmadan olduğu gibi gözlemleyebilir misiniz?', 'Kaçınmak yerine bu hisle birlikte kalmak nasıl olurdu?', 'Zihninizin söylediğine kapılmadan onu fark edebilir misiniz?'] },
+  { cat: 'farkinda' as Cat, nm: 'Merkezlenme · Farkında', eyebrow: 'Şimdi & burada', nodes: [0, 3],
+    desc: 'Esnek dikkatle şu ana gelmek; gözlemleyen benlikte durmak (Şimdiki An + Bağlamsal Benlik).',
+    iv: ['Şu an, bu odada, ne fark ediyorsunuz?', 'Dikkatinizi nefesinize ve bedeninize getirebilir misiniz?', 'Tüm bunları fark eden "siz" kimsiniz?', 'Düşünceleri izleyen gözlemci konumuna geçebilir misiniz?', 'Şimdiki ana dönmek için bir duyusal çapa bulabilir misiniz?'] },
+  { cat: 'aktif' as Cat, nm: 'Adanmışlık · Angaje', eyebrow: 'Yap & yaşa', nodes: [1, 2],
+    desc: 'Değerler yönünde, engellere rağmen sürdürülen somut ve kararlı eylem (Değerler + Adanmış Eylem).',
+    iv: ['Bu değer doğrultusunda atabileceğiniz en küçük adım ne?', 'Bu hafta neyi farklı yapardınız?', 'Engel çıksa bile bu eylemi nasıl sürdürürsünüz?', 'Hangi değer bu eyleme rehberlik ediyor?', 'Bunu somut, ölçülebilir bir adıma nasıl çevirirsiniz?'] },
 ];
-const ROLES = ['Terapist', 'Danışan', 'Süpervizör', 'Yazıcı'];
-const ROLE_COLORS: Record<string, string> = {
-  Terapist: '#C0392B', Danışan: '#1A5276', Süpervizör: '#1E8449', Yazıcı: '#6D3B8A',
-};
-const ROLE_DESCS: Record<string, string> = {
-  Terapist: 'Seans yürüten klinisyen adayı',
-  Danışan: 'Gerçek veya rol play danışan',
-  Süpervizör: 'Terapist tıkandığında tek öneri verir',
-  Yazıcı: 'Hexaflex boyutlarını takip eder, not alır',
-};
 
-const DEFAULT_CONFIG: Config = {
-  duration: 10,
-  speed: 12,
-  sequential: true,
-  educatorName: '',
-  therapistName: '',
-  participants: ROLES.map(r => ({ name: '', role: r })),
-};
+const ROLES = [
+  { role: 'Terapist', c: '#C0392B' }, { role: 'Danışan', c: '#1A5276' },
+  { role: 'Süpervizör', c: '#1E8449' }, { role: 'Yazıcı', c: '#6D3B8A' },
+];
+const DURS = [5, 10, 12, 15, 20];
+const SPDS = [{ l: 'Yavaş', v: 20 }, { l: 'Orta', v: 12 }, { l: 'Hızlı', v: 7 }];
+const DEFAULT_CONFIG: Config = { dur: 10, speed: 12, seq: true, educatorName: '', therapistName: '', participants: ROLES.map(r => ({ name: '', role: r.role })) };
 
-// ─── SVG Geometry ─────────────────────────────────────────────────────────────
-const VW = 520, VH = 540;
-const CX = 260, CY = 270;
-const OUTER_R = 162;
-const NODE_R = 44;
-const CENTER_R = 60;
+// ─── Geometri (README) ─────────────────────────────────────────────────────
+const VW = 600, VH = 620, CX = 300, CY = 308, RING = 216, NR = 46, COREr = 58;
+const polar = (deg: number, r: number): [number, number] => { const a = (deg - 90) * Math.PI / 180; return [CX + r * Math.cos(a), CY + r * Math.sin(a)]; };
 
-function polarXY(angleDeg: number, r: number, cx = CX, cy = CY) {
-  const rad = (angleDeg - 90) * Math.PI / 180;
-  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+// ─── Yuvarlatılmış sivri-tepe altıgen path (Hexaflex.html) ──────────────────
+type V = [number, number];
+const sub = (a: V, b: V): V => [a[0] - b[0], a[1] - b[1]];
+const add = (a: V, b: V): V => [a[0] + b[0], a[1] + b[1]];
+const mul = (a: V, s: number): V => [a[0] * s, a[1] * s];
+const norm = (a: V): V => { const m = Math.hypot(a[0], a[1]) || 1; return [a[0] / m, a[1] / m]; };
+const ff = (p: V) => `${p[0].toFixed(1)},${p[1].toFixed(1)}`;
+function rhex(cx: number, cy: number, R: number, rad: number) {
+  const pts: V[] = Array.from({ length: 6 }, (_, i) => { const a = (60 * i - 90) * Math.PI / 180; return [cx + R * Math.cos(a), cy + R * Math.sin(a)]; });
+  let d = '';
+  for (let i = 0; i < 6; i++) {
+    const cur = pts[i], prev = pts[(i + 5) % 6], next = pts[(i + 1) % 6];
+    const p1 = add(cur, mul(norm(sub(prev, cur)), rad)), p2 = add(cur, mul(norm(sub(next, cur)), rad));
+    d += (i === 0 ? `M${ff(p1)} ` : `L${ff(p1)} `) + `Q ${ff(cur)} ${ff(p2)} `;
+  }
+  return d + 'Z';
 }
 
-function flatHexPts(cx: number, cy: number, r: number) {
-  return Array.from({ length: 6 }, (_, i) => {
-    const a = i * 60 * Math.PI / 180;
-    return `${(cx + r * Math.cos(a)).toFixed(2)},${(cy + r * Math.sin(a)).toFixed(2)}`;
-  }).join(' ');
-}
+const GRAY = { top: '#FFFFFF', mid: '#F2F2F0', dark: '#DEDDDA', edge: '#C0BFBB', ring: '#ED1C24', text: '#36352F' };
+const RED  = { top: '#FF3B2E', mid: '#ED1C24', dark: '#CE1118', edge: '#A50F14', ring: '#ED1C24', text: '#FFFFFF' };
 
-function pointyHexPts(cx: number, cy: number, r: number) {
-  return Array.from({ length: 6 }, (_, i) => {
-    const a = (i * 60 + 30) * Math.PI / 180;
-    return `${(cx + r * Math.cos(a)).toFixed(2)},${(cy + r * Math.sin(a)).toFixed(2)}`;
-  }).join(' ');
-}
-
-const NODE_POSITIONS = NODES.map(n => polarXY(n.angleDeg, OUTER_R));
-const OUTLINE_POINTS = NODE_POSITIONS.map(p => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(' ');
-
-// ─── HexaflexSVG ──────────────────────────────────────────────────────────────
-function HexaflexSVG({
-  activeIdx,
-  mode,
-  nodeTimeLeft,
-  speed,
-  phase,
-  hideTimer,
-}: {
-  activeIdx: number;
-  mode: DancingMode;
-  nodeTimeLeft: number;
-  speed: number;
-  phase: Phase;
-  hideTimer: boolean;
-}) {
-  const activeNode = NODES[activeIdx];
-  const activeCat = activeNode.category;
-  const progress = nodeTimeLeft / speed;
-  const isRunning = phase === 'running';
-
-  // Render inactive nodes first, active last → SVG z-order
-  const renderOrder = NODES.map((_, i) => i).filter(i => i !== activeIdx).concat(activeIdx);
-
+// ─── Tek glossy düğüm ───────────────────────────────────────────────────────
+function GlassNode({ x, y, R, lines, core, idx, active, ringColor = '#ED1C24', onClick }:
+  { x: number; y: number; R: number; lines: string[]; core?: boolean; idx: number; active?: boolean; ringColor?: string; onClick?: () => void }) {
+  const col = core ? RED : GRAY;
+  const bez = rhex(x, y, R + (core ? 20 : 16), core ? 7 : 6);
+  const bezIn = rhex(x, y, R + (core ? 14 : 10), core ? 6 : 5);
+  const body = rhex(x, y, R, core ? 6 : 5);
+  const ring = rhex(x, y, R + (core ? 30 : 26), core ? 9 : 7);
+  const clipId = `acd-clip-${core ? 'core' : idx}`;
+  const [l1, l2] = lines;
+  let text: React.ReactNode;
+  if (l2) {
+    const f1 = core ? 14 : 10.5, f2 = core ? 9 : 8;
+    text = (<>
+      <text x={x} y={+(y - 3).toFixed(1)} textAnchor="middle" fontSize={f1} fontWeight="800" fill={col.text} letterSpacing={core ? 0 : -0.2}>{l1}</text>
+      <text x={x} y={+(y + f2 + 5).toFixed(1)} textAnchor="middle" fontSize={f2} fontWeight="600" fill={col.text} letterSpacing={core ? 3 : 1.6}>{l2}</text>
+    </>);
+  } else {
+    const f1 = 12.5;
+    text = <text x={x} y={+(y + f1 * 0.34).toFixed(1)} textAnchor="middle" fontSize={f1} fontWeight="800" fill={col.text} letterSpacing={0.4}>{l1}</text>;
+  }
   return (
-    <svg
-      viewBox={`0 0 ${VW} ${VH}`}
-      width="100%"
-      height="100%"
-      style={{ display: 'block', maxHeight: '100%', overflow: 'visible' }}
-    >
+    <g className={`gnode${core ? ' core' : ''}${active ? ' active' : ''}`} style={{ transformOrigin: `${x}px ${y}px`, cursor: onClick ? 'pointer' : 'default' }} onClick={onClick}>
+      <path className="ring" d={ring} fill="none" stroke={ringColor} strokeWidth={core ? 7 : 6} filter="url(#acd-ringGlow)" style={{ transformOrigin: `${x}px ${y}px` }} />
+      <path className="ring" d={ring} fill="none" stroke={ringColor} strokeWidth={2.2} opacity={0.9} style={{ transformOrigin: `${x}px ${y}px` }} />
+      <path d={bez} fill="url(#acd-bezel)" filter="url(#acd-bezShadow)" />
+      <path d={bezIn} fill="none" stroke="#FFFFFF" strokeOpacity={0.9} strokeWidth={2} />
+      <path className="redbody" d={body} fill={core ? 'url(#acd-bodyRed)' : 'url(#acd-bodyGray)'} />
+      <clipPath id={clipId}><path d={body} /></clipPath>
+      <g clipPath={`url(#${clipId})`}><ellipse cx={x} cy={+(y - R * 0.62).toFixed(1)} rx={+(R * 0.78).toFixed(1)} ry={+(R * 0.34).toFixed(1)} fill="url(#acd-topGloss)" /></g>
+      <path d={body} fill="none" stroke={col.edge} strokeOpacity={0.4} strokeWidth={1.4} />
+      {text}
+    </g>
+  );
+}
+
+// ─── Hexaflex figürü ────────────────────────────────────────────────────────
+function HexaflexFigure({ activeSet, running, accent = '#ED1C24', onSelect }: { activeSet: number[]; running: boolean; accent?: string; onSelect?: (i: number) => void }) {
+  const set = running ? activeSet : [];
+  const isOn = (i: number) => set.includes(i);
+  const P = NODES.map(n => polar(n.deg, RING));
+  const order = [0, 1, 2, 3, 4, 5].filter(i => !isOn(i));
+  return (
+    <svg className="fig" viewBox={`0 0 ${VW} ${VH}`} aria-label="Hexaflex">
       <defs>
-        <filter id="glow-node" x="-40%" y="-40%" width="180%" height="180%">
-          <feGaussianBlur stdDeviation="7" result="blur" />
-          <feComposite in="SourceGraphic" in2="blur" operator="over" />
-        </filter>
-        <filter id="shadow-active" x="-40%" y="-40%" width="180%" height="180%">
-          <feDropShadow dx="0" dy="6" stdDeviation="10" floodOpacity="0.28" />
-        </filter>
+        <linearGradient id="acd-bezel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#FFFFFF" /><stop offset="0.5" stopColor="#F1F1EF" /><stop offset="1" stopColor="#D9D8D5" /></linearGradient>
+        <linearGradient id="acd-bodyGray" x1="0" y1="0" x2="0.16" y2="1"><stop offset="0" stopColor={GRAY.top} /><stop offset="0.45" stopColor={GRAY.mid} /><stop offset="1" stopColor={GRAY.dark} /></linearGradient>
+        <linearGradient id="acd-bodyRed" x1="0" y1="0" x2="0.16" y2="1"><stop offset="0" stopColor={RED.top} /><stop offset="0.45" stopColor={RED.mid} /><stop offset="1" stopColor={RED.dark} /></linearGradient>
+        <linearGradient id="acd-topGloss" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#FFFFFF" stopOpacity="0.5" /><stop offset="1" stopColor="#FFFFFF" stopOpacity="0" /></linearGradient>
+        <filter id="acd-bezShadow" x="-40%" y="-40%" width="180%" height="180%"><feDropShadow dx="0" dy="6" stdDeviation="9" floodColor="#9a9a97" floodOpacity="0.45" /></filter>
+        <filter id="acd-ringGlow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="4.5" /></filter>
       </defs>
-
-      {/* ── Triflex outer category labels ── */}
-      {mode === 'triflex' && (
-        <g>
-          <text x={CX} y={18} textAnchor="middle" fontSize="15" fontWeight="700"
-            fill={activeCat === 'farkinda' ? '#C0392B' : '#D0BBBB'}
-            style={{ transition: 'fill 0.4s', letterSpacing: '2px' }}>FARKINDA</text>
-          <text x={VW - 12} y={CY + 6} textAnchor="end" fontSize="15" fontWeight="700"
-            fill={activeCat === 'aktif' ? '#1A5276' : '#BBBBD0'}
-            style={{ transition: 'fill 0.4s', letterSpacing: '2px' }}>
-            <tspan x={VW - 12} dy="0">AKTİF</tspan>
-            <tspan x={VW - 12} dy="18">(ANGAJE)</tspan>
-          </text>
-          <text x={14} y={CY + 6} textAnchor="start" fontSize="15" fontWeight="700"
-            fill={activeCat === 'acik' ? '#784212' : '#D0C8BB'}
-            style={{ transition: 'fill 0.4s', letterSpacing: '2px' }}>AÇIK</text>
-        </g>
-      )}
-
-      {/* ── Triflex category rect highlights ── */}
-      {mode === 'triflex' && (() => {
-        const catRects: Record<Category, { x: number; y: number; w: number; h: number; r: number } | null> = {
-          farkinda: { x: CX - 70, y: 28, w: 140, h: NODE_POSITIONS[0].y - 28 + NODE_R + 12, r: 12 },
-          aktif:    { x: NODE_POSITIONS[1].x - NODE_R - 12, y: NODE_POSITIONS[1].y - NODE_R - 12, w: VW - (NODE_POSITIONS[1].x - NODE_R - 12), h: NODE_POSITIONS[2].y - NODE_POSITIONS[1].y + NODE_R * 2 + 24, r: 12 },
-          acik:     { x: 0, y: NODE_POSITIONS[5].y - NODE_R - 12, w: NODE_POSITIONS[5].x + NODE_R + 12, h: NODE_POSITIONS[4].y - NODE_POSITIONS[5].y + NODE_R * 2 + 24, r: 12 },
-          all:      null,
-        };
-        const rect = catRects[activeCat];
-        if (!rect) return null;
-        const cs = CAT_STYLE[activeCat];
-        return (
-          <rect x={rect.x} y={rect.y} width={rect.w} height={rect.h} rx={rect.r}
-            fill={cs.bg} stroke={cs.color} strokeWidth="1.5" strokeDasharray="4 3"
-            style={{ transition: 'all 0.5s', opacity: 0.7 }} />
-        );
-      })()}
-
-      {/* ── Outer hexagon outline ── */}
-      <polygon points={OUTLINE_POINTS} fill="none" stroke="#D8D0CC" strokeWidth="1.5" />
-
-      {/* ── Lines: center to each node ── */}
-      {NODES.map((n, i) => {
-        const pos = NODE_POSITIONS[i];
-        const isActive = i === activeIdx;
-        return (
-          <line key={n.key} x1={CX} y1={CY} x2={pos.x} y2={pos.y}
-            stroke={isActive ? CAT_STYLE[n.category].color : '#E0D8D4'}
-            strokeWidth={isActive ? 2.5 : 1}
-            style={{ transition: 'stroke 0.4s, stroke-width 0.4s' }} />
-        );
-      })}
-
-      {/* ── Center hexagon (rendered before nodes so active node appears on top) ── */}
-      <polygon points={pointyHexPts(CX, CY, CENTER_R)} fill="#C0392B" stroke="#A93226" strokeWidth="2" />
-      <text x={CX} y={CY - 8} textAnchor="middle" fontSize="10" fontWeight="700" fill="white">PSİKOLOJİK</text>
-      <text x={CX} y={CY + 6}  textAnchor="middle" fontSize="10" fontWeight="700" fill="white">ESNEKLİK</text>
-
-      {/* ── Node hexagons — inactive first, active last ── */}
-      {renderOrder.map(i => {
-        const n   = NODES[i];
-        const pos = NODE_POSITIONS[i];
-        const isActive = i === activeIdx;
-        const cs  = CAT_STYLE[n.category];
-        const lines = n.label.split('\n');
-        // 1.5× scale for active node, spring easing
-        const scale = isActive && isRunning ? 1.5 : 1;
-
-        return (
-          <g
-            key={n.key}
-            style={{
-              transformOrigin: `${pos.x}px ${pos.y}px`,
-              transform: `scale(${scale})`,
-              transition: 'transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1)',
-            }}
-          >
-            {/* Outer glow halo */}
-            {isActive && isRunning && (
-              <polygon
-                points={flatHexPts(pos.x, pos.y, NODE_R + 12)}
-                fill={cs.color} opacity="0.14"
-                filter="url(#glow-node)"
-              />
-            )}
-            {/* Hexagon face */}
-            <polygon
-              points={flatHexPts(pos.x, pos.y, NODE_R)}
-              fill={isActive ? cs.bg : '#F5F2F0'}
-              stroke={isActive ? cs.color : '#C8C0BC'}
-              strokeWidth={isActive ? 2.5 : 1.5}
-              filter={isActive && isRunning ? 'url(#shadow-active)' : undefined}
-              style={{ transition: 'fill 0.4s, stroke 0.4s' }}
-            />
-            {/* Label */}
-            {lines.map((line, li) => (
-              <text key={li}
-                x={pos.x}
-                y={pos.y + (lines.length === 1 ? 5 : li * 14 - 7)}
-                textAnchor="middle"
-                fontSize={lines.length === 1 ? '12' : '11'}
-                fontWeight={isActive ? '700' : '500'}
-                fill={isActive ? cs.color : '#3A3530'}
-                style={{ transition: 'fill 0.3s' }}
-              >{line}</text>
-            ))}
-            {/* Countdown arc — inside group so it scales with the node */}
-            {isActive && isRunning && !hideTimer && (() => {
-              const r = NODE_R + 16;
-              const circumference = 2 * Math.PI * r;
-              const dash = progress * circumference;
-              return (
-                <circle cx={pos.x} cy={pos.y} r={r}
-                  fill="none" stroke={cs.color} strokeWidth="3"
-                  strokeDasharray={`${dash.toFixed(2)} ${circumference.toFixed(2)}`}
-                  strokeDashoffset={circumference / 4}
-                  strokeLinecap="round" opacity="0.75"
-                  style={{ transition: 'stroke-dasharray 0.95s linear' }} />
-              );
-            })()}
-          </g>
-        );
-      })}
+      {/* bağlantılar */}
+      <g>
+        {NODES.map((_, i) => { const a = P[i], b = P[(i + 1) % 6]; return <line key={'rg' + i} className="conn" x1={a[0].toFixed(1)} y1={a[1].toFixed(1)} x2={b[0].toFixed(1)} y2={b[1].toFixed(1)} stroke="#D4D2CE" strokeWidth={1.6} opacity={0.8} />; })}
+        {NODES.map((_, i) => { const on = isOn(i); return <line key={'sp' + i} className="conn" x1={CX} y1={CY} x2={P[i][0].toFixed(1)} y2={P[i][1].toFixed(1)} stroke={on ? accent : '#C9C7C3'} strokeWidth={on ? 3.4 : 2.2} />; })}
+      </g>
+      {/* düğümler: aktif-olmayan dışlar → merkez → aktif (öne) */}
+      <g>
+        {order.map(i => { const [x, y] = P[i]; return <GlassNode key={'n' + i} x={x} y={y} R={NR} lines={NODES[i].badge} idx={i} onClick={onSelect ? () => onSelect(i) : undefined} />; })}
+        <GlassNode key="core" x={CX} y={CY} R={COREr} lines={['PSİKOLOJİK', 'ESNEKLİK']} core idx={-1} />
+        {set.map(i => { const [x, y] = P[i]; return <GlassNode key={'a' + i} x={x} y={y} R={NR} lines={NODES[i].badge} idx={i} active ringColor={accent} onClick={onSelect ? () => onSelect(i) : undefined} />; })}
+      </g>
     </svg>
   );
 }
 
-// ─── SetupScreen ──────────────────────────────────────────────────────────────
-function SetupScreen({
-  config,
-  setConfig,
-  mode,
-  setMode,
-  hideTimer,
-  setHideTimer,
-  onStart,
-}: {
-  config: Config;
-  setConfig: React.Dispatch<React.SetStateAction<Config>>;
-  mode: DancingMode;
-  setMode: (m: DancingMode) => void;
-  hideTimer: boolean;
-  setHideTimer: (v: boolean) => void;
-  onStart: () => void;
-}) {
-  const updateParticipant = (i: number, field: keyof Participant, value: string) => {
-    const next = [...config.participants];
-    next[i] = { ...next[i], [field]: value };
-    setConfig(c => ({ ...c, participants: next }));
-  };
+const HexGridBg = () => (
+  <div className="stage-bg" aria-hidden="true">
+    <svg viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <pattern id="acd-hexgrid" width="84" height="146" patternUnits="userSpaceOnUse">
+          <path d="M42 0 L84 24 L84 73 L42 97 L0 73 L0 24 Z" fill="none" stroke="#D6D5D1" strokeWidth="1.3" />
+          <path d="M0 73 L0 122 L42 146 L84 122 L84 73" fill="none" stroke="#D6D5D1" strokeWidth="1.3" />
+        </pattern>
+      </defs>
+      <rect width="1200" height="800" fill="url(#acd-hexgrid)" opacity="0.55" />
+    </svg>
+  </div>
+);
 
+// ACT TÜRKİYE logosu (tam ekranda sağ-alt)
+const ActLogo = () => {
+  const cx = 36, cy = 33, R = 30;
   return (
-    <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-blue-50 flex flex-col items-center py-10 px-4">
-      {/* Header */}
-      <div className="text-center mb-8">
-        <div className="inline-flex items-center gap-2 bg-rose-600 text-white px-5 py-2 rounded-full text-sm font-bold mb-3">
-          <Zap size={14} />
-          ACT Pratik Sistemi
-        </div>
-        <h1 className="text-3xl font-bold text-gray-900">Hexaflex Dancing</h1>
-        <p className="text-gray-500 mt-2 text-sm">Terapist adayları için canlı ACT boyut pratiği</p>
-      </div>
+    <svg className="fs-logo" viewBox="0 0 72 86" aria-label="ACT TÜRKİYE">
+      <defs>
+        <linearGradient id="acd-lgRed" x1="0" y1="0" x2="0.16" y2="1"><stop offset="0" stopColor="#FF3B2E" /><stop offset="0.45" stopColor="#ED1C24" /><stop offset="1" stopColor="#CE1118" /></linearGradient>
+        <linearGradient id="acd-lgGloss" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#FFFFFF" stopOpacity="0.5" /><stop offset="1" stopColor="#FFFFFF" stopOpacity="0" /></linearGradient>
+        <filter id="acd-lgShadow" x="-40%" y="-40%" width="180%" height="180%"><feDropShadow dx="0" dy="4" stdDeviation="6" floodColor="#9a3b3b" floodOpacity="0.4" /></filter>
+        <clipPath id="acd-lgClip"><path d={rhex(cx, cy, R, 14)} /></clipPath>
+      </defs>
+      <path d={rhex(cx, cy, R + 3, 15)} fill="#FFFFFF" filter="url(#acd-lgShadow)" />
+      <path d={rhex(cx, cy, R, 14)} fill="url(#acd-lgRed)" />
+      <g clipPath="url(#acd-lgClip)"><ellipse cx={cx} cy={cy - R * 0.55} rx={R * 0.78} ry={R * 0.32} fill="url(#acd-lgGloss)" /></g>
+      <text x={cx} y={cy + 6} textAnchor="middle" fontSize="20" fontWeight="800" fill="#FFFFFF" letterSpacing={0.5}>ACT</text>
+      <text x={cx} y={cy + R + 16} textAnchor="middle" fontSize="9" fontWeight="600" fill="#B0282A" letterSpacing={3}>TÜRKİYE</text>
+    </svg>
+  );
+};
 
-      {/* Mode Selector */}
-      <div className="flex gap-3 mb-8">
+// ─── Setup ──────────────────────────────────────────────────────────────────
+function SetupScreen({ config, setConfig, mode, setMode, onStart }:
+  { config: Config; setConfig: React.Dispatch<React.SetStateAction<Config>>; mode: DancingMode; setMode: (m: DancingMode) => void; onStart: () => void }) {
+  const note = `${config.dur} dakika · ${config.seq ? 'Sıralı' : 'Rastgele'} · ${config.speed} sn/boyut`;
+  return (
+    <div className="fade-in">
+      <div className="modesel">
         {(['hexaflex', 'triflex'] as DancingMode[]).map(m => (
-          <button
-            key={m}
-            onClick={() => setMode(m)}
-            className={`px-6 py-3 rounded-xl font-semibold text-sm border-2 transition-all ${
-              mode === m
-                ? 'bg-rose-600 border-rose-600 text-white shadow-lg shadow-rose-200'
-                : 'border-gray-200 text-gray-600 hover:border-rose-300'
-            }`}
-          >
+          <button key={m} className={`mode-btn${mode === m ? ' on' : ''}`} onClick={() => setMode(m)}>
             {m === 'hexaflex' ? '⬡ Hexaflex Dancing' : '△ Triflex Dancing'}
-            {m === 'triflex' && (
-              <span className="ml-2 text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Yeni</span>
-            )}
+            {m === 'triflex' && <span className="nw">Yeni</span>}
           </button>
         ))}
       </div>
-
-      <div className="w-full max-w-4xl grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Session Settings */}
-        <div className="lg:col-span-2 space-y-5">
-          {/* Duration */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-              <span className="w-6 h-6 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center text-xs font-bold">1</span>
-              Seans Süresi
-            </h3>
-            <div className="flex gap-2 flex-wrap">
-              {DURATIONS.map(d => (
-                <button
-                  key={d}
-                  onClick={() => setConfig(c => ({ ...c, duration: d }))}
-                  className={`w-16 h-14 rounded-xl font-bold text-lg transition-all ${
-                    config.duration === d
-                      ? 'bg-rose-600 text-white shadow-md shadow-rose-200'
-                      : 'bg-gray-50 text-gray-600 hover:bg-rose-50 hover:text-rose-600 border border-gray-200'
-                  }`}
-                >
-                  {d}<span className="text-xs font-normal">dk</span>
-                </button>
-              ))}
-            </div>
+      <div className="setup-grid">
+        <div>
+          <div className="scard">
+            <h3><span className="no">1</span> Seans Süresi</h3>
+            <div className="chips">{DURS.map(d => (
+              <button key={d} className={`chip-btn${config.dur === d ? ' on' : ''}`} onClick={() => setConfig(c => ({ ...c, dur: d }))}>{d}<small>dk</small></button>
+            ))}</div>
           </div>
-
-          {/* Speed */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-              <span className="w-6 h-6 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center text-xs font-bold">2</span>
-              Geçiş Hızı
-            </h3>
-            <div className="flex gap-3">
-              {SPEEDS.map(s => (
-                <button
-                  key={s.value}
-                  onClick={() => setConfig(c => ({ ...c, speed: s.value }))}
-                  className={`flex-1 py-3 rounded-xl font-semibold text-sm transition-all ${
-                    config.speed === s.value
-                      ? 'bg-rose-600 text-white shadow-md'
-                      : 'bg-gray-50 text-gray-600 hover:bg-rose-50 border border-gray-200'
-                  }`}
-                >
-                  {s.label}
-                  <div className="text-xs font-normal opacity-70 mt-0.5">{s.desc}</div>
-                </button>
-              ))}
-            </div>
+          <div className="scard">
+            <h3><span className="no">2</span> Geçiş Hızı</h3>
+            <div className="chips">{SPDS.map(s => (
+              <button key={s.v} className={`chip-btn${config.speed === s.v ? ' on' : ''}`} onClick={() => setConfig(c => ({ ...c, speed: s.v }))}>{s.l}<small>{s.v} sn/boyut</small></button>
+            ))}</div>
           </div>
-
-          {/* Order */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-              <span className="w-6 h-6 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center text-xs font-bold">3</span>
-              Sıra
-            </h3>
-            <div className="flex gap-3">
-              {[
-                { label: 'Sıralı', value: true, icon: '→' },
-                { label: 'Rastgele', value: false, icon: '⤫' },
-              ].map(opt => (
-                <button
-                  key={String(opt.value)}
-                  onClick={() => setConfig(c => ({ ...c, sequential: opt.value }))}
-                  className={`flex-1 py-3 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
-                    config.sequential === opt.value
-                      ? 'bg-rose-600 text-white shadow-md'
-                      : 'bg-gray-50 text-gray-600 hover:bg-rose-50 border border-gray-200'
-                  }`}
-                >
-                  <span>{opt.icon}</span> {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Timer visibility */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-              <span className="w-6 h-6 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center text-xs font-bold">4</span>
-              Süre Gösterimi
-            </h3>
-            <div className="flex gap-3">
-              {[
-                { label: 'Göster', value: false, icon: <Eye size={14} />, desc: 'Geri sayım ve arc görünür' },
-                { label: 'Gizle', value: true,  icon: <EyeOff size={14} />, desc: 'Adaylar süreyi görmez' },
-              ].map(opt => (
-                <button
-                  key={String(opt.value)}
-                  onClick={() => setHideTimer(opt.value)}
-                  className={`flex-1 py-3 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
-                    hideTimer === opt.value
-                      ? 'bg-rose-600 text-white shadow-md'
-                      : 'bg-gray-50 text-gray-600 hover:bg-rose-50 border border-gray-200'
-                  }`}
-                >
-                  {opt.icon} {opt.label}
-                  <div className="text-xs font-normal opacity-70 hidden sm:block">{opt.desc}</div>
-                </button>
-              ))}
-            </div>
-            <p className="text-xs text-gray-400 mt-2">
-              Gizle seçildiğinde boyut geri sayım arci ve seans saati ekranda görünmez; seans süresi arka planda işlemeye devam eder.
-            </p>
-          </div>
-
-          {/* Participants */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-            <h3 className="text-sm font-semibold text-gray-700 mb-1 flex items-center gap-2">
-              <span className="w-6 h-6 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center text-xs font-bold">5</span>
-              Katılımcılar
-            </h3>
-            <p className="text-xs text-gray-400 mb-3 ml-8">Her grupta 4 kişilik roller: Terapist – Danışan – Süpervizör – Yazıcı</p>
-            <div className="grid grid-cols-2 gap-3">
-              {config.participants.map((p, i) => {
-                const color = ROLE_COLORS[p.role] ?? '#888';
-                return (
-                  <div key={i} className="flex items-center gap-2 p-2 rounded-xl border border-gray-100 bg-gray-50">
-                    <div
-                      className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                      style={{ backgroundColor: color }}
-                    >
-                      {p.role[0]}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs font-semibold" style={{ color }}>{p.role}</div>
-                      <input
-                        type="text"
-                        value={p.name}
-                        onChange={e => updateParticipant(i, 'name', e.target.value)}
-                        placeholder="İsim (isteğe bağlı)"
-                        className="w-full text-xs text-gray-700 bg-transparent border-none outline-none placeholder-gray-300 mt-0.5"
-                      />
-                    </div>
-                  </div>
-                );
-              })}
+          <div className="scard">
+            <h3><span className="no">3</span> Sıra</h3>
+            <div className="chips">
+              <button className={`chip-btn${config.seq ? ' on' : ''}`} onClick={() => setConfig(c => ({ ...c, seq: true }))}>→ Sıralı</button>
+              <button className={`chip-btn${!config.seq ? ' on' : ''}`} onClick={() => setConfig(c => ({ ...c, seq: false }))}>⤫ Rastgele</button>
             </div>
           </div>
         </div>
-
-        {/* Right Column: Names + Info */}
-        <div className="space-y-5">
-          {/* Educator / Therapist names */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-              <Users size={14} className="text-rose-500" />
-              Oturum Bilgisi
-            </h3>
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs text-gray-400 mb-1 block">Eğitici</label>
-                <input
-                  type="text"
-                  value={config.educatorName}
-                  onChange={e => setConfig(c => ({ ...c, educatorName: e.target.value }))}
-                  placeholder="Eğiticinin adı"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-rose-400"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-gray-400 mb-1 block">Terapist Adayı</label>
-                <input
-                  type="text"
-                  value={config.therapistName}
-                  onChange={e => setConfig(c => ({ ...c, therapistName: e.target.value }))}
-                  placeholder="Terapist adayının adı"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-rose-400"
-                />
-              </div>
-            </div>
+        <div>
+          <div className="scard">
+            <h3>Oturum Bilgisi</h3>
+            <label className="s-lbl">Eğitici</label>
+            <input className="s-input" placeholder="Eğiticinin adı" value={config.educatorName} onChange={e => setConfig(c => ({ ...c, educatorName: e.target.value }))} style={{ marginBottom: 12 }} />
+            <label className="s-lbl">Terapist Adayı</label>
+            <input className="s-input" placeholder="Terapist adayının adı" value={config.therapistName} onChange={e => setConfig(c => ({ ...c, therapistName: e.target.value }))} />
           </div>
-
-          {/* Role guide */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3">Rol Rehberi</h3>
-            <div className="space-y-3">
-              {ROLES.map(role => (
-                <div key={role} className="flex gap-2">
-                  <div
-                    className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0"
-                    style={{ backgroundColor: ROLE_COLORS[role] }}
-                  />
-                  <div>
-                    <div className="text-xs font-semibold" style={{ color: ROLE_COLORS[role] }}>{role}</div>
-                    <div className="text-xs text-gray-400">{ROLE_DESCS[role]}</div>
-                  </div>
-                </div>
+          <div className="scard">
+            <h3>Katılımcılar</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {ROLES.map((r, i) => (
+                <div className="role" key={i}><div className="av" style={{ background: r.c }}>{r.role[0]}</div><div className="rn" style={{ color: r.c }}>{r.role}</div></div>
               ))}
             </div>
-            <div className="mt-4 p-3 bg-amber-50 rounded-xl border border-amber-100">
-              <p className="text-xs text-amber-700 font-medium">⏱ Her döngüde terapist 5 dk seans yapar, sonra sadece danışan 1 dk geri bildirim verir.</p>
-            </div>
-          </div>
-
-          {/* Preview hex small */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 flex items-center justify-center" style={{ height: '160px' }}>
-            <HexaflexSVG activeIdx={0} mode={mode} nodeTimeLeft={20} speed={20} phase="paused" hideTimer={false} />
           </div>
         </div>
       </div>
-
-      {/* Start Button */}
-      <button
-        onClick={onStart}
-        className="mt-8 flex items-center gap-3 bg-rose-600 hover:bg-rose-700 text-white px-12 py-4 rounded-2xl font-bold text-lg shadow-xl shadow-rose-200 transition-all active:scale-95"
-      >
-        <Play size={22} />
-        Seansı Başlat
-        <ChevronRight size={18} />
-      </button>
-      <p className="mt-2 text-xs text-gray-400">
-        {config.duration} dakika · {config.sequential ? 'Sıralı' : 'Rastgele'} · {SPEEDS.find(s => s.value === config.speed)?.desc}
-      </p>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <button className="start" onClick={onStart}><Play size={18} /> Seansı Başlat <ChevronRight size={16} /></button>
+        <p className="start-note">{note}</p>
+      </div>
     </div>
   );
 }
 
-// ─── DancingScreen ────────────────────────────────────────────────────────────
-function DancingScreen({
-  config,
-  mode,
-  phase,
-  setPhase,
-  activeIdx,
-  setActiveIdx,
-  nodeTimeLeft,
-  setNodeTimeLeft,
-  sessionTimeLeft,
-  setSessionTimeLeft,
-  hideTimer,
-  setHideTimer,
-  onReset,
-}: {
-  config: Config;
-  mode: DancingMode;
-  phase: Phase;
-  setPhase: (p: Phase) => void;
-  activeIdx: number;
-  setActiveIdx: React.Dispatch<React.SetStateAction<number>>;
-  nodeTimeLeft: number;
-  setNodeTimeLeft: React.Dispatch<React.SetStateAction<number>>;
-  sessionTimeLeft: number;
-  setSessionTimeLeft: React.Dispatch<React.SetStateAction<number>>;
-  hideTimer: boolean;
-  setHideTimer: (v: boolean) => void;
-  onReset: () => void;
-}) {
+// ─── Running ────────────────────────────────────────────────────────────────
+function DancingScreen({ config, mode, phase, setPhase, activeIdx, setActiveIdx, nodeLeft, setNodeLeft, sessLeft, setSessLeft, onReset }:
+  { config: Config; mode: DancingMode; phase: Phase; setPhase: (p: Phase) => void;
+    activeIdx: number; setActiveIdx: React.Dispatch<React.SetStateAction<number>>;
+    nodeLeft: number; setNodeLeft: React.Dispatch<React.SetStateAction<number>>;
+    sessLeft: number; setSessLeft: React.Dispatch<React.SetStateAction<number>>; onReset: () => void }) {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const [interventionIdx, setInterventionIdx] = useState(0);
-  const [yaziciNote, setYaziciNote] = useState('');
-  const yaziciNoteRef = useRef('');
+  const nodeRef = useRef(nodeLeft); nodeRef.current = nodeLeft;
+  const sessRef = useRef(sessLeft); sessRef.current = sessLeft;
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [fs, setFs] = useState(false);
 
-  // Instructor panel state
-  const [showInstructor, setShowInstructor] = useState(true);
-  const [educatorNotes, setEducatorNotes] = useState<Record<string, string>>({});
-  const [pinnedIntervention, setPinnedIntervention] = useState<number | null>(null);
-  const [notesExpanded, setNotesExpanded] = useState(true);
-
-  const updateEducatorNote = (nodeKey: string, val: string) =>
-    setEducatorNotes(prev => ({ ...prev, [nodeKey]: val }));
-
-  const activeNode = NODES[activeIdx];
-  const cs = CAT_STYLE[activeNode.category];
+  const triflex = mode === 'triflex';
+  const tg = triflex ? TRIFLEX[activeIdx % 3] : null;
+  const node = NODES[activeIdx % 6];
+  const cs = CAT[tg ? tg.cat : node.cat];
+  const panelNm = tg ? tg.nm : node.nm;
+  const panelDesc = tg ? tg.desc : node.desc;
+  const panelIv = tg ? tg.iv : node.iv;
+  const activeSet = tg ? tg.nodes : [activeIdx % 6];
+  const accent = triflex ? cs.hex : '#ED1C24';
+  const paused = phase === 'paused';
+  const selectNode = (i: number) => { if (triflex) { const gi = TRIFLEX.findIndex(g => g.nodes.includes(i)); if (gi >= 0) setActiveIdx(gi); } else setActiveIdx(i); };
 
   const advance = useCallback(() => {
-    setActiveIdx(prev => {
-      let next: number;
-      if (config.sequential) {
-        next = (prev + 1) % 6;
-      } else {
-        const opts = [0, 1, 2, 3, 4, 5].filter(n => n !== prev);
-        next = opts[Math.floor(Math.random() * opts.length)];
-      }
-      return next;
-    });
-    setNodeTimeLeft(config.speed);
-    setInterventionIdx(prev => (prev + 1) % 5);
-  }, [config.sequential, config.speed, setActiveIdx, setNodeTimeLeft]);
+    const N = mode === 'triflex' ? 3 : 6;
+    setActiveIdx(prev => { const p = prev % N; return config.seq ? (p + 1) % N : (() => { const o = [...Array(N).keys()].filter(n => n !== p); return o[Math.floor(Math.random() * o.length)]; })(); });
+    setNodeLeft(config.speed);
+  }, [config.seq, config.speed, mode, setActiveIdx, setNodeLeft]);
 
+  // Timer — updater'lar saf; üst-seviye setter'lar (setState-in-render YOK)
   useEffect(() => {
-    if (phase !== 'running') {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      return;
-    }
+    if (phase !== 'running') { if (intervalRef.current) clearInterval(intervalRef.current); return; }
     intervalRef.current = setInterval(() => {
-      setNodeTimeLeft(t => {
-        if (t <= 1) { advance(); return config.speed; }
-        return t - 1;
-      });
-      setSessionTimeLeft(t => {
-        if (t <= 1) {
-          setPhase('done');
-          // Save session log to localStorage
-          try {
-            const log = {
-              id: crypto.randomUUID(),
-              date: new Date().toLocaleDateString('tr-TR'),
-              time: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
-              mode,
-              duration: config.duration,
-              speed: config.speed,
-              sequential: config.sequential,
-              educatorName: config.educatorName,
-              therapistName: config.therapistName,
-              participants: config.participants,
-              yaziciNotes: yaziciNoteRef.current,
-            };
-            const existing = JSON.parse(localStorage.getItem('act-session-logs') || '[]');
-            localStorage.setItem('act-session-logs', JSON.stringify([log, ...existing].slice(0, 100)));
-          } catch { /* ignore */ }
-          return 0;
-        }
-        return t - 1;
-      });
+      if (sessRef.current <= 1) { if (intervalRef.current) clearInterval(intervalRef.current); sessRef.current = 0; setSessLeft(0); setPhase('done'); return; }
+      sessRef.current -= 1; setSessLeft(t => t - 1);
+      if (nodeRef.current <= 1) { nodeRef.current = config.speed; advance(); } else { nodeRef.current -= 1; setNodeLeft(t => t - 1); }
     }, 1000);
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [phase, advance, config.speed, setNodeTimeLeft, setSessionTimeLeft, setPhase]);
+  }, [phase, advance, config, setNodeLeft, setSessLeft, setPhase]);
 
-  const sessionPct = sessionTimeLeft / (config.duration * 60);
-  const mm = String(Math.floor(sessionTimeLeft / 60)).padStart(2, '0');
-  const ss = String(sessionTimeLeft % 60).padStart(2, '0');
+  // Tam ekran (native + fake fallback) + Esc/F
+  const enterFs = () => {
+    const el = cardRef.current; if (!el) return;
+    const req = el.requestFullscreen?.bind(el);
+    if (req) { req().then(() => setFs(true)).catch(() => { setFs(true); document.body.style.overflow = 'hidden'; }); }
+    else { setFs(true); document.body.style.overflow = 'hidden'; }
+  };
+  const exitFs = useCallback(() => {
+    if (document.fullscreenElement) document.exitFullscreen?.();
+    setFs(false); document.body.style.overflow = '';
+  }, []);
+  useEffect(() => {
+    const onChange = () => { if (!document.fullscreenElement) { setFs(f => (f && !document.body.style.overflow ? false : f)); } };
+    const onKey = (e: KeyboardEvent) => { if (fs && (e.key === 'Escape' || e.key === 'f' || e.key === 'F')) exitFs(); };
+    document.addEventListener('fullscreenchange', onChange);
+    window.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('fullscreenchange', onChange); window.removeEventListener('keydown', onKey); };
+  }, [fs, exitFs]);
+
+  const mm = String(Math.floor(sessLeft / 60)).padStart(2, '0');
+  const ss = String(sessLeft % 60).padStart(2, '0');
+  const sessPct = (1 - sessLeft / (config.dur * 60)) * 100;
+  const modeLabel = mode === 'hexaflex' ? 'Hexaflex' : 'Triflex';
 
   if (phase === 'done') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-blue-50 flex flex-col items-center justify-center gap-6">
-        <div className="text-center">
-          <div className="text-5xl mb-4">🎉</div>
-          <h2 className="text-2xl font-bold text-gray-900">Seans Tamamlandı!</h2>
-          <p className="text-gray-500 mt-2">Harika bir pratik seansıydı.</p>
-        </div>
-        <button
-          onClick={onReset}
-          className="flex items-center gap-2 bg-rose-600 text-white px-8 py-3 rounded-xl font-semibold shadow-lg"
-        >
-          <RotateCcw size={16} /> Yeni Seans
-        </button>
-      </div>
+      <div className="acd"><div className="dance-card fade-in"><div className="done">
+        <h2>Seans Tamamlandı</h2>
+        <p>Boyutlar arasında iyi bir tur attınız. Yeni bir seansa hazır olduğunuzda başlayın.</p>
+        <button className="start" onClick={onReset}><RotateCcw size={16} /> Yeni Seans</button>
+      </div></div></div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-slate-50 flex flex-col" style={{ userSelect: 'none' }}>
-      {/* Top bar */}
-      <div className="flex items-center justify-between px-6 py-3 bg-white border-b border-gray-100 shadow-sm">
-        <div className="flex items-center gap-3">
-          <button onClick={onReset} className="text-gray-400 hover:text-gray-600 text-xs flex items-center gap-1">
-            <RotateCcw size={13} /> Sıfırla
-          </button>
-          <span className="text-xs text-gray-300">|</span>
-          <span className="text-xs font-medium text-gray-500">
-            {mode === 'hexaflex' ? '⬡ Hexaflex' : '△ Triflex'} Dancing
-          </span>
+    <div className="acd">
+      <div className={`dance-card fade-in${fs ? ' fs' : ''}`} ref={cardRef}>
+        {/* Top bar */}
+        <div className="dance-top">
+          <div className="grp">
+            <button className="mini-btn" onClick={onReset}><RotateCcw size={13} /> Sıfırla</button>
+            <span style={{ color: 'var(--ink-faint)' }}>|</span>
+            <span className="mlabel">{mode === 'hexaflex' ? '⬡' : '△'} {modeLabel} Dancing</span>
+          </div>
+          <div className="grp">
+            <span className="pill-time"><span className="dot" /><span className="t">{mm}:{ss}</span></span>
+            <span className="node-time">{nodeLeft}s</span>
+          </div>
+          <div className="grp">
+            <button className="btn-dark" onClick={() => setPhase(phase === 'running' ? 'paused' : 'running')}>{phase === 'running' ? <Pause size={14} /> : <Play size={14} />}{phase === 'running' ? 'Duraklat' : 'Devam Et'}</button>
+            <button className="btn-dark" onClick={() => (fs ? exitFs() : enterFs())}>{fs ? <Minimize2 size={14} /> : <Maximize2 size={14} />}{fs ? 'Çık' : 'Tam Ekran'}</button>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          {/* Session countdown */}
-          {!hideTimer ? (
-            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-full px-4 py-1.5">
-              <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
-              <span className="text-sm font-mono font-bold text-gray-800">{mm}:{ss}</span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 bg-gray-50 border border-dashed border-gray-300 rounded-full px-4 py-1.5">
-              <div className="w-2 h-2 rounded-full bg-gray-300" />
-              <span className="text-sm font-mono font-bold text-gray-300">--:--</span>
-            </div>
-          )}
-          {/* Node countdown */}
-          {!hideTimer ? (
-            <div
-              className="text-sm font-mono font-bold px-3 py-1.5 rounded-full text-white"
-              style={{ backgroundColor: cs.color }}
-            >
-              {nodeTimeLeft}s
-            </div>
-          ) : (
-            <div className="text-sm font-mono font-bold px-3 py-1.5 rounded-full text-gray-300 bg-gray-100 border border-dashed border-gray-200">
-              --s
-            </div>
-          )}
-          {/* Timer toggle */}
-          <button
-            onClick={() => setHideTimer(!hideTimer)}
-            title={hideTimer ? 'Süreyi Göster' : 'Süreyi Gizle'}
-            className={`p-2 rounded-full border transition-all ${
-              hideTimer
-                ? 'bg-amber-50 border-amber-300 text-amber-600 hover:bg-amber-100'
-                : 'bg-gray-50 border-gray-200 text-gray-400 hover:bg-gray-100 hover:text-gray-600'
-            }`}
-          >
-            {hideTimer ? <EyeOff size={14} /> : <Eye size={14} />}
-          </button>
-        </div>
-        {/* Controls */}
-        <div className="flex items-center gap-2">
-          {/* Instructor panel toggle */}
-          <button
-            onClick={() => setShowInstructor(v => !v)}
-            title={showInstructor ? 'Eğitici Panelini Gizle' : 'Eğitici Panelini Göster'}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium border transition-all ${
-              showInstructor
-                ? 'bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100'
-                : 'bg-gray-50 border-gray-200 text-gray-400 hover:bg-gray-100'
-            }`}
-          >
-            {showInstructor ? <PanelRightClose size={14} /> : <PanelRightOpen size={14} />}
-            <span className="hidden sm:inline">Eğitici</span>
-          </button>
-          <button
-            onClick={() => setPhase(phase === 'running' ? 'paused' : 'running')}
-            className="flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all"
-          >
-            {phase === 'running' ? <Pause size={14} /> : <Play size={14} />}
-            {phase === 'running' ? 'Duraklat' : 'Devam Et'}
-          </button>
-        </div>
-      </div>
+        <div className="sessbar"><i style={{ width: `${sessPct}%` }} /></div>
 
-      {/* Session progress bar */}
-      <div className="h-1 bg-gray-100">
-        {!hideTimer && (
-          <div
-            className="h-full transition-all duration-1000 ease-linear"
-            style={{ width: `${(1 - sessionPct) * 100}%`, backgroundColor: cs.color }}
-          />
-        )}
-      </div>
+        <div className="dance-body">
+          {/* Left */}
+          <div className="side left">
+            <span className="lbl">Katılımcılar</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {config.participants.map((p, i) => {
+                const c = ROLES.find(r => r.role === p.role)?.c ?? '#888';
+                return <div className="role" key={i}><div className="av" style={{ background: c }}>{(p.name || p.role)[0]}</div><div><div className="rn" style={{ color: c }}>{p.role}</div>{p.name && <div style={{ fontSize: 11, color: 'var(--ink-mute)' }}>{p.name}</div>}</div></div>;
+              })}
+            </div>
+          </div>
 
-      {/* Main content */}
-      <div className="flex flex-1 min-h-0">
-        {/* Left panel: participants + yazıcı note */}
-        <div className="w-48 flex-shrink-0 bg-white border-r border-gray-100 flex flex-col p-4 gap-3">
-          {config.educatorName && (
-            <div>
-              <div className="text-xs text-gray-400 mb-0.5">Eğitici</div>
-              <div className="font-semibold text-gray-800 text-sm truncate">{config.educatorName}</div>
+          {/* Stage */}
+          <div className="stage">
+            <HexGridBg />
+            {/* Tam ekran başlığı + logo + eğitici adı */}
+            <div className="fs-title">{mode === 'hexaflex' ? '⬡' : '△'} {modeLabel}<i>Dancing</i></div>
+            <ActLogo />
+            <div className={`fs-name${config.educatorName ? ' show' : ''}`}><span className="ey">Eğitici</span><span className="nm">{config.educatorName}</span></div>
+
+            {paused && (
+              <div style={{ position: 'absolute', inset: 0, zIndex: 6, background: 'rgba(255,255,255,.55)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <button className="start" onClick={() => setPhase('running')}><Play size={18} /> Devam Et</button>
+              </div>
+            )}
+            <HexaflexFigure activeSet={activeSet} running accent={accent} onSelect={selectNode} />
+            <div className="info-strip">
+              {cs.label && <span className="cat" style={{ background: cs.hex }}>{cs.label}</span>}
+              <span className="nm">{panelNm}</span>
+              <span className="ds">{panelDesc}</span>
             </div>
-          )}
-          {config.therapistName && (
-            <div>
-              <div className="text-xs text-gray-400 mb-0.5">Terapist Adayı</div>
-              <div className="font-semibold text-gray-800 text-sm truncate">{config.therapistName}</div>
+          </div>
+
+          {/* Trainer panel */}
+          <div className="edu">
+            <div className="edu-h">
+              <span className="ico"><BookOpen size={14} /></span>
+              <span className="t">Eğitici Paneli</span>
+              <span className="chip"><span className="cdot" style={{ background: cs.hex }} />{panelNm}</span>
             </div>
-          )}
-          {(config.educatorName || config.therapistName) && <hr className="border-gray-100" />}
-          <div className="text-xs text-gray-400 font-medium uppercase tracking-wider">Katılımcılar</div>
-          {config.participants.map((p, i) => {
-            const color = ROLE_COLORS[p.role] ?? '#888';
-            return (
-              <div key={i} className="flex items-center gap-2">
-                <div
-                  className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                  style={{ backgroundColor: color }}
-                >
-                  {p.name ? p.name[0].toUpperCase() : p.role[0]}
-                </div>
-                <div className="min-w-0">
-                  <div className="text-xs font-semibold leading-tight truncate" style={{ color }}>{p.role}</div>
-                  {p.name && <div className="text-xs text-gray-500 leading-tight truncate">{p.name}</div>}
+            <div className="edu-b">
+              <div className="edu-desc fade-in" key={'d' + activeIdx} style={{ borderLeftColor: cs.hex }}>
+                {cs.label && <span className="cat" style={{ background: cs.hex }}>{cs.label}</span>}
+                <p>{panelDesc}</p>
+              </div>
+              <div>
+                <div className="iv-h"><Lightbulb size={15} /> Müdahale Önerileri</div>
+                <div className="iv-list stagger" key={'iv' + activeIdx} style={{ marginTop: 8 }}>
+                  {panelIv.map((q, j) => (
+                    <div className="iv" key={j} style={{ ['--i' as string]: j } as React.CSSProperties}><span className="badge">{j + 1}</span><span>{q}</span></div>
+                  ))}
                 </div>
               </div>
-            );
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Haftalık şerit (tam ekranda gizli) */}
+      <div className="weekly">
+        <div className="wh"><span className="e">Bu hafta · pratik dakikası</span><span className="tot">165 dk toplam</span></div>
+        <div className="bars">
+          {([['Pzt', 20], ['Sal', 35], ['Çar', 0], ['Per', 25], ['Cum', 40], ['Cmt', 15], ['Bgn', 30, true]] as [string, number, boolean?][]).map((d, i, arr) => {
+            const max = Math.max(...arr.map(a => a[1]), 1);
+            return <div className={`bar${d[2] ? ' cur' : ''}`} key={i}><div className="col" style={{ height: `${Math.max(4, d[1] / max * 100)}%` }} /><div className="d">{d[0]}</div></div>;
           })}
-          {/* Yazıcı note — bottom of left panel */}
-          <div className="mt-auto pt-3 border-t border-gray-100">
-            <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-1">
-              <span className="w-2.5 h-2.5 rounded-full bg-purple-400 inline-block flex-shrink-0" />
-              Yazıcı Notu
-            </div>
-            <textarea
-              className="w-full text-xs text-gray-600 border border-gray-200 rounded-xl p-2 resize-none h-24 outline-none focus:border-purple-300"
-              placeholder="Müdahaleleri not al…"
-              value={yaziciNote}
-              onChange={e => { setYaziciNote(e.target.value); yaziciNoteRef.current = e.target.value; }}
-            />
-          </div>
         </div>
-
-        {/* Center: full-width hexaflex SVG */}
-        <div className="flex-1 flex flex-col min-h-0">
-          <div className="flex-1 flex items-center justify-center p-6 relative">
-            {phase === 'paused' && (
-              <div className="absolute inset-0 bg-white/60 backdrop-blur-sm flex items-center justify-center z-10">
-                <div className="text-center">
-                  <div className="text-4xl mb-2">⏸</div>
-                  <p className="text-gray-600 font-semibold">Duraklatıldı</p>
-                  <button
-                    onClick={() => setPhase('running')}
-                    className="mt-3 flex items-center gap-2 bg-rose-600 text-white px-6 py-2 rounded-xl font-semibold mx-auto"
-                  >
-                    <Play size={14} /> Devam Et
-                  </button>
-                </div>
-              </div>
-            )}
-            <div style={{ width: '100%', maxWidth: '560px', maxHeight: '560px' }}>
-              <HexaflexSVG
-                activeIdx={activeIdx}
-                mode={mode}
-                nodeTimeLeft={nodeTimeLeft}
-                speed={config.speed}
-                phase={phase}
-                hideTimer={hideTimer}
-              />
-            </div>
-          </div>
-
-          {/* Bottom info strip — active dimension */}
-          <div className="flex-shrink-0 flex items-center justify-center gap-3 px-6 py-3 border-t border-gray-100 bg-white/80">
-            {activeNode.category !== 'all' && (
-              <span className="text-xs font-bold px-3 py-1 rounded-full text-white" style={{ backgroundColor: cs.color }}>
-                {CAT_STYLE[activeNode.category].label}
-              </span>
-            )}
-            <span className="text-base font-bold text-gray-800">{activeNode.label.replace('\n', ' ')}</span>
-            <span className="text-xs text-gray-400 hidden sm:block max-w-xs truncate">{activeNode.desc}</span>
-            {mode === 'triflex' && (
-              <span className="text-xs text-gray-400 hidden md:block italic">{activeNode.triflexHint}</span>
-            )}
-          </div>
-        </div>
-
-        {/* ── Right: Instructor Panel ── */}
-        {showInstructor && (
-          <div className="w-72 flex-shrink-0 border-l border-amber-100 bg-amber-50/60 flex flex-col overflow-hidden">
-            {/* Panel header */}
-            <div className="px-4 py-3 border-b border-amber-100 bg-amber-100/60 flex items-center gap-2 flex-shrink-0">
-              <BookOpen size={14} className="text-amber-600" />
-              <span className="text-xs font-bold text-amber-800 uppercase tracking-wider">Eğitici Paneli</span>
-              <span className="ml-auto text-[10px] text-amber-600 bg-amber-200/60 px-2 py-0.5 rounded-full">
-                {activeNode.label.replace('\n', ' ')}
-              </span>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-
-              {/* Boyut açıklaması */}
-              <div className="rounded-xl bg-white border border-amber-200 p-3">
-                <div className="flex items-center gap-2 mb-2">
-                  {activeNode.category !== 'all' && (
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: cs.color }}>
-                      {CAT_STYLE[activeNode.category].label}
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-gray-600 leading-relaxed">{activeNode.desc}</p>
-                {mode === 'triflex' && (
-                  <p className="text-[10px] text-amber-600 italic mt-2 border-t border-amber-100 pt-2">
-                    {activeNode.triflexHint}
-                  </p>
-                )}
-              </div>
-
-              {/* Intervention önerileri */}
-              <div>
-                <div className="flex items-center gap-1.5 mb-2">
-                  <Lightbulb size={12} className="text-amber-600" />
-                  <span className="text-[11px] font-semibold text-amber-800 uppercase tracking-wider">Müdahale Önerileri</span>
-                </div>
-                <div className="space-y-1.5">
-                  {activeNode.interventions.map((iv, idx) => {
-                    const pinned = pinnedIntervention === idx;
-                    return (
-                      <button
-                        key={idx}
-                        onClick={() => setPinnedIntervention(pinned ? null : idx)}
-                        className={`w-full text-left text-xs px-3 py-2.5 rounded-xl border transition-all leading-relaxed ${
-                          pinned
-                            ? 'bg-amber-500 text-white border-amber-500 shadow-md font-medium'
-                            : 'bg-white text-gray-700 border-amber-200 hover:border-amber-400 hover:bg-amber-50'
-                        }`}
-                      >
-                        <span className="opacity-50 mr-1.5">{idx + 1}.</span>
-                        {iv}
-                      </button>
-                    );
-                  })}
-                </div>
-                {pinnedIntervention !== null && (
-                  <div className="mt-2 rounded-xl bg-amber-500/10 border border-amber-300 px-3 py-2">
-                    <p className="text-[10px] text-amber-700 font-semibold mb-0.5">📌 Öne çıkarılan soru:</p>
-                    <p className="text-xs text-amber-800 font-medium leading-snug">
-                      {activeNode.interventions[pinnedIntervention]}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* Eğitici notu */}
-              <div>
-                <button
-                  onClick={() => setNotesExpanded(v => !v)}
-                  className="flex items-center gap-1.5 mb-2 w-full text-left"
-                >
-                  <PenLine size={12} className="text-amber-600" />
-                  <span className="text-[11px] font-semibold text-amber-800 uppercase tracking-wider flex-1">
-                    Eğitici Notu
-                    <span className="ml-1 text-amber-500 font-normal normal-case">
-                      ({activeNode.label.replace('\n', ' ')})
-                    </span>
-                  </span>
-                  {notesExpanded ? <ChevronUp size={12} className="text-amber-500" /> : <ChevronDown size={12} className="text-amber-500" />}
-                </button>
-                {notesExpanded && (
-                  <textarea
-                    className="w-full text-xs text-gray-700 border border-amber-200 rounded-xl p-2.5 resize-none h-28 outline-none focus:border-amber-400 bg-white leading-relaxed"
-                    placeholder={`Bu boyut için not al veya terapist adayına mesaj bırak…\n\nÖrnek: "Ayrışma sorusuna geçmeden önce 'bu düşünce mi, sen mi?' ayrımını sor."`}
-                    value={educatorNotes[activeNode.key] ?? ''}
-                    onChange={e => updateEducatorNote(activeNode.key, e.target.value)}
-                    style={{ userSelect: 'text' } as React.CSSProperties}
-                  />
-                )}
-              </div>
-
-              {/* Tüm notlar özeti */}
-              {Object.keys(educatorNotes).some(k => educatorNotes[k]) && (
-                <div className="rounded-xl border border-amber-200 bg-white p-3">
-                  <p className="text-[10px] font-semibold text-amber-700 uppercase tracking-wider mb-2">Tüm Boyut Notları</p>
-                  <div className="space-y-2">
-                    {NODES.map(n => educatorNotes[n.key] ? (
-                      <div key={n.key} className={`rounded-lg px-2.5 py-1.5 border ${n.key === activeNode.key ? 'border-amber-400 bg-amber-50' : 'border-gray-100 bg-gray-50'}`}>
-                        <p className="text-[10px] font-semibold text-gray-500 mb-0.5">{n.label.replace('\n', ' ')}</p>
-                        <p className="text-[10px] text-gray-600 leading-snug">{educatorNotes[n.key]}</p>
-                      </div>
-                    ) : null)}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
 }
 
-// ─── TriflexPlaceholder ────────────────────────────────────────────────────────
-function TriflexInfo() {
-  return (
-    <div className="p-6 bg-blue-50 rounded-2xl border border-blue-100 text-sm text-blue-700">
-      <div className="font-bold mb-2">Triflex Dancing Hakkında</div>
-      <p>Triflex modunda, hexaflex boyutlarına ek olarak üst kategoriler de (FARKINDA / AÇIK / AKTİF) vurgulanır. Terapist adayları hem boyuta özgü, hem de kategoriye özgü müdahaleler geliştirir.</p>
-      <ul className="mt-3 space-y-1 list-disc list-inside opacity-80">
-        <li><strong>Şimdiki Anla Temas aktifken:</strong> FARKINDA kategori vurgulu → farkındalık/pekiştirme müdahalesi</li>
-        <li><strong>Değerler veya Adanmış Eylem:</strong> AKTİF/ANGAJE → aktivasyon/motivasyon müdahalesi</li>
-        <li><strong>Kabul veya Bilişsel Ayrışma:</strong> AÇIK → kabullenici/defüzyon müdahalesi</li>
-      </ul>
-    </div>
-  );
-}
-
-// ─── Main Export ──────────────────────────────────────────────────────────────
+// ─── Kök ────────────────────────────────────────────────────────────────────
 export default function ACTDancing({ initialMode = 'hexaflex' }: { initialMode?: DancingMode }) {
   const [mode, setMode] = useState<DancingMode>(initialMode);
   const [phase, setPhase] = useState<Phase>('setup');
   const [config, setConfig] = useState<Config>({ ...DEFAULT_CONFIG });
   const [activeIdx, setActiveIdx] = useState(0);
-  const [nodeTimeLeft, setNodeTimeLeft] = useState(DEFAULT_CONFIG.speed);
-  const [sessionTimeLeft, setSessionTimeLeft] = useState(DEFAULT_CONFIG.duration * 60);
-  const [hideTimer, setHideTimer] = useState(false);
+  const [nodeLeft, setNodeLeft] = useState(DEFAULT_CONFIG.speed);
+  const [sessLeft, setSessLeft] = useState(DEFAULT_CONFIG.dur * 60);
 
-  const handleStart = () => {
-    setActiveIdx(0);
-    setNodeTimeLeft(config.speed);
-    setSessionTimeLeft(config.duration * 60);
-    setPhase('running');
-  };
-
-  const handleReset = () => {
-    setPhase('setup');
-    setActiveIdx(0);
-  };
+  const handleStart = () => { setActiveIdx(0); setNodeLeft(config.speed); setSessLeft(config.dur * 60); setPhase('running'); };
+  const handleReset = () => { setPhase('setup'); setActiveIdx(0); };
 
   if (phase === 'setup') {
-    return (
-      <div>
-        <SetupScreen
-          config={config}
-          setConfig={setConfig}
-          mode={mode}
-          setMode={setMode}
-          hideTimer={hideTimer}
-          setHideTimer={setHideTimer}
-          onStart={handleStart}
-        />
-        {mode === 'triflex' && (
-          <div className="max-w-2xl mx-auto px-4 pb-10">
-            <TriflexInfo />
-          </div>
-        )}
-      </div>
-    );
+    return <div className="acd"><SetupScreen config={config} setConfig={setConfig} mode={mode} setMode={setMode} onStart={handleStart} /></div>;
   }
-
   return (
-    <DancingScreen
-      config={config}
-      mode={mode}
-      phase={phase}
-      setPhase={setPhase}
-      activeIdx={activeIdx}
-      setActiveIdx={setActiveIdx}
-      nodeTimeLeft={nodeTimeLeft}
-      setNodeTimeLeft={setNodeTimeLeft}
-      sessionTimeLeft={sessionTimeLeft}
-      setSessionTimeLeft={setSessionTimeLeft}
-      hideTimer={hideTimer}
-      setHideTimer={setHideTimer}
-      onReset={handleReset}
-    />
+    <DancingScreen config={config} mode={mode} phase={phase} setPhase={setPhase}
+      activeIdx={activeIdx} setActiveIdx={setActiveIdx} nodeLeft={nodeLeft} setNodeLeft={setNodeLeft}
+      sessLeft={sessLeft} setSessLeft={setSessLeft} onReset={handleReset} />
   );
 }

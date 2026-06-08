@@ -303,7 +303,8 @@
 .as .vchip.lead{background:#3A2A1E;color:#F6ECDF;border-color:#3A2A1E;}
 .as .vchip .lv{font-family:var(--font-mono);font-size:10px;font-weight:700;opacity:.7;}
 .as .cont-right{background:rgba(255,250,244,.42);border:1px solid rgba(255,250,244,.55);border-radius:var(--r-lg);padding:20px 22px;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);display:flex;flex-direction:column;gap:14px;}
-.as .cbar{display:grid;grid-template-columns:64px 1fr 40px;gap:12px;align-items:center;}
+.as .cbar{display:grid;grid-template-columns:84px 1fr 62px;gap:12px;align-items:center;}
+.as .cbar .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .as .cbar .nm{font-size:13px;font-weight:600;color:#3A2A1E;}
 .as .cbar .track{height:8px;border-radius:var(--r-pill);background:rgba(58,42,30,.13);overflow:hidden;}
 .as .cbar .fill{display:block;height:100%;border-radius:var(--r-pill);background:#5A4334;}

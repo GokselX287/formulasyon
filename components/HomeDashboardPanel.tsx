@@ -64,7 +64,7 @@ export type WeeklyIntensity = {
 
 export type DropRiskCard = { count: number; copy: string; list?: { name: string; reason: string }[] };
 
-export type ContinuityClient = { name: string; pct: number; accent?: boolean };
+export type ContinuityClient = { name: string; pct: number; seans?: number; accent?: boolean };
 export type ValueChip = { label: string; level: number; lead?: boolean };
 export type Continuity = { headline?: string; copy?: string; clients: ContinuityClient[]; values: ValueChip[] };
 

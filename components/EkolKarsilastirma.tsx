@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { ChevronDown, ChevronUp, Layers, TableProperties, Brain, Activity, Zap } from 'lucide-react';
+import './actMotion.css';
 
 /* ─────────────────────────────────────────────────────────────
    Veri
@@ -591,7 +592,7 @@ export default function EkolKarsilastirma() {
   const tumunuKapat = () => setAciklar(new Set());
 
   return (
-    <div className="min-h-screen bg-[#0E0F12] text-white">
+    <div className="act-fade-in min-h-screen bg-[#1B1A18] text-white">
       <div className="max-w-4xl mx-auto px-6 py-8 space-y-6">
 
         {/* Başlık */}

@@ -618,6 +618,19 @@ export function getDb(): Database.Database {
       try { db.exec(`ALTER TABLE clients ADD COLUMN kisilik_tipi TEXT`); } catch {}
       db.pragma('user_version = 25');
     }
+
+    if (version < 26) {
+      // Seans katılım durumu: katildi | katilmadi | ertelendi | iptal
+      try { db.exec(`ALTER TABLE seanslar ADD COLUMN durum TEXT DEFAULT 'katildi'`); } catch {}
+      db.pragma('user_version = 26');
+    }
+
+    if (version < 27) {
+      // Danışanın kendi hedefleri (terapist hedeflerinden AYRI koleksiyon):
+      // JSON dizi [{hedef, durum: 'tamamlandi'|'devam'|'baslanmadi'}]
+      try { db.exec(`ALTER TABLE formulations ADD COLUMN danisan_hedefleri_json TEXT`); } catch {}
+      db.pragma('user_version = 27');
+    }
   }
   return db;
 }

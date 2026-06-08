@@ -6,11 +6,10 @@ import {
   Plus, Trash2, Check, X, Download, Upload, RefreshCw, AlertTriangle, Phone, Send,
   ChevronRight, ChevronLeft, Search, UserX, TrendingDown, Clock, Save, FileText,
   Calendar, Users, ClipboardList, Bell, MessageSquare, Tag as TagIcon, Archive,
-  Sparkles, Home, BookOpen, Layers, MonitorOff, Zap, Target, GraduationCap, Heart,
+  Sparkles, Home, BookOpen, Layers, Zap, Target, GraduationCap, Heart,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import "@/components/GunlukOzet.css";
-import WeekCalendar from "@/components/WeekCalendar";
 import HomePanel from "@/components/HomePanel";
 import "@/components/HomePanel.css";
 import type { Client as DanisanClient } from "@/components/DanisanlarPanel";
@@ -34,7 +33,6 @@ import {
 } from "recharts";
 import OnamMetinleri from "@/components/OnamMetinleri";
 import VakaHaritasi, { DEMO_CASE } from "@/components/VakaHaritasi";
-import RandevuPanel from "@/components/RandevuPanel";
 import TerapistProfilV2 from "@/components/TerapistProfilV2";
 import CalismaAlaniV2 from "@/components/CalismaAlaniV2";
 import DanisanlarV2 from "@/components/DanisanlarV2";
@@ -52,7 +50,6 @@ import BozuklukDongusu from "@/components/BozuklukDongusu";
 import FormulasyonEkleri from "@/components/FormulasyonEkleri";
 import FormulasyonSablonlari from "@/components/FormulasyonSablonlari";
 import ModelOlustur from "@/components/ModelOlustur";
-import BeklemeEkrani from "@/components/BeklemeEkrani";
 import ActFormulasyon from "@/components/ActFormulasyon";
 import PratikYap from "@/components/PratikYap";
 import DegerKartlari from "@/components/DegerKartlari";
@@ -70,8 +67,6 @@ import EgiticiCalismaAlani   from "@/components/EgiticiCalismaAlani";
 import SefkatCalismasi       from "@/components/SefkatCalismasi";
 import EkolKarsilastirma     from "@/components/EkolKarsilastirma";
 
-const Screensaver       = dynamic(() => import("@/components/Screensaver"),    { ssr: false });
-const MusaitlikPanel    = dynamic(() => import("@/components/MusaitlikPanel"), { ssr: false });
 const HexaflexRadarDyn  = dynamic(() => import("@/components/HexaflexRadar"), { ssr: false });
 const SemaTerapisiDyn   = dynamic(() => import("@/components/SemaTerapisi"),  { ssr: false });
 
@@ -759,6 +754,83 @@ function IntakeInbox({ state, dispatch, onOpenFormulation, onOpenSeanslar }: { s
 // IntakeInbox'taki kayıt mantığının bağımsız, yeniden kullanılabilir hâli.
 // V2 ekranlarından (DanisanlarV2 / CalismaAlaniV2) onNewClient ile açılır.
 // ============================================================
+// Sayfa-içi randevu oluşturma — takvim sayfasından açılır (ayrı route'a gitmez).
+// macOS "Randevular" takvimine yazar (görünür olsun) + kayıtlı danışansa DB randevu/hatırlatma.
+function NewAppointmentModal({ open, onClose, patients, onCreated }: {
+  open: boolean;
+  onClose: () => void;
+  patients: { id: string; adSoyad: string }[];
+  onCreated: () => void | Promise<void>;
+}) {
+  const todayIso = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  const [ad, setAd] = useState('');
+  const [tarih, setTarih] = useState('');
+  const [saat, setSaat] = useState('10:00');
+  const [sure, setSure] = useState(50);
+  const [not, setNot] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [warn, setWarn] = useState('');
+
+  useEffect(() => { if (open) { setAd(''); setTarih(todayIso()); setSaat('10:00'); setSure(50); setNot(''); setWarn(''); setSaving(false); } }, [open]);
+
+  const matchedId = (() => {
+    const t = ad.trim().toLocaleLowerCase('tr-TR');
+    if (!t) return null;
+    return patients.find((p) => (p.adSoyad || '').trim().toLocaleLowerCase('tr-TR') === t)?.id ?? null;
+  })();
+
+  const save = async () => {
+    if (!ad.trim() || !tarih || !saat || saving) return;
+    setSaving(true); setWarn('');
+    let w = '';
+    try {
+      // 1) macOS "Randevular" takvimine yaz → birleşik takvim görünümünde belirir
+      try {
+        const res = await fetch('/api/takvim-yaz', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: ad.trim(), tarih, saat, sure, calName: 'Randevular', desc: not.trim() }),
+        });
+        const txt = await res.text().catch(() => '');
+        if (!res.ok || /ERROR|CAL_NOT_FOUND/i.test(txt)) w = 'macOS Takvim\'e yazılamadı (Takvim uygulaması/izin gerekli).';
+      } catch { w = 'macOS Takvim\'e ulaşılamadı.'; }
+      // 2) Kayıtlı danışansa → DB randevu + seans bildirimi (hatırlatma)
+      if (matchedId) {
+        await fetch('/api/randevu', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ clientId: matchedId, clientName: ad.trim(), tarih, saat, sure, not: not.trim() }),
+        }).catch(() => {});
+      }
+      await onCreated();
+      if (w) setWarn(w + ' Hatırlatma kaydı eklendi; randevuyu Takvim\'de elle ekleyebilirsiniz.');
+      else onClose();
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <Modal open={open} onClose={onClose} title="Yeni Randevu">
+      <div className="grid sm:grid-cols-2 gap-3">
+        <div className="sm:col-span-2">
+          <Label>Danışan / Başlık *</Label>
+          <Input list="apt-clients" value={ad} onChange={(e) => setAd(e.target.value)} placeholder="Danışan adı veya başlık" />
+          <datalist id="apt-clients">{patients.map((p) => <option key={p.id} value={p.adSoyad} />)}</datalist>
+          {ad.trim() && (matchedId
+            ? <p className="mt-1 text-xs text-emerald-600">Kayıtlı danışana bağlanır · hatırlatma oluşturulur</p>
+            : <p className="mt-1 text-xs text-gray-400">Eşleşen danışan yok — yalnızca takvim etkinliği</p>)}
+        </div>
+        <div><Label>Tarih *</Label><Input type="date" value={tarih} onChange={(e) => setTarih(e.target.value)} /></div>
+        <div><Label>Saat *</Label><Input type="time" value={saat} onChange={(e) => setSaat(e.target.value)} /></div>
+        <div><Label>Süre (dk)</Label><Input type="number" inputMode="numeric" value={String(sure)} onChange={(e) => setSure(Number(e.target.value) || 50)} /></div>
+        <div className="sm:col-span-2"><Label>Not (opsiyonel)</Label><Textarea value={not} onChange={(e) => setNot(e.target.value)} /></div>
+      </div>
+      {warn && <p className="mt-3 text-xs text-amber-600">{warn}</p>}
+      <div className="mt-5 flex items-center justify-end gap-2">
+        <button onClick={onClose} className="px-4 py-2 rounded-xl text-sm text-gray-500 hover:bg-gray-100">Vazgeç</button>
+        <button onClick={save} disabled={!ad.trim() || saving} className="px-5 py-2 rounded-xl text-sm font-semibold text-white bg-[#0E0F12] disabled:opacity-50">{saving ? 'Ekleniyor…' : 'Randevu Ekle'}</button>
+      </div>
+    </Modal>
+  );
+}
+
 function NewClientModal({ open, onClose, dispatch, onCreated }: {
   open: boolean;
   onClose: () => void;
@@ -860,7 +932,7 @@ function NewClientModal({ open, onClose, dispatch, onCreated }: {
         <div className="sm:col-span-2"><Label>Email</Label><Input value={draft.email ?? ""} onChange={e => setDraft({ ...draft, email: e.target.value })} /></div>
         <div><Label>İl</Label><Input value={draft.il ?? ""} onChange={e => setDraft({ ...draft, il: e.target.value })} placeholder="İstanbul" /></div>
         <div><Label>İlçe</Label><Input value={draft.ilce ?? ""} onChange={e => setDraft({ ...draft, ilce: e.target.value })} placeholder="Kadıköy" /></div>
-        <div><Label>Seans Ücreti (₺)</Label><Input type="number" inputMode="numeric" value={draft.seansUcreti != null ? String(draft.seansUcreti) : ""} onChange={e => setDraft({ ...draft, seansUcreti: e.target.value === "" ? undefined : Number(e.target.value) })} placeholder="örn. 1500" /></div>
+        <div><Label>Seans Ücreti (₺) <span className="text-[#6E8A6E] font-normal">· önerilir</span></Label><Input type="number" inputMode="numeric" min={0} value={draft.seansUcreti != null ? String(draft.seansUcreti) : ""} onChange={e => { const v = e.target.value; setDraft({ ...draft, seansUcreti: v === "" ? undefined : Math.max(0, Number(v)) }); }} placeholder="örn. 1500" /><p className="mt-1 text-[11px] text-gray-400">Tahmini haftalık kazanç hesabına dahil olması için girin (opsiyonel).</p></div>
         <div><Label>Takip Sıklığı</Label>
           <select className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm bg-white" value={draft.takipSikligi ?? ""} onChange={e => setDraft({ ...draft, takipSikligi: (e.target.value || undefined) as any })}>
             <option value="">— seçiniz —</option>
@@ -3251,24 +3323,6 @@ const NAV: { id: Tab; label: string; icon: React.ComponentType<any> }[] = [
   { id: "act-gelistirme",label: "ACT Geliştirme",      icon: Zap },
 ];
 
-function useIdleTimer(timeout: number, onIdle: () => void, onActive: () => void) {
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => {
-    const reset = () => {
-      onActive();
-      if (timer.current) clearTimeout(timer.current);
-      timer.current = setTimeout(onIdle, timeout);
-    };
-    const events = ["mousemove", "keydown", "mousedown", "touchstart", "scroll"];
-    events.forEach(e => window.addEventListener(e, reset, { passive: true }));
-    timer.current = setTimeout(onIdle, timeout);
-    return () => {
-      events.forEach(e => window.removeEventListener(e, reset));
-      if (timer.current) clearTimeout(timer.current);
-    };
-  }, [timeout, onIdle, onActive]);
-}
-
 // ============================================================
 // Günlük Randevu Özeti Modal
 // ============================================================
@@ -3632,7 +3686,6 @@ export default function HomePage() {
   }, []);
   const [calEvents, setCalEvents] = useState<CalEvent[]>([]);
   const [calLoading, setCalLoading] = useState(false);
-  const [idle, setIdle] = useState(false);
 
   // ── Müdahale Kütüphanesi state ───────────────────────────────────────
   const [interventions, setInterventions] = useState<Intervention[]>([]);
@@ -3652,6 +3705,7 @@ export default function HomePage() {
 
   // ── Yeni danışan modalı (V2 ekranlarından erişilebilir) ───────────────
   const [newClientOpen, setNewClientOpen] = useState(false);
+  const [newAppointmentOpen, setNewAppointmentOpen] = useState(false);
   // ── Terapist Profil: düzenle + onam paylaş ────────────────────────────
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [shareConsentOpen, setShareConsentOpen] = useState(false);
@@ -3673,7 +3727,6 @@ export default function HomePage() {
       .catch(() => {});
   }, []);
 
-  useIdleTimer(5 * 60 * 1000, () => setIdle(true), () => setIdle(false));
 
   // ── Derive DanisanlarPanel Client[] from state ───────────────────────
   const panelClients = React.useMemo<DanisanClient[]>(() => {
@@ -3775,6 +3828,8 @@ export default function HomePage() {
     const fees = (state.patients as any[]).map((p) => p?.seansUcreti).filter((f) => f != null && !Number.isNaN(Number(f))).map(Number);
     return fees.length ? Math.round(fees.reduce((s, f) => s + f, 0) / fees.length) : 0;
   })();
+  // Fiyat (seans ücreti) bilgisi girilmemiş aktif danışan sayısı — kazanç uyarısı için
+  const missingFeeCount = (state.patients as any[]).filter((p) => p.status !== 'archived' && (p.seansUcreti == null || p.seansUcreti === '' || Number.isNaN(Number(p.seansUcreti)))).length;
 
   const goToDanisanlar = () => { setCalismaSubTab('danisanlar'); setTab('calisma-alani'); };
   const goToTakvim     = () => { setCalismaSubTab('takvim');     setTab('calisma-alani'); };
@@ -3929,28 +3984,9 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-[#F4F5F8] text-[#0E0F12]">
-      {idle && (
-        <BeklemeEkrani
-          therapistName={state.settings.therapistName || 'Göksel Akkaya'}
-          onClose={() => setIdle(false)}
-        />
-      )}
-
       {/* In-app V2 ekranları kendi .dock'unu render ediyor; alttaki global ana menü (fixed NAV)
           zaten var → in-app dock'ları gizle (terapist .tp2 hariç — kullanıcı: dokunma). */}
       <style>{`.siyi-inapp .dock{display:none!important}.siyi-inapp .tp2 .dock{display:flex!important}`}</style>
-
-      {/* ── Bekleme (legacy S-İ-Y-İ üst başlığı kaldırıldı — V2 ekranların kendi topbar'ı var) ── */}
-      <button
-        onClick={() => setIdle(true)}
-        title="Bekleme moduna geç"
-        className="fixed top-3 right-4 z-50 flex items-center gap-2 rounded-full bg-[#0E0F12] pl-4 pr-3 py-1.5 text-[12px] font-medium text-white shadow-[0_2px_12px_rgba(0,0,0,0.18)] hover:bg-[#1c1d21] transition-colors"
-      >
-        Bekleme
-        <span className="flex items-center justify-center w-5 h-5 rounded-full bg-white/15">
-          <MonitorOff className="w-3 h-3" />
-        </span>
-      </button>
 
       <main className={cx(
         "siyi-inapp pb-24",
@@ -4101,13 +4137,14 @@ export default function HomePage() {
               copy: '14 günde 1+ iptal / sessizlik',
               list: dropClients.slice(0, 3).map((c: any) => ({ name: c.name, reason: c.dropRisk === 'high' ? 'yüksek risk' : 'orta risk' })),
             };
+            const maxSeans = Math.max(...panelClients.map((c: any) => c.sessionCount ?? 0), 1);
             const contClients = [...panelClients]
-              .filter((c: any) => c.status !== 'passive' && (c.continuityPct ?? 0) > 0)
-              .sort((a: any, b: any) => (b.continuityPct ?? 0) - (a.continuityPct ?? 0))
-              .slice(0, 5)
-              .map((c: any) => ({ name: c.name, pct: c.continuityPct ?? 0, accent: (c.continuityPct ?? 0) >= 90 }));
+              .filter((c: any) => c.status !== 'passive' && (c.sessionCount ?? 0) > 0)
+              .sort((a: any, b: any) => (b.sessionCount ?? 0) - (a.sessionCount ?? 0))
+              .slice(0, 6)
+              .map((c: any) => ({ name: c.name, seans: c.sessionCount ?? 0, pct: Math.round(((c.sessionCount ?? 0) / maxSeans) * 100), accent: (c.sessionCount ?? 0) >= 10 }));
             const continuityCard = contClients.length
-              ? { headline: 'son 30 gün', copy: 'Son 30 günün seans katılım oranı; üst üste 3 seansını tamamlayanlar koyu.', clients: contClients, values: [] }
+              ? { headline: 'süregelen seanslar', copy: 'Aktif danışanların bugüne dek devam eden seans sayısı — en çok seansa devam edenler üstte.', clients: contClients, values: [] }
               : undefined;
 
             return (
@@ -4231,6 +4268,8 @@ export default function HomePage() {
               events={calEvents}
               resolveClient={resolveClientForCalendar}
               avgFee={avgClientFee}
+              missingFeeCount={missingFeeCount}
+              onEditMissingFees={() => goToDanisanlar()}
               availability={availability}
               onAddBlock={async (b) => {
                 await fetch('/api/musaitlik/blok', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).catch(() => {});
@@ -4253,7 +4292,7 @@ export default function HomePage() {
                 if (id) router.push(`/seansa-hazirlik/${id}`);
                 else goToDanisanlar();
               }}
-              onNewAppointment={() => router.push('/seans-planlayici')}
+              onNewAppointment={() => setNewAppointmentOpen(true)}
               onOpenInterventionSuggest={() => setTab('terapist')}
             />
           )}
@@ -4409,6 +4448,14 @@ export default function HomePage() {
         onClose={() => setNewClientOpen(false)}
         dispatch={dispatch}
         onCreated={(id) => { setActivePatientId(id); router.push(`/profil/${id}`); }}
+      />
+
+      {/* ── Yeni randevu modalı (takvim sayfasından, sayfa-içi) ── */}
+      <NewAppointmentModal
+        open={newAppointmentOpen}
+        onClose={() => setNewAppointmentOpen(false)}
+        patients={state.patients.filter((p) => p.status !== 'archived').map((p) => ({ id: String(p.id), adSoyad: p.adSoyad }))}
+        onCreated={refreshCalendar}
       />
 
       {/* ── Terapist Profil: düzenle modalı ── */}

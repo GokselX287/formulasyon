@@ -1,0 +1,26 @@
+/* ─────────────────────────────────────────────────────────────────────────
+   ACT araçları — paylaşılan giriş/geçiş animasyonları
+   "Klinik Editöryel Dosya" diliyle uyumlu, yumuşak yay-eğrili hareketler.
+   Sınıflar act-* ön ekiyle izole; Tailwind utility'lerine dokunmaz.
+   ───────────────────────────────────────────────────────────────────────── */
+
+@keyframes actFadeUp   { from { opacity: 0; transform: translateY(12px); }            to { opacity: 1; transform: none; } }
+@keyframes actFadeIn   { from { opacity: 0; }                                          to { opacity: 1; } }
+@keyframes actScaleIn  { from { opacity: 0; transform: scale(.96); }                   to { opacity: 1; transform: none; } }
+@keyframes actRise     { from { opacity: 0; transform: translateY(8px) scale(.985); }  to { opacity: 1; transform: none; } }
+@keyframes actPulseDot { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .4; transform: scale(.82); } }
+
+.act-fade-up  { animation: actFadeUp  .55s cubic-bezier(.22,1,.36,1) both; }
+.act-fade-in  { animation: actFadeIn  .42s ease both; }
+.act-scale-in { animation: actScaleIn .5s  cubic-bezier(.22,1,.36,1) both; }
+.act-rise     { animation: actRise    .5s  cubic-bezier(.22,1,.36,1) both; }
+
+/* Sıralı (stagger) giriş — her çocuğa style={{['--i']: n}} ver */
+.act-stagger > * { animation: actRise .5s cubic-bezier(.22,1,.36,1) both; animation-delay: calc(var(--i, 0) * 55ms); }
+
+/* Yumuşak yatıştırma nefes-ritmi (öz-şefkat vb.) */
+.act-breathe { animation: actPulseDot 3.4s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .act-fade-up, .act-fade-in, .act-scale-in, .act-rise, .act-stagger > *, .act-breathe { animation: none !important; }
+}

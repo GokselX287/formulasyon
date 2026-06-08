@@ -188,6 +188,7 @@ export async function GET(
     stats: { nodes: nodeCount, edges: edgeCount, gaps: gapCount },
     sessionTimeline,
     benlikAlgisiJson: (f.benlik_algisi_json as string | null) ?? null,
+    danisanHedefleriJson: (f.danisan_hedefleri_json as string | null) ?? null,
     formulationId: fid,
     sections,
   });

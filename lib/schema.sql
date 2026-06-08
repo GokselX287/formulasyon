@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS formulations (
   presenting_problem TEXT,
   client_goal TEXT,
   therapist_goal TEXT,
+  danisan_hedefleri_json TEXT,
   narrative TEXT,
   clinical_notes TEXT,
   rupture_notes TEXT,
@@ -59,6 +60,7 @@ CREATE TABLE IF NOT EXISTS seanslar (
   konu TEXT,
   notlar TEXT,
   odev TEXT,
+  durum TEXT DEFAULT 'katildi',
   created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 

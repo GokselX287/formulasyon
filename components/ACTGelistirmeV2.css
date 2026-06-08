@@ -55,7 +55,7 @@
 .ag2 .hero{padding:clamp(28px,4.4vh,46px) clamp(20px,4.5vw,64px) clamp(14px,2vh,22px);max-width:1080px;margin:0 auto;width:100%;}
 .ag2 .hero .eyebrow{display:block;margin-bottom:12px;}
 .ag2 .hero h1{font-family:var(--font-display);font-weight:500;font-size:clamp(30px,4vw,50px);letter-spacing:-.02em;line-height:1.0;margin:0;}
-.ag2 .hero h1 i{font-style:italic;font-weight:500;color:var(--accent-gray);}
+.ag2 .hero h1 i{font-style:italic;font-weight:500;color:#ED1C24;}
 .ag2 .hero p{font-size:14.5px;line-height:1.6;color:var(--ink-soft);max-width:62ch;margin:14px 0 0;}
 
 /* araç seçici (sticky) */

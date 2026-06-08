@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
     no: r.no ?? 1,
     tarih: r.tarih,
     tip: r.tip ?? 'seans',
+    durum: r.durum ?? 'katildi',
     anamnez: r.anamnez_data ? JSON.parse(r.anamnez_data) : undefined,
     seansNotu: r.seans_notu_data ? JSON.parse(r.seans_notu_data) : undefined,
     detay: r.detay_json ? JSON.parse(r.detay_json) : undefined,
@@ -47,10 +48,12 @@ export async function POST(request: NextRequest) {
 
   const { patientId, tarih, tip, no, anamnez, seansNotu } = body;
   const clientId = patientId ?? body.client_id;
+  const DURUMLAR = ['katildi', 'katilmadi', 'ertelendi', 'iptal'];
+  const durum = DURUMLAR.includes(body.durum) ? body.durum : 'katildi';
 
   db.prepare(`
-    INSERT INTO seanslar (id, client_id, tarih, tip, no, anamnez_data, seans_notu_data, created_at, guncelleme_tarihi)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO seanslar (id, client_id, tarih, tip, no, anamnez_data, seans_notu_data, durum, created_at, guncelleme_tarihi)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     id,
     clientId,
@@ -59,6 +62,7 @@ export async function POST(request: NextRequest) {
     no ?? 1,
     anamnez ? JSON.stringify(anamnez) : null,
     seansNotu ? JSON.stringify(seansNotu) : null,
+    durum,
     now,
     now,
   );

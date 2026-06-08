@@ -158,7 +158,7 @@ export default function AnaSayfa(props: AnaSayfaProps) {
   const RAIL = [
     { id: 'bugun', label: 'Bugün' }, { id: 'checkin', label: 'İyilik hali' }, { id: 'akis', label: 'Akış' },
     { id: 'icgoru', label: 'İçgörü' },
-    ...(continuity?.clients?.length ? [{ id: 'sureklilik', label: 'Süreklilik' }] : []),
+    ...(continuity?.clients?.length ? [{ id: 'sureklilik', label: 'Seans devamı' }] : []),
     ...(reflection ? [{ id: 'yansima', label: 'Yansıma' }] : []),
   ];
 
@@ -379,21 +379,21 @@ export default function AnaSayfa(props: AnaSayfaProps) {
 
               {/* SÜREKLİLİK & DEĞERLER */}
               {continuity?.clients?.length ? (
-                <section className="section matrix" id="sureklilik" ref={(el) => { secRefs.current['sureklilik'] = el; }} data-screen-label="Süreklilik ve değerler">
+                <section className="section matrix" id="sureklilik" ref={(el) => { secRefs.current['sureklilik'] = el; }} data-screen-label="Danışan seans devamı">
                   <div className="sec-head">
-                    <div className="l"><span className="eyebrow">{continuity.headline ?? 'son 30 gün'}</span><h2 className="sec-title">Süreklilik <i>haritası</i></h2></div>
-                    <p className="sec-aside">Üst üste 3 seansını tamamlayanlar koyu.</p>
+                    <div className="l"><span className="eyebrow">{continuity.headline ?? 'süregelen seanslar'}</span><h2 className="sec-title">Danışanlar kaç seans <i>devam ediyor?</i></h2></div>
+                    <p className="sec-aside">10+ seansa devam edenler koyu.</p>
                   </div>
                   <div className="cont">
                     <div className="cont-left">
-                      <p>{continuity.copy ?? 'Geçen ayın seans katılım oranı.'}</p>
+                      <p>{continuity.copy ?? 'Aktif danışanların bugüne dek devam eden seans sayısı.'}</p>
                       {!!continuity.values?.length && (
                         <div className="values">{continuity.values.map((v, i) => <span key={i} className={`vchip${v.lead ? ' lead' : ''}`}>{v.label}<span className="lv">{v.level}</span></span>)}</div>
                       )}
                     </div>
                     <div className="cont-right">
                       {continuity.clients.map((b, i) => (
-                        <div className="cbar" key={i}><span className="nm">{b.name}</span><span className="track"><span className={`fill${b.accent ? ' lead' : ''}`} style={{ width: `${b.pct}%` }} /></span><span className="pct num">{b.pct}%</span></div>
+                        <div className="cbar" key={i}><span className="nm">{b.name}</span><span className="track"><span className={`fill${b.accent ? ' lead' : ''}`} style={{ width: `${b.pct}%` }} /></span><span className="pct num">{b.seans ?? 0} seans</span></div>
                       ))}
                     </div>
                   </div>

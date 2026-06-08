@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
 import { Heart, ChevronRight, RotateCcw, X, Sparkles, ImagePlus, BookOpen, FlaskConical, AlertTriangle, Zap } from 'lucide-react';
+import './actMotion.css';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type SefkatPhase = 'intro' | 'upload' | 'breathing' | 'practice' | 'done';
@@ -284,7 +285,7 @@ function BreathingScreen({ onReady }: { onReady: () => void }) {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-rose-50 via-amber-50 to-purple-50 gap-8 px-4">
+    <div className="act-fade-in min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-[#F2EFEA] via-[#EFE4DD] to-[#E7E4DE] gap-8 px-4">
       <div className="text-center">
         <p className="text-sm text-gray-400 uppercase tracking-widest font-medium">Hazırlanıyoruz</p>
         <h2 className="text-2xl font-semibold text-gray-800 mt-1">Birlikte nefes alalım</h2>
@@ -365,10 +366,10 @@ function PracticeScreen({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-rose-50 via-amber-50 to-purple-50 flex flex-col"
+    <div className="act-fade-in min-h-screen bg-gradient-to-br from-[#F2EFEA] via-[#EFE4DD] to-[#E7E4DE] flex flex-col"
       style={{ userSelect: 'none' }}>
       {/* Top bar */}
-      <div className="flex items-center justify-between px-6 py-3 bg-white/70 backdrop-blur-sm border-b border-rose-100/50">
+      <div className="flex items-center justify-between px-6 py-3 bg-white/70 backdrop-blur-sm border-b border-[#EFE4DD]/50">
         <span className="text-sm font-semibold text-gray-500">Şefkat Çalışması</span>
         <div className="flex gap-1.5">
           {NODES.map((n, i) => (
@@ -397,9 +398,9 @@ function PracticeScreen({
         </div>
 
         {/* Right panel: prompt + reflection */}
-        <div className="w-80 flex-shrink-0 flex flex-col border-l border-rose-100/60 bg-white/60 backdrop-blur-sm overflow-y-auto">
+        <div className="w-80 flex-shrink-0 flex flex-col border-l border-[#EFE4DD]/60 bg-white/60 backdrop-blur-sm overflow-y-auto">
           {/* Node header */}
-          <div className="p-5 border-b border-rose-100/60"
+          <div className="p-5 border-b border-[#EFE4DD]/60"
             style={{ background: `linear-gradient(135deg, ${node.bg}, transparent)` }}>
             <div className="flex items-center gap-2 mb-2">
               <span className="text-xl">{node.emoji}</span>
@@ -445,14 +446,14 @@ function PracticeScreen({
                 onChange={e => setNotes(n => n.map((v, i) => i === activeIdx ? e.target.value : v))}
                 placeholder="Duygularınızı, bedeninizde ne hissettiğinizi, aklınıza gelenleri yazabilirsiniz…"
                 rows={4}
-                className="w-full text-sm text-gray-700 border border-rose-200 rounded-2xl p-3 resize-none outline-none focus:border-rose-400 bg-white/70"
+                className="w-full text-sm text-gray-700 border border-[#E8D4CB] rounded-2xl p-3 resize-none outline-none focus:border-[#C68A74] bg-white/70"
                 style={{ userSelect: 'text' } as React.CSSProperties}
               />
             </div>
           </div>
 
           {/* Next / Done */}
-          <div className="p-5 border-t border-rose-100/60">
+          <div className="p-5 border-t border-[#EFE4DD]/60">
             <button onClick={next}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl font-semibold text-sm text-white transition-all active:scale-95"
               style={{ backgroundColor: node.color }}>
@@ -475,16 +476,16 @@ function DoneScreen({ notes, photoUrl, onRestart }: {
 }) {
   const filled = notes.filter(n => n.trim()).length;
   return (
-    <div className="min-h-screen bg-gradient-to-br from-rose-50 via-amber-50 to-purple-50 flex flex-col items-center justify-center px-4 py-12 gap-8">
+    <div className="act-fade-in min-h-screen bg-gradient-to-br from-[#F2EFEA] via-[#EFE4DD] to-[#E7E4DE] flex flex-col items-center justify-center px-4 py-12 gap-8">
       {/* Center glow */}
       <div className="relative">
-        <div className="absolute inset-0 rounded-full bg-rose-200/40 blur-2xl scale-150" />
+        <div className="absolute inset-0 rounded-full bg-[#E8D4CB]/40 blur-2xl scale-150" />
         {photoUrl ? (
-          <div className="relative w-28 h-28 rounded-full overflow-hidden border-4 border-white shadow-xl shadow-rose-100">
+          <div className="relative w-28 h-28 rounded-full overflow-hidden border-4 border-white shadow-xl shadow-[#EFE4DD]">
             <img src={photoUrl} alt="" className="w-full h-full object-cover" />
           </div>
         ) : (
-          <div className="relative w-28 h-28 rounded-full bg-white flex items-center justify-center text-5xl shadow-xl shadow-rose-100 border-4 border-rose-100">
+          <div className="relative w-28 h-28 rounded-full bg-white flex items-center justify-center text-5xl shadow-xl shadow-[#EFE4DD] border-4 border-[#EFE4DD]">
             🤍
           </div>
         )}
@@ -502,7 +503,7 @@ function DoneScreen({ notes, photoUrl, onRestart }: {
         <div className="w-full max-w-lg space-y-3">
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider text-center">Notlarınız</p>
           {NODES.map((n, i) => notes[i]?.trim() ? (
-            <div key={n.key} className="bg-white/80 rounded-2xl p-4 border border-rose-100 shadow-sm">
+            <div key={n.key} className="bg-white/80 rounded-2xl p-4 border border-[#EFE4DD] shadow-sm">
               <div className="flex items-center gap-2 mb-1.5">
                 <span className="text-base">{n.emoji}</span>
                 <span className="text-xs font-semibold" style={{ color: n.color }}>
@@ -517,7 +518,7 @@ function DoneScreen({ notes, photoUrl, onRestart }: {
 
       <div className="flex gap-3 flex-wrap justify-center">
         <button onClick={onRestart}
-          className="flex items-center gap-2 bg-white border border-rose-200 text-rose-600 px-6 py-3 rounded-2xl font-semibold text-sm shadow-sm hover:shadow-md transition-all">
+          className="flex items-center gap-2 bg-white border border-[#E8D4CB] text-[#B5654A] px-6 py-3 rounded-2xl font-semibold text-sm shadow-sm hover:shadow-md transition-all">
           <RotateCcw size={15} /> Tekrar Yap
         </button>
       </div>
@@ -533,13 +534,13 @@ function SefkatTeoriPaneli() {
   const [acikMit, setAcikMit] = useState<number | null>(null);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-rose-50 via-amber-50 to-purple-50 overflow-y-auto">
+    <div className="act-fade-in min-h-screen bg-gradient-to-br from-[#F2EFEA] via-[#EFE4DD] to-[#E7E4DE] overflow-y-auto">
       <div className="max-w-3xl mx-auto px-6 py-10 space-y-10">
 
         {/* Başlık */}
         <div>
           <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <BookOpen className="w-6 h-6 text-rose-400" />
+            <BookOpen className="w-6 h-6 text-[#C68A74]" />
             Öz-Şefkat: Teorik Çerçeve
           </h2>
           <p className="text-sm text-gray-500 mt-1 leading-relaxed">
@@ -550,7 +551,7 @@ function SefkatTeoriPaneli() {
         {/* ── 1. Kristin Neff — 3 Bileşen ── */}
         <section className="space-y-4">
           <div className="flex items-center gap-2">
-            <span className="w-6 h-6 rounded-full bg-rose-500 text-white text-xs font-bold flex items-center justify-center">1</span>
+            <span className="w-6 h-6 rounded-full bg-[#B5654A] text-white text-xs font-bold flex items-center justify-center">1</span>
             <h3 className="text-lg font-bold text-gray-800">Kristin Neff — Öz-Şefkatın 3 Bileşeni</h3>
           </div>
           <p className="text-sm text-gray-600 leading-relaxed">
@@ -575,7 +576,7 @@ function SefkatTeoriPaneli() {
                 hexNode: 'Ortak İnsanlık boyutuna karşılık gelir.',
               },
               {
-                emoji: '💌', renk: '#C96080', bg: 'bg-rose-50 border-rose-200',
+                emoji: '💌', renk: '#C96080', bg: 'bg-[#F6EFEA] border-[#E8D4CB]',
                 baslik: 'Öz-Nezaket',
                 ing: 'Self-Kindness',
                 aciklama: 'Sert öz-eleştiri yerine sıcaklık ve anlayış. Kendine, zor bir dönemde olan sevdiğin birine davranır gibi davranmak.',
@@ -681,12 +682,12 @@ function SefkatTeoriPaneli() {
               { emoji: '🗣', isim: 'Şefkat Sesi',      teori: 'CFT İç Ses Çalışması', aciklama: 'Özeleştirici iç sesi şefkatli bir sese dönüştürmek — Tehdit → Sakinleştirici.' },
               { emoji: '✨', isim: 'Şefkat Gönder/Al', teori: 'Tonglen / Loving-Kindness', aciklama: 'Şefkati alma kapasitesini geliştirmek — "vermeyi hak ediyorum" inancını test etmek.' },
             ].map(b => (
-              <div key={b.isim} className="flex gap-3 items-start bg-white/60 rounded-xl border border-rose-100 px-4 py-3">
+              <div key={b.isim} className="flex gap-3 items-start bg-white/60 rounded-xl border border-[#EFE4DD] px-4 py-3">
                 <span className="text-xl flex-shrink-0">{b.emoji}</span>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-semibold text-gray-800">{b.isim}</span>
-                    <span className="text-[10px] bg-rose-100 text-rose-600 px-2 py-0.5 rounded-full">{b.teori}</span>
+                    <span className="text-[10px] bg-[#EFE4DD] text-[#B5654A] px-2 py-0.5 rounded-full">{b.teori}</span>
                   </div>
                   <p className="text-xs text-gray-600 mt-0.5 leading-relaxed">{b.aciklama}</p>
                 </div>
@@ -836,12 +837,12 @@ export default function SefkatCalismasi() {
     return (
       <div className="flex flex-col h-full">
         {/* Tab bar */}
-        <div className="flex gap-1 px-4 pt-3 pb-0 border-b border-rose-200/60 bg-white/50 backdrop-blur-sm">
+        <div className="flex gap-1 px-4 pt-3 pb-0 border-b border-[#E8D4CB]/60 bg-white/50 backdrop-blur-sm">
           {(['pratik', 'teori'] as SefkatMode[]).map(m => (
             <button key={m} onClick={() => setMode(m)}
               className={`flex items-center gap-1.5 px-4 py-2 rounded-t-lg text-sm font-medium transition-colors ${
                 mode === m
-                  ? 'bg-rose-50 text-rose-700 border border-rose-200 border-b-rose-50'
+                  ? 'bg-[#F6EFEA] text-[#8F4F39] border border-[#E8D4CB] border-b-[#F6EFEA]'
                   : 'text-gray-400 hover:text-gray-600'
               }`}>
               {m === 'pratik' ? <><Heart className="w-3.5 h-3.5" /> Pratik</> : <><BookOpen className="w-3.5 h-3.5" /> Teori</>}
@@ -859,14 +860,14 @@ export default function SefkatCalismasi() {
   // ── Intro ──
   if (phase === 'intro') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-rose-50 via-amber-50 to-purple-50 flex flex-col">
+      <div className="act-fade-in min-h-screen bg-gradient-to-br from-[#F2EFEA] via-[#EFE4DD] to-[#E7E4DE] flex flex-col">
         {/* Tab bar */}
-        <div className="flex gap-1 px-4 pt-3 pb-0 border-b border-rose-200/60 bg-white/50 backdrop-blur-sm flex-shrink-0">
+        <div className="flex gap-1 px-4 pt-3 pb-0 border-b border-[#E8D4CB]/60 bg-white/50 backdrop-blur-sm flex-shrink-0">
           {(['pratik', 'teori'] as SefkatMode[]).map(m => (
             <button key={m} onClick={() => setMode(m)}
               className={`flex items-center gap-1.5 px-4 py-2 rounded-t-lg text-sm font-medium transition-colors ${
                 mode === m
-                  ? 'bg-rose-50 text-rose-700 border border-rose-200 border-b-rose-50'
+                  ? 'bg-[#F6EFEA] text-[#8F4F39] border border-[#E8D4CB] border-b-[#F6EFEA]'
                   : 'text-gray-400 hover:text-gray-600'
               }`}>
               {m === 'pratik' ? <><Heart className="w-3.5 h-3.5" /> Pratik</> : <><BookOpen className="w-3.5 h-3.5" /> Teori</>}
@@ -877,7 +878,7 @@ export default function SefkatCalismasi() {
         <div className="w-full max-w-lg text-center space-y-6">
           {/* Icon */}
           <div className="flex items-center justify-center">
-            <div className="w-20 h-20 rounded-full bg-white shadow-lg shadow-rose-100 flex items-center justify-center text-4xl border border-rose-100">
+            <div className="w-20 h-20 rounded-full bg-white shadow-lg shadow-[#EFE4DD] flex items-center justify-center text-4xl border border-[#EFE4DD]">
               🤍
             </div>
           </div>
@@ -894,7 +895,7 @@ export default function SefkatCalismasi() {
               { emoji: '🌍', title: 'Ortak İnsanlık', desc: 'Bu hisler sadece sana özgü değil — hepimiz bu yoldan geçeriz' },
               { emoji: '💌', title: 'Öz-Nezaket', desc: 'Kendine bir arkadaşına göstereceğin anlayışı göstermek' },
             ].map(c => (
-              <div key={c.title} className="bg-white/80 rounded-2xl p-4 border border-rose-100 shadow-sm">
+              <div key={c.title} className="bg-white/80 rounded-2xl p-4 border border-[#EFE4DD] shadow-sm">
                 <div className="text-2xl mb-1">{c.emoji}</div>
                 <div className="text-sm font-semibold text-gray-800">{c.title}</div>
                 <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{c.desc}</p>
@@ -908,7 +909,7 @@ export default function SefkatCalismasi() {
           </div>
           <button
             onClick={() => setPhase('upload')}
-            className="mx-auto flex items-center gap-2 bg-rose-500 hover:bg-rose-600 text-white px-10 py-4 rounded-2xl font-bold text-base shadow-lg shadow-rose-200 transition-all active:scale-95">
+            className="mx-auto flex items-center gap-2 bg-[#B5654A] hover:bg-[#B5654A] text-white px-10 py-4 rounded-2xl font-bold text-base shadow-lg shadow-[#E8D4CB] transition-all active:scale-95">
             <Heart size={18} /> Başlayalım
           </button>
         </div>
@@ -920,7 +921,7 @@ export default function SefkatCalismasi() {
   // ── Upload ──
   if (phase === 'upload') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-rose-50 via-amber-50 to-purple-50 flex flex-col items-center justify-center px-4 py-12 gap-6">
+      <div className="act-fade-in min-h-screen bg-gradient-to-br from-[#F2EFEA] via-[#EFE4DD] to-[#E7E4DE] flex flex-col items-center justify-center px-4 py-12 gap-6">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900">Bir fotoğraf seçin</h2>
           <p className="text-gray-500 mt-2 text-sm">Çocukluğunuzdan, evcil hayvanınızdan veya kayıtsız şartsız sevdiğiniz biri</p>
@@ -931,12 +932,12 @@ export default function SefkatCalismasi() {
           onDrop={handleDrop}
           onDragOver={e => e.preventDefault()}
           onClick={() => fileRef.current?.click()}
-          className="w-full max-w-md border-2 border-dashed border-rose-200 rounded-3xl p-10 flex flex-col items-center gap-4 cursor-pointer bg-white/60 hover:bg-white/80 hover:border-rose-400 transition-all text-center"
+          className="w-full max-w-md border-2 border-dashed border-[#E8D4CB] rounded-3xl p-10 flex flex-col items-center gap-4 cursor-pointer bg-white/60 hover:bg-white/80 hover:border-[#C68A74] transition-all text-center"
         >
           {photoUrl ? (
             <div className="relative">
               <img src={photoUrl} alt="Seçilen fotoğraf"
-                className="w-36 h-36 rounded-full object-cover border-4 border-white shadow-lg shadow-rose-100" />
+                className="w-36 h-36 rounded-full object-cover border-4 border-white shadow-lg shadow-[#EFE4DD]" />
               <button
                 onClick={e => { e.stopPropagation(); setPhotoUrl(null); }}
                 className="absolute -top-1 -right-1 w-6 h-6 bg-white rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:text-red-400">
@@ -945,8 +946,8 @@ export default function SefkatCalismasi() {
             </div>
           ) : (
             <>
-              <div className="w-16 h-16 rounded-2xl bg-rose-50 border-2 border-rose-200 flex items-center justify-center">
-                <ImagePlus size={28} className="text-rose-400" />
+              <div className="w-16 h-16 rounded-2xl bg-[#F6EFEA] border-2 border-[#E8D4CB] flex items-center justify-center">
+                <ImagePlus size={28} className="text-[#C68A74]" />
               </div>
               <div>
                 <p className="font-semibold text-gray-700">Fotoğraf yükle</p>
@@ -965,7 +966,7 @@ export default function SefkatCalismasi() {
         <div className="flex gap-3 flex-wrap justify-center">
           <button
             onClick={() => setPhase('breathing')}
-            className="flex items-center gap-2 bg-rose-500 hover:bg-rose-600 text-white px-8 py-3 rounded-2xl font-semibold shadow-lg shadow-rose-100 transition-all active:scale-95">
+            className="flex items-center gap-2 bg-[#B5654A] hover:bg-[#B5654A] text-white px-8 py-3 rounded-2xl font-semibold shadow-lg shadow-[#EFE4DD] transition-all active:scale-95">
             {photoUrl ? <><Heart size={16}/> Devam</> : <><ChevronRight size={16}/> Fotoğrafsız Devam</>}
           </button>
         </div>
