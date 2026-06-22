@@ -30,7 +30,9 @@
 body {
   background: var(--bg);
   color: var(--ink);
-  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* Uygulama fontu (Plus Jakarta) — Tailwind/primitive içerik (modal başlıkları,
+     "DANIŞAN KAYDI" gibi etiketler) de sistem fontu yerine uygulama fontunu kullansın. */
+  font-family: var(--sans);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -381,3 +383,18 @@ textarea { resize: vertical; }
    ===================================================================== */
 .siyi-inapp .dock { display: none !important; }
 .siyi-inapp .tp2 .dock { display: flex !important; }
+
+/* =====================================================================
+   Yazdırma / "PDF olarak kaydet" temel kuralları (2026-06-17)
+   Tüm "Yazdır / PDF" butonları window.print() çağırır. Burada uygulama
+   kabuğunu (menü, dock, tema seçici) gizleyip beyaz, temiz bir belge
+   bırakıyoruz. Yalnız @media print'te etkilidir; ekran tasarımı değişmez.
+   ===================================================================== */
+@media print {
+  .dock, .railnav, .bg-pick, .print-link, .print-hide,
+  [role="group"][aria-label="Arka plan rengi"],
+  nextjs-portal, #__next-build-watcher, [data-nextjs-toast], [data-next-badge-root] { display: none !important; }
+  html, body { background: #fff !important; }
+  body * { box-shadow: none !important; text-shadow: none !important; }
+  @page { margin: 16mm; }
+}

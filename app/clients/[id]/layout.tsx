@@ -1,4 +1,5 @@
 import { getClient } from '@/lib/queries';
+import { currentOwnerIdRSC } from '@/lib/tenant';
 import { notFound } from 'next/navigation';
 import ClientFileChrome from '@/components/ClientFileChrome';
 
@@ -10,7 +11,8 @@ export default async function ClientLayout({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const client = getClient(parseInt(id));
+  const uid = await currentOwnerIdRSC();
+  const client = uid ? getClient(parseInt(id), uid) : null;
   if (!client) notFound();
 
   return (

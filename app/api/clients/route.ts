@@ -1,5 +1,6 @@
 import { getAllClients, createClient } from '@/lib/queries';
-import { NextRequest } from 'next/server';
+import { ownerOr401 } from '@/lib/tenant';
+import { NextRequest, NextResponse } from 'next/server';
 
 function toAdminShape(c: ReturnType<typeof getAllClients>[number]) {
   return {
@@ -22,15 +23,17 @@ function toAdminShape(c: ReturnType<typeof getAllClients>[number]) {
   };
 }
 
-export async function GET() {
-  const clients = getAllClients();
+export async function GET(request: NextRequest) {
+  const uid = ownerOr401(request); if (uid instanceof NextResponse) return uid;
+  const clients = getAllClients(uid);
   return Response.json(clients.map(toAdminShape));
 }
 
 export async function POST(request: NextRequest) {
+  const uid = ownerOr401(request); if (uid instanceof NextResponse) return uid;
   const data = await request.json();
-  const id = createClient(data);
+  const id = createClient(data, uid);
   const { getClient } = await import('@/lib/queries');
-  const client = getClient(id);
+  const client = getClient(id, uid);
   return Response.json(client ? toAdminShape(client as any) : { id: String(id) });
 }

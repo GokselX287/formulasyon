@@ -7,8 +7,8 @@ export default function SozlukPage() {
   const router = useRouter();
   return (
     <SozlukV2
-      onBack={() => router.push('/')}
-      onNav={(target) => router.push(target === 'home' ? '/' : `/?tab=${target}`)}
+      onBack={() => router.push('/uygulama')}
+      onNav={(target) => router.push(target === 'home' ? '/' : `/uygulama?tab=${target}`)}
     />
   );
 }

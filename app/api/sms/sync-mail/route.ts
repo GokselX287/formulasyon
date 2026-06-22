@@ -12,6 +12,8 @@
  */
 
 import { getAllSettings, getAllSms, updateSms } from '@/lib/queries';
+import { ownerOr401 } from '@/lib/tenant';
+import { NextRequest, NextResponse } from 'next/server';
 import { ImapFlow } from 'imapflow';
 
 // ── İletim raporu e-postasını ayrıştır ──────────────────────────────────────
@@ -57,7 +59,8 @@ function parseDeliveryReport(subject: string, text: string): {
   return { phone, status };
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const uid = ownerOr401(request); if (uid instanceof NextResponse) return uid;
   const settings = getAllSettings();
   const gmailUser = settings['gmailUser'] ?? '';
   const gmailAppPassword = settings['gmailAppPassword'] ?? '';
@@ -72,7 +75,7 @@ export async function GET() {
   }
 
   // Mevcut SMS kayıtları (son 200)
-  const smsLogs = getAllSms();
+  const smsLogs = getAllSms(uid);
   // Telefon → son SMS id eşlemesi (en yakın zamanlı)
   const phoneToSms = new Map<string, typeof smsLogs[number]>();
   for (const m of smsLogs) {
@@ -145,7 +148,7 @@ export async function GET() {
               status: parsed.status === 'delivered' ? 'sent' : 'failed',
               delivery_status: parsed.status,
               delivered_at: deliveredAt,
-            } as Parameters<typeof updateSms>[1]);
+            } as Parameters<typeof updateSms>[1], uid);
             updated++;
           }
         } else {

@@ -2,8 +2,9 @@ import { execSync } from 'child_process';
 import { writeFileSync, unlinkSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
+import { ownerOr401 } from '@/lib/tenant';
 
 // AppleScript: Randevular takvimindeki tüm geçmiş etkinlikler (son 10 yıl → bugün)
 const HISTORY_SCRIPT = `tell application "Calendar"
@@ -54,11 +55,12 @@ function normName(title: string): string {
   return title.trim().replace(/\s+/g, ' ');
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const uid = ownerOr401(req); if (uid instanceof NextResponse) return uid;
   const db = getDb();
 
   // Önce DB'deki mevcut verileri döndür (önbelleklenmiş)
-  const existing = db.prepare(`SELECT * FROM takvim_gecmis ORDER BY start_dt ASC`).all() as any[];
+  const existing = db.prepare(`SELECT * FROM takvim_gecmis WHERE owner_id = ? ORDER BY start_dt ASC`).all(uid) as any[];
   if (existing.length > 0) {
     return NextResponse.json(buildAnaliz(existing));
   }
@@ -66,7 +68,8 @@ export async function GET() {
   return NextResponse.json({ empty: true, message: 'Henüz senkronizasyon yapılmadı.' });
 }
 
-export async function POST() {
+export async function POST(req: NextRequest) {
+  const uid = ownerOr401(req); if (uid instanceof NextResponse) return uid;
   const db = getDb();
   const tmpFile = join(tmpdir(), `cal_hist_${Date.now()}.applescript`);
 
@@ -86,16 +89,16 @@ export async function POST() {
 
     const lines = raw.trim().split('\n').filter(l => l.includes('|'));
 
-    // Tabloyu temizle ve yeniden doldur
-    db.prepare('DELETE FROM takvim_gecmis').run();
+    // Tabloyu temizle ve yeniden doldur (yalnız bu kullanıcının verisi)
+    db.prepare('DELETE FROM takvim_gecmis WHERE owner_id = ?').run(uid);
 
     const insert = db.prepare(`
-      INSERT INTO takvim_gecmis (id, event_title, start_dt, end_dt, saat, is_cancelled)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO takvim_gecmis (id, event_title, start_dt, end_dt, saat, is_cancelled, owner_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `);
 
     const insertMany = db.transaction((rows: any[]) => {
-      rows.forEach(r => insert.run(r.id, r.title, r.start_dt, r.end_dt, r.saat, r.is_cancelled));
+      rows.forEach(r => insert.run(r.id, r.title, r.start_dt, r.end_dt, r.saat, r.is_cancelled, uid));
     });
 
     const rows = lines.map((line, i) => {
@@ -116,7 +119,7 @@ export async function POST() {
 
     insertMany(rows);
 
-    const all = db.prepare(`SELECT * FROM takvim_gecmis ORDER BY start_dt ASC`).all() as any[];
+    const all = db.prepare(`SELECT * FROM takvim_gecmis WHERE owner_id = ? ORDER BY start_dt ASC`).all(uid) as any[];
     return NextResponse.json(buildAnaliz(all));
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);

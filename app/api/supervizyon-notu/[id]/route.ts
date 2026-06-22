@@ -1,5 +1,6 @@
 import { getDb } from '@/lib/db';
-import { NextRequest } from 'next/server';
+import { ownerOr401 } from '@/lib/tenant';
+import { NextRequest, NextResponse } from 'next/server';
 
 function toPanel(r: Record<string, any>) {
   return {
@@ -20,14 +21,15 @@ function toPanel(r: Record<string, any>) {
 }
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const uid = ownerOr401(req); if (uid instanceof NextResponse) return uid;
   const db = getDb();
   const { id } = await params;
   const row = db
-    .prepare('SELECT * FROM supervizyon_notlari WHERE id = ?')
-    .get(id) as Record<string, any> | undefined;
+    .prepare('SELECT * FROM supervizyon_notlari WHERE id = ? AND owner_id = ?')
+    .get(id, uid) as Record<string, any> | undefined;
   if (!row) return Response.json({ error: 'not found' }, { status: 404 });
   return Response.json(toPanel(row));
 }
@@ -36,6 +38,7 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const uid = ownerOr401(req); if (uid instanceof NextResponse) return uid;
   const db   = getDb();
   const { id } = await params;
   const body = await req.json();
@@ -66,17 +69,18 @@ export async function PATCH(
   }
 
   if (!sets.length) return Response.json({ ok: true });
-  vals.push(id);
-  db.prepare(`UPDATE supervizyon_notlari SET ${sets.join(', ')} WHERE id = ?`).run(...vals);
+  vals.push(id, uid);
+  db.prepare(`UPDATE supervizyon_notlari SET ${sets.join(', ')} WHERE id = ? AND owner_id = ?`).run(...vals);
   return Response.json({ ok: true });
 }
 
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const uid = ownerOr401(req); if (uid instanceof NextResponse) return uid;
   const db = getDb();
   const { id } = await params;
-  db.prepare('DELETE FROM supervizyon_notlari WHERE id = ?').run(id);
+  db.prepare('DELETE FROM supervizyon_notlari WHERE id = ? AND owner_id = ?').run(id, uid);
   return Response.json({ ok: true });
 }

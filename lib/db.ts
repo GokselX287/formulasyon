@@ -346,7 +346,7 @@ export function getDb(): Database.Database {
           null, null,
           'Sabah farkındalık demirleme 5 dk.', 0, 12],
 
-        [4, 'Gözlemleyen Ben (Bağlam-benlik)', 'ACT',
+        [4, 'Gözlemleyen Ben (Bağlamsal benlik)', 'ACT',
           J(['kimlik karışıklığı','öz-eleştiri']), J(['yetiskin']),
           'seans-ici', 'orta', 20, 'rkc',
           'İçerik-benlik ile gözlemleyen ben arasındaki ayrımı deneyimletme.',
@@ -630,6 +630,374 @@ export function getDb(): Database.Database {
       // JSON dizi [{hedef, durum: 'tamamlandi'|'devam'|'baslanmadi'}]
       try { db.exec(`ALTER TABLE formulations ADD COLUMN danisan_hedefleri_json TEXT`); } catch {}
       db.pragma('user_version = 27');
+    }
+
+    if (version < 28) {
+      // Yansıma notu İKİ BÖLÜM: "Fark ettiklerim" + "Klinik yansımalar"
+      // (Klinik yansımalar eski adı: "İnsanlarla ilgili çıkarımlarım".)
+      // MIGRATION: eski tek-alan `body` verisi ayrıştırılıp yeni kolonlara map'lenir.
+      //   - "Fark ettiklerim — X" / "Klinik yansımalar — Y" işaretçileri varsa bölünür.
+      //   - İşaretçi yoksa tüm metin "Klinik yansımalar" bölümüne map'lenir.
+      try { db.exec(`ALTER TABLE reflections ADD COLUMN fark_notu TEXT`); } catch {}
+      try { db.exec(`ALTER TABLE reflections ADD COLUMN klinik_notu TEXT`); } catch {}
+      try {
+        const rows = db.prepare(
+          `SELECT id, body FROM reflections WHERE type = 'daily' AND fark_notu IS NULL AND klinik_notu IS NULL`
+        ).all() as { id: number; body: string | null }[];
+        const upd = db.prepare(`UPDATE reflections SET fark_notu = ?, klinik_notu = ? WHERE id = ?`);
+        for (const r of rows) {
+          const b = String(r.body ?? '');
+          let fark: string | null = null;
+          let klinik: string | null = null;
+          const fm = b.match(/Fark ettiklerim\s*[—–-]\s*([\s\S]*?)(?:\n+\s*(?:Klinik yansımalar|İnsanlarla ilgili çıkarımlarım)\s*[—–-]|$)/);
+          const km = b.match(/(?:Klinik yansımalar|İnsanlarla ilgili çıkarımlarım)\s*[—–-]\s*([\s\S]*)$/);
+          if (fm || km) {
+            fark = fm && fm[1].trim() ? fm[1].trim() : null;
+            klinik = km && km[1].trim() ? km[1].trim() : null;
+          } else {
+            klinik = b.trim() || null; // işaretçisiz eski not → Klinik yansımalar bölümü
+          }
+          upd.run(fark, klinik, r.id);
+        }
+      } catch {}
+      db.pragma('user_version = 28');
+    }
+
+    if (version < 29) {
+      // ── Admin paneli: hesaplar (terapist/ekip/müşteri), paylaşım izinleri, denetim günlüğü ──
+      // NOT: Bunlar danışan (clients) verisinden tamamen AYRIDIR. Admin paneli danışanlara erişmez.
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS app_users (
+          id           TEXT PRIMARY KEY,
+          name         TEXT NOT NULL,
+          email        TEXT,
+          phone        TEXT,
+          role         TEXT DEFAULT 'terapist',   -- terapist | ekip | musteri
+          status       TEXT DEFAULT 'aktif',      -- aktif | askida | davetli
+          plan         TEXT DEFAULT 'aylik',      -- aylik | yillik | deneme
+          base_price   INTEGER DEFAULT 0,         -- temel abonelik ücreti (TL)
+          discount_pct REAL DEFAULT 0,            -- indirim yüzdesi
+          price_adjust INTEGER DEFAULT 0,         -- manuel +/- düzeltme (zam/indirim, TL)
+          notes        TEXT,
+          last_sms_at  TEXT,
+          created_at   TEXT DEFAULT (datetime('now')),
+          updated_at   TEXT DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS user_shares (
+          id           TEXT PRIMARY KEY,
+          from_user_id TEXT NOT NULL,
+          to_user_id   TEXT NOT NULL,
+          permission   TEXT DEFAULT 'goruntule',  -- goruntule | duzenle | tam
+          note         TEXT,
+          created_at   TEXT DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_shares_from ON user_shares(from_user_id);
+        CREATE INDEX IF NOT EXISTS idx_shares_to   ON user_shares(to_user_id);
+
+        CREATE TABLE IF NOT EXISTS admin_audit (
+          id         INTEGER PRIMARY KEY AUTOINCREMENT,
+          action     TEXT NOT NULL,               -- user.create | user.update | user.delete | price.change | share.create | share.delete | broadcast.send | auth.login
+          target_id  TEXT,
+          detail     TEXT,                         -- JSON
+          created_at TEXT DEFAULT (datetime('now'))
+        );
+      `);
+      db.pragma('user_version = 29');
+    }
+
+    if (version < 30) {
+      // Paylaşım kapsamı — bir izin neyin paylaşıldığını belirtir (tum | tasarim | sablon | mudahale).
+      try { db.exec(`ALTER TABLE user_shares ADD COLUMN scope TEXT DEFAULT 'tum'`); } catch {}
+      db.pragma('user_version = 30');
+    }
+
+    if (version < 31) {
+      // Danışan sorun döngüleri — her danışana eklenen bozukluk döngüsü + doldurulan alanlar.
+      // type = döngü anahtarı (sosyal-kaygi, okb, panik…); fields_json = diyagram alanları.
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS client_cycles (
+          id          TEXT PRIMARY KEY,
+          client_id   TEXT NOT NULL,
+          type        TEXT NOT NULL,
+          label       TEXT,
+          fields_json TEXT,
+          created_at  TEXT DEFAULT (datetime('now')),
+          updated_at  TEXT DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_client_cycles ON client_cycles(client_id);
+      `);
+      db.pragma('user_version = 31');
+    }
+
+    if (version < 32) {
+      // ── Kişisel Antrenör (Personal Trainer) alt uygulaması ──
+      // İzole pt_* namespace; klinik tablolara dokunmaz (sonradan bölünüp satılabilir).
+      // Para = INTEGER TL. Tarihler TEXT ISO. JSON alanlar autosave deseni (clients.anamnez_json gibi).
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS pt_trainers (
+          id           TEXT PRIMARY KEY,
+          ad_soyad     TEXT NOT NULL,
+          telefon      TEXT,
+          email        TEXT,
+          uzmanlik     TEXT,
+          brans        TEXT,
+          bio          TEXT,
+          durum        TEXT DEFAULT 'aktif',          -- aktif | pasif
+          program_json TEXT,                          -- haftalık program [{gun,baslangic,bitis,tip,not}]
+          created_at   TEXT DEFAULT (datetime('now')),
+          updated_at   TEXT DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS pt_members (
+          id            TEXT PRIMARY KEY,
+          ad_soyad      TEXT NOT NULL,
+          telefon       TEXT,
+          email         TEXT,
+          yas           INTEGER,
+          dogum_tarihi  TEXT,
+          meslek        TEXT,
+          trainer_id    TEXT REFERENCES pt_trainers(id) ON DELETE SET NULL,
+          durum         TEXT DEFAULT 'aktif',         -- aktif | dondurulmus | ayrildi
+          hedefler      TEXT,
+          qr_token      TEXT UNIQUE NOT NULL,
+          profile_json  TEXT,                         -- PAR-Q, postür, sağlık, hedefler (autosave)
+          profile_updated_at TEXT,
+          created_at    TEXT DEFAULT (datetime('now')),
+          updated_at    TEXT DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_pt_members_trainer ON pt_members(trainer_id);
+
+        CREATE TABLE IF NOT EXISTS pt_measurements (
+          id          TEXT PRIMARY KEY,
+          member_id   TEXT NOT NULL REFERENCES pt_members(id) ON DELETE CASCADE,
+          ay          TEXT NOT NULL,                  -- 'YYYY-MM'
+          mezura_json TEXT,                           -- tape: {gogus,bel,kalca,kol,bacak,...}
+          makine_json TEXT,                           -- body-comp: {kilo,yag_yuzde,kas_kg,vki,...}
+          notlar      TEXT,
+          created_at  TEXT DEFAULT (datetime('now')),
+          updated_at  TEXT DEFAULT (datetime('now')),
+          UNIQUE(member_id, ay)
+        );
+        CREATE INDEX IF NOT EXISTS idx_pt_meas_member ON pt_measurements(member_id, ay);
+
+        CREATE TABLE IF NOT EXISTS pt_packages (
+          id          TEXT PRIMARY KEY,
+          member_id   TEXT NOT NULL REFERENCES pt_members(id) ON DELETE CASCADE,
+          paket_no    INTEGER NOT NULL,               -- üye bazlı sıra (1,2,3…)
+          ad          TEXT,
+          tutar       INTEGER NOT NULL,               -- TL
+          seans_adedi INTEGER,
+          kalan_seans INTEGER,
+          baslangic   TEXT NOT NULL,                  -- YYYY-MM-DD
+          bitis       TEXT,
+          durum       TEXT DEFAULT 'aktif',           -- aktif | bitti | iptal
+          created_at  TEXT DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_pt_pkg_member ON pt_packages(member_id, paket_no);
+
+        CREATE TABLE IF NOT EXISTS pt_payments (
+          id            TEXT PRIMARY KEY,
+          member_id     TEXT NOT NULL REFERENCES pt_members(id) ON DELETE CASCADE,
+          package_id    TEXT REFERENCES pt_packages(id) ON DELETE SET NULL,
+          paket_no      INTEGER,                      -- denormalize (SMS geçmişi sabit kalsın)
+          tutar         INTEGER NOT NULL,
+          tarih         TEXT NOT NULL,                -- YYYY-MM-DD
+          yontem        TEXT,                         -- nakit | kart | havale
+          sms_gonderildi INTEGER DEFAULT 0,
+          created_at    TEXT DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_pt_pay_member ON pt_payments(member_id);
+        CREATE INDEX IF NOT EXISTS idx_pt_pay_tarih ON pt_payments(tarih);
+
+        CREATE TABLE IF NOT EXISTS pt_attendance (
+          id          TEXT PRIMARY KEY,
+          member_id   TEXT NOT NULL REFERENCES pt_members(id) ON DELETE CASCADE,
+          tarih       TEXT NOT NULL,                  -- YYYY-MM-DD
+          giris_at    TEXT,
+          cikis_at    TEXT,
+          kaynak      TEXT DEFAULT 'qr',              -- qr | manuel
+          lesson_id   TEXT,
+          created_at  TEXT DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_pt_att_member ON pt_attendance(member_id, tarih);
+
+        CREATE TABLE IF NOT EXISTS pt_lessons (
+          id          TEXT PRIMARY KEY,
+          trainer_id  TEXT REFERENCES pt_trainers(id) ON DELETE CASCADE,
+          member_id   TEXT REFERENCES pt_members(id) ON DELETE CASCADE,
+          tarih       TEXT NOT NULL,                  -- YYYY-MM-DD
+          baslangic   TEXT NOT NULL,                  -- HH:MM
+          bitis       TEXT,
+          tip         TEXT DEFAULT 'ders',            -- ders | grup | musait | kapali
+          durum       TEXT DEFAULT 'planli',          -- planli | tamamlandi | iptal
+          notlar      TEXT,
+          created_at  TEXT DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_pt_lessons_date ON pt_lessons(tarih);
+
+        CREATE TABLE IF NOT EXISTS pt_collections (
+          id          TEXT PRIMARY KEY,
+          member_id   TEXT NOT NULL REFERENCES pt_members(id) ON DELETE CASCADE,
+          package_id  TEXT REFERENCES pt_packages(id) ON DELETE SET NULL,
+          tutar       INTEGER,
+          soz_tarihi  TEXT NOT NULL,                  -- YYYY-MM-DD (söz verilen ödeme günü)
+          durum       TEXT DEFAULT 'bekleyen',        -- bekleyen | odendi | gecikti
+          odeme_id    TEXT REFERENCES pt_payments(id) ON DELETE SET NULL,
+          notlar      TEXT,
+          created_at  TEXT DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_pt_coll_member ON pt_collections(member_id);
+
+        CREATE TABLE IF NOT EXISTS pt_expenses (
+          id          TEXT PRIMARY KEY,
+          kategori    TEXT,                           -- kira | maas | ekipman | fatura | diger
+          aciklama    TEXT,
+          tutar       INTEGER NOT NULL,
+          tarih       TEXT NOT NULL,
+          created_at  TEXT DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_pt_exp_tarih ON pt_expenses(tarih);
+      `);
+      db.pragma('user_version = 32');
+    }
+
+    if (version < 33) {
+      // Ortak öneri havuzu — terapistlerin doldurduğu ifadeler (danışan kimliği
+      // OLMADAN) alan/düğüm bazlı toplanır; yazarken autocomplete önerisi olur.
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS field_suggestions (
+          id          INTEGER PRIMARY KEY AUTOINCREMENT,
+          field_key   TEXT NOT NULL,                 -- BDX düğüm alanı (ör. sa_safety)
+          value       TEXT NOT NULL,                 -- ifade — danışan kimliği YOK
+          freq        INTEGER NOT NULL DEFAULT 1,    -- kaç kez girildi
+          updated_at  TEXT DEFAULT (datetime('now')),
+          UNIQUE(field_key, value)
+        );
+        CREATE INDEX IF NOT EXISTS idx_field_sugg_key ON field_suggestions(field_key);
+      `);
+      db.pragma('user_version = 33');
+    }
+
+    if (version < 34) {
+      // ── Çok-kullanıcılı üyelik (Faz 1: kimlik & erişim) ──
+      // app_users artık gerçek HESAP tablosu: login kimliği burada. Auth kolonları
+      // eklenir; OAuth bağları user_identities'te; e-posta doğrulama/şifre sıfırlama
+      // jetonları auth_tokens'ta tutulur. Mevcut tek-kullanıcı (app_settings'teki
+      // auth_email/auth_pw_hash) erişimini kaybetmesin diye app_users'a taşınır.
+      for (const col of [
+        'password_hash TEXT',
+        'email_verified INTEGER DEFAULT 0',
+        'created_via TEXT DEFAULT \'email\'',  // email | google | microsoft | legacy
+        'last_login_at TEXT',
+        'avatar_url TEXT',
+        'title TEXT',                          // klinik unvan (tp2 profiline beslenir)
+      ]) {
+        try { db.exec(`ALTER TABLE app_users ADD COLUMN ${col}`); } catch {}
+      }
+
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS user_identities (
+          id           TEXT PRIMARY KEY,
+          user_id      TEXT NOT NULL,
+          provider     TEXT NOT NULL,          -- google | microsoft
+          provider_uid TEXT NOT NULL,          -- sağlayıcıdaki benzersiz kullanıcı id'si
+          email        TEXT,
+          created_at   TEXT DEFAULT (datetime('now')),
+          UNIQUE(provider, provider_uid)
+        );
+        CREATE INDEX IF NOT EXISTS idx_identities_user ON user_identities(user_id);
+
+        CREATE TABLE IF NOT EXISTS auth_tokens (
+          id         TEXT PRIMARY KEY,
+          user_id    TEXT NOT NULL,
+          kind       TEXT NOT NULL,            -- verify | reset
+          token_hash TEXT NOT NULL,            -- ham jetonun sha256'sı (ham değer saklanmaz)
+          expires_at TEXT NOT NULL,
+          used_at    TEXT,
+          created_at TEXT DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_authtok_hash ON auth_tokens(token_hash);
+        CREATE INDEX IF NOT EXISTS idx_authtok_user ON auth_tokens(user_id);
+      `);
+
+      // E-posta benzersizliği (büyük/küçük harf duyarsız) — yeni kayıtların
+      // çakışmasını DB düzeyinde engelle. Mevcut yinelenen e-posta yoksa kurulur.
+      try { db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_app_users_email ON app_users(lower(email)) WHERE email IS NOT NULL'); } catch {}
+
+      // Eski sahibi taşı: app_settings.auth_email → app_users (idempotent).
+      try {
+        db.exec(`
+          INSERT INTO app_users (id, name, email, role, status, plan, password_hash, email_verified, created_via)
+          SELECT lower(hex(randomblob(16))), 'Hesap Sahibi', ae.value, 'terapist', 'aktif', 'aylik',
+                 (SELECT value FROM app_settings WHERE key = 'auth_pw_hash'), 1, 'legacy'
+          FROM app_settings ae
+          WHERE ae.key = 'auth_email'
+            AND ae.value IS NOT NULL AND ae.value <> ''
+            AND NOT EXISTS (SELECT 1 FROM app_users u WHERE lower(u.email) = lower(ae.value));
+        `);
+      } catch {}
+
+      db.pragma('user_version = 34');
+    }
+
+    if (version < 35) {
+      // ── Çok-kiracılı VERİ İZOLASYONU (Faz 2) ──
+      // Tüm klinik tablolara owner_id; mevcut veri tek sahibe (legacy hesap) atanır.
+      // KAPSAM DIŞI (bilerek): pt_* (ayrı alt-uygulama), interventions/clinical_tags
+      // (paylaşımlı katalog/sözlük — danışan verisi değil), app_settings (per-user
+      // ayarlar ayrı bir adımda). field_suggestions zaten kimliksiz paylaşımlı.
+      const directTables = [
+        'clients', 'calendar_events', 'design_files', 'musaitlik_blok', 'musaitlik_sablon',
+        'pending_files', 'reflections', 'sms_log', 'supervizyon', 'supervizyon_notlari',
+        'takvim_gecmis', 'terapist_checkin', 'terapist_mood',
+      ];
+      const childByClient = [
+        'formulations', 'seanslar', 'client_cycles', 'danisan_ayarlar', 'form_linkleri',
+        'form_yanitlari', 'intervention_assignments', 'randevu', 'seans_bildirimleri', 'session_plans',
+      ];
+      const childByPatient = ['brief_notu', 'mindmap_nodes'];
+      const childByFormulation = ['formulation_items', 'formulation_snapshots', 'flexibility_scores'];
+      const allScoped = [...directTables, ...childByClient, ...childByPatient, ...childByFormulation];
+
+      for (const t of allScoped) { try { db.exec(`ALTER TABLE ${t} ADD COLUMN owner_id TEXT`); } catch {} }
+
+      // Sahip = legacy hesap (yoksa en eski kullanıcı). Veri ondan önce tekti.
+      const owner = db.prepare(
+        `SELECT id FROM app_users ORDER BY (created_via = 'legacy') DESC, created_at ASC LIMIT 1`
+      ).get() as { id: string } | undefined;
+
+      if (owner?.id) {
+        for (const t of directTables) {
+          db.prepare(`UPDATE ${t} SET owner_id = ? WHERE owner_id IS NULL`).run(owner.id);
+        }
+        // CAST'li join — id (INTEGER) ile patient_id/client_id (TEXT) affinity tuzağını önler.
+        for (const t of childByClient) {
+          db.exec(`UPDATE ${t} SET owner_id = (SELECT c.owner_id FROM clients c WHERE CAST(c.id AS TEXT) = CAST(${t}.client_id AS TEXT)) WHERE owner_id IS NULL`);
+        }
+        for (const t of childByPatient) {
+          db.exec(`UPDATE ${t} SET owner_id = (SELECT c.owner_id FROM clients c WHERE CAST(c.id AS TEXT) = CAST(${t}.patient_id AS TEXT)) WHERE owner_id IS NULL`);
+        }
+        for (const t of childByFormulation) {
+          db.exec(`UPDATE ${t} SET owner_id = (SELECT f.owner_id FROM formulations f WHERE CAST(f.id AS TEXT) = CAST(${t}.formulation_id AS TEXT)) WHERE owner_id IS NULL`);
+        }
+        // Yetim çocuk satırları (parent'ı silinmiş) da sahibe verilsin — sızıntı/null kalmasın.
+        for (const t of [...childByClient, ...childByPatient, ...childByFormulation]) {
+          db.prepare(`UPDATE ${t} SET owner_id = ? WHERE owner_id IS NULL`).run(owner.id);
+        }
+      }
+
+      for (const t of allScoped) {
+        try { db.exec(`CREATE INDEX IF NOT EXISTS idx_${t}_owner ON ${t}(owner_id)`); } catch {}
+      }
+      db.pragma('user_version = 35');
+    }
+
+    if (version < 36) {
+      // SMS gönderim denetimi — uyarı metnindeki "IP ile kayıt altına alınır"
+      // taahhüdünü GERÇEK kılan kolon: her SMS'i gönderen kullanıcının IP'si.
+      try { db.exec(`ALTER TABLE sms_log ADD COLUMN ip TEXT`); } catch {}
+      db.pragma('user_version = 36');
     }
   }
   return db;

@@ -1,0 +1,106 @@
+/* =====================================================================
+   CALMIE CHROME — paylaşılan tema mesh/foto zemini + üst sayfa menüsü.
+   Kapsam: `.cchrome` (kök div'e ikinci class olarak eklenir, ör.
+   className="an2 cchrome"). Token'lar (--font-display, --r-pill, --black …)
+   asıl scope class'ında (.an2/.ayr/.bhf) tanımlı; kök elemanda ikisi de
+   olduğundan inheritance ile burada erişilebilir.
+   data-bg (default/mavi/gri/su/koyu) kök elemanda; tema yalnız mesh + tint
+   katmanını değiştirir. Foto temaları (mavi=Cherry, gri=Kürk) hb-cherry/
+   hb-fur img + scrim ile gelir.
+   AnamnezV2.css/.an2 · AyarlarPanel.css/.ayr · BuHaftaPanel.css/.bhf
+   bu dosyayı import eder; kendi dosyalarında yalnız içerik + scope-özel
+   katmanlar (an2: crest/grade/vignette/scrim · ayr/bhf: veil) kalır.
+   ===================================================================== */
+
+/* ── zemin kapsayıcı ── */
+.cchrome .app-bg{position:absolute;inset:0;z-index:0;overflow:hidden;background-color:#B295B8;pointer-events:none;}
+
+/* ── mesh (default gün-batımı) ── */
+.cchrome .hb-mesh{position:absolute;inset:0;background-color:#C99AAE;
+  background-image:
+    radial-gradient(46% 52% at 0% 2%, rgba(238,88,112,.96) 0%, rgba(238,88,112,0) 58%),
+    radial-gradient(38% 46% at 23% 8%, rgba(96,134,206,.9) 0%, rgba(96,134,206,0) 55%),
+    radial-gradient(52% 60% at 100% -2%, rgba(254,214,160,.98) 0%, rgba(254,214,160,0) 58%),
+    radial-gradient(44% 72% at 106% 62%, rgba(252,205,170,.95) 0%, rgba(252,205,170,0) 62%),
+    radial-gradient(40% 42% at 50% 38%, rgba(124,138,186,.62) 0%, rgba(124,138,186,0) 56%),
+    radial-gradient(30% 34% at 58% 72%, rgba(216,82,148,.78) 0%, rgba(216,82,148,0) 55%),
+    radial-gradient(110% 74% at 22% 116%, rgba(245,138,114,.98) 0%, rgba(245,138,114,0) 66%),
+    radial-gradient(70% 46% at 58% 112%, rgba(248,160,138,.85) 0%, rgba(248,160,138,0) 60%),
+    radial-gradient(132% 122% at 50% 40%, #CFA8B8 0%, #C499AE 55%, #B289A6 100%);
+  filter:saturate(1.07);}
+.cchrome .hb-mesh::after{content:"";position:absolute;inset:0;background:radial-gradient(120% 80% at 50% 124%, rgba(122,38,70,.16) 0%, rgba(122,38,70,0) 58%);}
+
+/* ── kullanıcı/varsayılan foto ── */
+.cchrome .hb-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 50%;
+  transform:translateZ(0);transition:filter .5s ease;filter:contrast(1.06) saturate(1.04) brightness(1.012);}
+.cchrome .hb-photo:not([src]){display:none;}
+
+/* ── tema tint (foto/mesh üstüne biner) ── */
+.cchrome .hb-tint{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .42s ease, background-color .42s ease;}
+.cchrome[data-bg="su"]   .hb-tint{opacity:.86;background-color:#1B8C84;mix-blend-mode:color;}
+.cchrome[data-bg="koyu"] .hb-tint{opacity:.74;background-color:#143D2A;mix-blend-mode:multiply;}
+
+/* ── grain (foto tema tint'inin de üstünde) ── */
+.cchrome .hb-grain{position:absolute;inset:0;z-index:6;opacity:.06;mix-blend-mode:overlay;background-size:200px 200px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
+
+/* ── mesh tema varyantları — doku aynı, renk değişir ── */
+.cchrome[data-bg="su"] .hb-mesh{background-color:#8EC3BD;background-image:
+  radial-gradient(46% 52% at 0% 2%, rgba(40,150,148,.95) 0%, rgba(40,150,148,0) 58%),
+  radial-gradient(38% 46% at 23% 8%, rgba(96,202,190,.9) 0%, rgba(96,202,190,0) 55%),
+  radial-gradient(52% 60% at 100% -2%, rgba(184,234,222,.98) 0%, rgba(184,234,222,0) 58%),
+  radial-gradient(44% 72% at 106% 62%, rgba(150,224,210,.95) 0%, rgba(150,224,210,0) 62%),
+  radial-gradient(40% 42% at 50% 38%, rgba(108,182,176,.6) 0%, rgba(108,182,176,0) 56%),
+  radial-gradient(30% 34% at 58% 72%, rgba(64,170,162,.76) 0%, rgba(64,170,162,0) 55%),
+  radial-gradient(110% 74% at 22% 116%, rgba(74,184,170,.98) 0%, rgba(74,184,170,0) 66%),
+  radial-gradient(70% 46% at 58% 112%, rgba(116,208,196,.85) 0%, rgba(116,208,196,0) 60%),
+  radial-gradient(132% 122% at 50% 40%, #A6CFC9 0%, #96C3BD 55%, #85B5AF 100%);}
+.cchrome[data-bg="koyu"] .hb-mesh{background-color:#2C5040;background-image:
+  radial-gradient(46% 52% at 0% 2%, rgba(36,108,74,.96) 0%, rgba(36,108,74,0) 58%),
+  radial-gradient(38% 46% at 23% 8%, rgba(62,138,94,.9) 0%, rgba(62,138,94,0) 55%),
+  radial-gradient(52% 60% at 100% -2%, rgba(120,178,138,.92) 0%, rgba(120,178,138,0) 58%),
+  radial-gradient(44% 72% at 106% 62%, rgba(82,150,106,.9) 0%, rgba(82,150,106,0) 62%),
+  radial-gradient(40% 42% at 50% 38%, rgba(54,118,84,.6) 0%, rgba(54,118,84,0) 56%),
+  radial-gradient(30% 34% at 58% 72%, rgba(32,90,62,.8) 0%, rgba(32,90,62,0) 55%),
+  radial-gradient(110% 74% at 22% 116%, rgba(28,82,56,.98) 0%, rgba(28,82,56,0) 66%),
+  radial-gradient(70% 46% at 58% 112%, rgba(46,110,76,.85) 0%, rgba(46,110,76,0) 60%),
+  radial-gradient(132% 122% at 50% 40%, #34593F 0%, #284A34 55%, #1E3C2A 100%);}
+
+/* =====================================================================
+   FOTO TEMALARI (Ana Sayfa v4) — mavi=Cherry & night blue, gri=Kürk·soft blue
+   mesh yerine gerçek foto + tint + scrim. Görseller public/'te servis edilir.
+   ===================================================================== */
+/* Cherry (mavi slotu) */
+.cchrome .hb-cherry{position:absolute;inset:0;z-index:3;width:100%;height:100%;object-fit:cover;object-position:30% 50%;opacity:0;transition:opacity .5s ease;pointer-events:none;}
+.cchrome .hb-cherry-scrim{position:absolute;inset:0;z-index:4;pointer-events:none;opacity:0;transition:opacity .5s ease;
+  background:linear-gradient(125deg, rgba(8,10,26,.22) 0%, rgba(8,10,26,.04) 30%, rgba(8,10,26,0) 54%);}
+.cchrome[data-bg="mavi"] .hb-cherry{opacity:1;}
+.cchrome[data-bg="mavi"] .hb-cherry-scrim{opacity:1;}
+/* Kürk (gri slotu) — frosted his fotoğrafın KENDİSİNE blur ile verilir */
+.cchrome .hb-fur{position:absolute;inset:0;z-index:3;width:100%;height:100%;object-fit:cover;object-position:50% 42%;opacity:0;transition:opacity .5s ease;pointer-events:none;transform:scale(1.05);transform-origin:center;}
+.cchrome .hb-fur-scrim{position:absolute;inset:0;z-index:4;pointer-events:none;opacity:0;transition:opacity .5s ease;background:rgba(247,249,252,.3);}
+.cchrome[data-bg="gri"] .hb-fur{opacity:1;filter:saturate(1.03);}
+.cchrome[data-bg="gri"] .hb-fur-scrim{opacity:1;}
+/* foto tema tint'leri — yalnız foto temalarda fotoğrafın üstüne (z:5) çıkar (mesh temalar etkilenmez) */
+.cchrome[data-bg="mavi"] .hb-tint,.cchrome[data-bg="gri"] .hb-tint{z-index:5;}
+.cchrome[data-bg="mavi"] .hb-tint{opacity:.74;background-color:transparent;background-image:linear-gradient(140deg,#1E2C5E 0%,#33356E 34%,#7E3A66 72%,#B23E66 100%);mix-blend-mode:multiply;}
+.cchrome[data-bg="gri"]  .hb-tint{opacity:.7;background-color:transparent;background-image:linear-gradient(160deg,#A6B2C0 0%,#C6CED6 50%,#DEE3E8 100%);mix-blend-mode:color;}
+
+/* =====================================================================
+   ÜST SAYFA MENÜSÜ — Ana Sayfa dock'u ile aynı (kayan glider)
+   ===================================================================== */
+.cchrome .page-menu{position:absolute;top:0;left:0;right:0;z-index:50;display:flex;align-items:center;gap:18px;padding:15px clamp(20px,4vw,40px);}
+.cchrome .page-menu::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
+  -webkit-backdrop-filter:blur(14px) saturate(1.15);backdrop-filter:blur(14px) saturate(1.15);
+  -webkit-mask-image:linear-gradient(180deg,#000 58%,transparent 100%);mask-image:linear-gradient(180deg,#000 58%,transparent 100%);}
+.cchrome .pm-brand{display:flex;align-items:baseline;gap:2px;flex:none;font-family:var(--font-display);font-weight:600;font-size:19px;letter-spacing:-.022em;color:#F4F2F6;line-height:1;text-shadow:0 1px 10px rgba(40,18,40,.4);}
+.cchrome .pm-brand b{font-weight:700;}.cchrome .pm-brand i{font-weight:400;font-style:normal;color:rgba(244,242,246,.62);}
+.cchrome .pm-nav{position:relative;display:flex;align-items:center;gap:4px;min-width:0;flex:1 1 auto;overflow-x:auto;scrollbar-width:none;}
+.cchrome .pm-nav::-webkit-scrollbar{display:none;}
+.cchrome .pm-nav a{position:relative;z-index:1;font-size:13px;font-weight:600;color:#FFFFFF;white-space:nowrap;padding:8px 15px;border-radius:var(--r-pill);
+  transition:color .12s ease;text-shadow:0 1px 12px rgba(40,18,40,.5),0 1px 3px rgba(40,18,40,.4);}
+.cchrome .pm-nav a.active{color:#FFFFFF;font-weight:700;}
+.cchrome .pm-nav a.lit{color:#15171d;font-weight:700;text-shadow:none;transition:color .12s ease .04s;}
+.cchrome .pm-glider{position:absolute;top:0;left:0;height:100%;width:0;z-index:0;pointer-events:none;opacity:0;background:#FFFFFF;border-radius:0 0 12px 12px;
+  box-shadow:0 14px 26px -14px rgba(20,20,28,.45);transition:transform .18s cubic-bezier(.3,.9,.4,1),width .18s cubic-bezier(.3,.9,.4,1);}
+.cchrome .pm-glider.on{opacity:1;}
+@media (prefers-reduced-motion: reduce){.cchrome .pm-glider{transition:none;}}

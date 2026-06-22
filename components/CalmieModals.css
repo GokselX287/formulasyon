@@ -1,0 +1,684 @@
+/* =============================================================
+   CALMIE MODALS — nöromorfik modal & form sistemi
+   Kapsam kökü: .cm  (= .scrim tasarım referansında)
+   Tüm token'lar --cm- öneklidir, uygulama geneli ile çakışmaz.
+   ============================================================= */
+
+.cm {
+  /* ── tasarım token'ları ───────────────────────────────────── */
+  --cm-font: var(--font-jakarta), 'Plus Jakarta Sans','Helvetica Neue',Arial,sans-serif;
+  /* PREMIUM DÜZ — yüksek kontrast siyah/krem, gölge/yansıma yok */
+  --cm-surface: #FFFFFF;
+  --cm-well: #FBFAF6;
+  --cm-ink: #100F0D;
+  --cm-ink-soft: #56544D;
+  --cm-ink-mute: #8B887E;
+  --cm-ink-faint: #B9B6AD;
+  --cm-black: #100F0D;
+  --cm-on-black: #F8F6F0;
+  --cm-line: rgba(16,15,13,.13);
+  /* "shadow" token'ları net hairline kenarlara çevrildi — kabartı/gölge yok */
+  --cm-sh-raise: 0 0 0 1px var(--cm-line);
+  --cm-sh-raise-sm: 0 0 0 1px var(--cm-line);
+  --cm-sh-inset-sm: inset 0 0 0 1px var(--cm-line);
+  --cm-sh-black-sm: none;
+  --cm-sh-black: none;
+  --cm-sh-modal: 0 0 0 1px rgba(16,15,13,.16);   /* modal: net kenar, gölge YOK */
+  --cm-r-card: 24px;
+  --cm-r-lg: 18px;
+  --cm-r-md: 13px;
+  --cm-r-pill: 999px;
+
+  /* ── overlay — temanın buzlu-cam (frosted glass) hali; modal düz/gölgesiz ── */
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  background: rgba(238,235,228,.40);
+  -webkit-backdrop-filter: blur(22px) saturate(1.12);
+  backdrop-filter: blur(22px) saturate(1.12);
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .2s ease;
+}
+
+.cm.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ── kart kabuğu ─────────────────────────────────────────────── */
+.cm .mcard {
+  width: min(460px, 100%);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--cm-surface);
+  border-radius: var(--cm-r-card);
+  box-shadow: var(--cm-sh-modal);
+  transform: translateY(12px) scale(.985);
+  opacity: 0;
+  transition: transform .2s cubic-bezier(.2,.7,.3,1), opacity .2s ease;
+  font-family: var(--cm-font);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  box-sizing: border-box;
+}
+
+.cm .mcard.wide { width: min(720px, 100%); }
+
+.cm.show .mcard {
+  transform: none;
+  opacity: 1;
+}
+
+/* ── başlık ───────────────────────────────────────────────────── */
+.cm .mhead {
+  flex: none;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 24px 26px 18px;
+  border-bottom: 1px solid var(--cm-line);
+}
+
+.cm .mhead .eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--cm-ink-mute);
+  display: block;
+  margin: 0 0 8px;
+}
+
+.cm .mhead h2 {
+  font-family: var(--cm-font);
+  font-weight: 500;
+  font-size: 22px;
+  letter-spacing: -.02em;
+  color: var(--cm-ink);
+  margin: 0;
+  line-height: 1.1;
+}
+
+.cm .mhead .sub {
+  font-size: 13px;
+  color: var(--cm-ink-soft);
+  margin: 6px 0 0;
+}
+
+.cm .mx {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--cm-ink-soft);
+  background: var(--cm-surface);
+  box-shadow: var(--cm-sh-raise-sm);
+  transition: .16s;
+  border: none;
+  cursor: pointer;
+}
+
+.cm .mx:hover {
+  color: var(--cm-ink);
+  box-shadow: var(--cm-sh-inset-sm);
+}
+
+.cm .mx svg { width: 15px; height: 15px; }
+
+/* ── gövde ────────────────────────────────────────────────────── */
+.cm .mbody {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 22px 26px 24px;
+}
+
+.cm .mbody::-webkit-scrollbar { width: 10px; }
+.cm .mbody::-webkit-scrollbar-thumb {
+  background: rgba(28,28,32,.16);
+  border-radius: 8px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+/* ── alt bar ──────────────────────────────────────────────────── */
+.cm .mfoot {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 26px;
+  border-top: 1px solid var(--cm-line);
+}
+
+/* =============================================================
+   KONTROL KÜTÜPHANESİ
+   ============================================================= */
+
+.cm .field { display: flex; flex-direction: column; gap: 9px; margin: 0 0 17px; }
+.cm .field:last-child { margin-bottom: 0; }
+
+.cm .flabel {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--cm-ink-mute);
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+}
+
+.cm .flabel .req { color: var(--cm-ink); font-weight: 700; }
+.cm .flabel .opt { font-size: 9.5px; letter-spacing: .05em; color: var(--cm-ink-faint); text-transform: none; font-weight: 600; }
+
+.cm .fhint { font-size: 11.5px; line-height: 1.45; color: var(--cm-ink-mute); margin: 1px 0 0; }
+
+/* input / textarea / select */
+.cm .cinput,
+.cm textarea.cinput,
+.cm select.cinput {
+  width: 100%;
+  font-family: var(--cm-font);
+  font-size: 14px;
+  color: var(--cm-ink);
+  background: var(--cm-well);
+  border: none;
+  border-radius: var(--cm-r-md);
+  padding: 13px 15px;
+  transition: .16s;
+  box-shadow: var(--cm-sh-inset-sm);
+  -webkit-appearance: none;
+  appearance: none;
+  box-sizing: border-box;
+}
+
+.cm .cinput::placeholder { color: var(--cm-ink-faint); }
+
+.cm .cinput:focus,
+.cm textarea.cinput:focus,
+.cm select.cinput:focus {
+  outline: none;
+  background: #F6F5F3;
+  box-shadow: var(--cm-sh-inset-sm), 0 0 0 2px var(--cm-black);
+}
+
+.cm textarea.cinput { min-height: 88px; resize: vertical; line-height: 1.5; }
+
+.cm select.cinput {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236B6B69' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 15px center;
+  padding-right: 38px;
+  cursor: pointer;
+}
+
+/* grid */
+.cm .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+.cm .span2 { grid-column: 1 / -1; }
+
+@media (max-width: 560px) {
+  .cm .grid2 { grid-template-columns: 1fr; }
+  .cm .span2 { grid-column: 1; }
+}
+
+/* segmented control */
+.cm .seg {
+  display: inline-flex;
+  gap: 5px;
+  padding: 5px;
+  background: var(--cm-surface);
+  border-radius: var(--cm-r-pill);
+  box-shadow: var(--cm-sh-inset-sm);
+}
+
+.cm .seg button {
+  font-family: var(--cm-font);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cm-ink-mute);
+  border-radius: var(--cm-r-pill);
+  padding: 9px 19px;
+  transition: .16s;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: none;
+  cursor: pointer;
+  background: none;
+}
+
+.cm .seg button:hover { color: var(--cm-ink-soft); }
+
+.cm .seg button.on {
+  background: var(--cm-black);
+  color: var(--cm-on-black);
+  box-shadow: var(--cm-sh-black-sm);
+}
+
+.cm .seg button svg { width: 14px; height: 14px; }
+
+/* toggle */
+.cm .toggle {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  user-select: none;
+  padding: 4px 0;
+}
+
+.cm .toggle input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.cm .toggle .track {
+  flex: none;
+  width: 46px;
+  height: 26px;
+  border-radius: var(--cm-r-pill);
+  background: var(--cm-well);
+  position: relative;
+  transition: .2s;
+  box-shadow: var(--cm-sh-inset-sm);
+}
+
+.cm .toggle .track::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--cm-surface);
+  box-shadow: 1px 2px 4px rgba(30,30,34,.3);
+  transition: .2s;
+}
+
+.cm .toggle input:checked + .track {
+  background: var(--cm-black);
+  box-shadow: inset 1px 1px 3px rgba(0,0,0,.5);
+}
+
+.cm .toggle input:checked + .track::after {
+  transform: translateX(20px);
+  background: #FFF;
+}
+
+.cm .toggle input:focus-visible + .track {
+  box-shadow: var(--cm-sh-inset-sm), 0 0 0 2px var(--cm-black);
+}
+
+.cm .toggle .tx {
+  font-size: 13.5px;
+  color: var(--cm-ink-soft);
+  font-weight: 500;
+}
+
+/* note */
+.cm .note {
+  font-size: 12.5px;
+  line-height: 1.5;
+  border-radius: var(--cm-r-md);
+  padding: 13px 15px;
+  display: flex;
+  gap: 11px;
+  align-items: flex-start;
+}
+
+.cm .note svg { width: 15px; height: 15px; flex: none; margin-top: 1px; }
+.cm .note.neutral { background: var(--cm-well); color: var(--cm-ink-soft); box-shadow: var(--cm-sh-inset-sm); }
+.cm .note.neutral svg { stroke: var(--cm-ink-mute); }
+.cm .note.warn { background: var(--cm-black); color: var(--cm-on-black); box-shadow: var(--cm-sh-black-sm); }
+.cm .note.warn svg { stroke: var(--cm-on-black); }
+.cm .note.warn b { color: #FFF; font-weight: 700; }
+
+/* subblock */
+.cm .subblock {
+  margin-top: 22px;
+  border-radius: var(--cm-r-lg);
+  padding: 18px 19px;
+  background: var(--cm-well);
+  box-shadow: var(--cm-sh-inset-sm);
+}
+
+.cm .subblock-h {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--cm-ink-mute);
+  margin: 0 0 14px;
+}
+
+.cm .subblock .toggle + .toggle { margin-top: 12px; }
+
+/* match badge */
+.cm .matchrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  margin-top: 3px;
+}
+
+.cm .matchrow .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.cm .matchrow.hit { color: var(--cm-ink-soft); }
+.cm .matchrow.hit .dot { background: var(--cm-black); }
+.cm .matchrow.miss { color: var(--cm-ink-mute); }
+.cm .matchrow.miss .dot { background: var(--cm-ink-faint); }
+
+/* searchlist */
+.cm .searchlist {
+  margin-top: 12px;
+  border-radius: var(--cm-r-md);
+  max-height: 264px;
+  overflow-y: auto;
+  background: var(--cm-well);
+  box-shadow: var(--cm-sh-inset-sm);
+  padding: 5px;
+}
+
+.cm .sl-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 12px;
+  border-radius: 12px;
+  transition: .13s;
+}
+
+.cm .sl-row + .sl-row { margin-top: 2px; }
+.cm .sl-row:hover { background: var(--cm-surface); box-shadow: var(--cm-sh-raise-sm); }
+
+.cm .sl-av {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .02em;
+  color: var(--cm-on-black);
+  background: var(--cm-black);
+  box-shadow: var(--cm-sh-black-sm);
+}
+
+.cm .sl-meta { flex: 1; min-width: 0; }
+.cm .sl-name { font-size: 13.5px; font-weight: 600; color: var(--cm-ink); }
+.cm .sl-sub {
+  font-size: 11.5px;
+  color: var(--cm-ink-mute);
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cm .sl-act {
+  flex: none;
+  font-family: var(--cm-font);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--cm-ink);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border-radius: var(--cm-r-pill);
+  transition: .14s;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.cm .sl-act:hover { background: var(--cm-black); color: var(--cm-on-black); box-shadow: var(--cm-sh-black-sm); }
+.cm .sl-act:disabled { color: var(--cm-ink-faint); background: none; box-shadow: none; cursor: default; }
+.cm .sl-act svg { width: 14px; height: 14px; }
+.cm .sl-empty { padding: 26px 14px; text-align: center; font-size: 13px; color: var(--cm-ink-mute); }
+
+/* başarı bandı */
+.cm .success-band {
+  background: var(--cm-well);
+  border-radius: var(--cm-r-md);
+  padding: 14px 16px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--cm-ink-soft);
+  box-shadow: var(--cm-sh-inset-sm);
+  display: flex;
+  gap: 11px;
+  align-items: flex-start;
+}
+
+.cm .success-band .badge {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--cm-black);
+  color: var(--cm-on-black);
+  box-shadow: var(--cm-sh-black-sm);
+}
+
+.cm .success-band .badge svg { width: 13px; height: 13px; }
+.cm .success-band b { font-weight: 700; color: var(--cm-ink); }
+
+.cm .urlrow { display: flex; gap: 9px; margin-top: 14px; }
+.cm .urlrow .cinput { flex: 1; font-size: 12.5px; color: var(--cm-ink-soft); }
+
+/* portre */
+.cm .portrait { display: flex; align-items: center; gap: 17px; margin-bottom: 22px; }
+
+.cm .portrait .tile {
+  flex: none;
+  width: 76px;
+  height: 76px;
+  border-radius: 20px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--cm-on-black);
+  background: var(--cm-black);
+  box-shadow: var(--cm-sh-black);
+}
+
+.cm .portrait .tile img { width: 100%; height: 100%; object-fit: cover; }
+.cm .portrait .pcol { display: flex; flex-direction: column; gap: 9px; align-items: flex-start; }
+
+/* butonlar */
+.cm .cbtn {
+  font-family: var(--cm-font);
+  font-size: 13.5px;
+  font-weight: 600;
+  border-radius: var(--cm-r-pill);
+  padding: 11px 22px;
+  transition: .16s;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  border: none;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.cm .cbtn svg { width: 15px; height: 15px; }
+
+.cm .cbtn-primary {
+  background: var(--cm-black);
+  color: var(--cm-on-black);
+  box-shadow: var(--cm-sh-black-sm);
+}
+
+.cm .cbtn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--cm-sh-black);
+}
+
+.cm .cbtn-primary:disabled {
+  background: var(--cm-well);
+  color: var(--cm-ink-faint);
+  box-shadow: var(--cm-sh-inset-sm);
+  cursor: default;
+  transform: none;
+}
+
+.cm .cbtn-ghost {
+  background: var(--cm-surface);
+  color: var(--cm-ink-soft);
+  box-shadow: var(--cm-sh-raise-sm);
+}
+
+.cm .cbtn-ghost:hover {
+  color: var(--cm-ink);
+  box-shadow: 0 0 0 1px rgba(16,15,13,.22);
+}
+
+.cm .cbtn-text {
+  background: none;
+  color: var(--cm-ink-mute);
+  padding: 11px 10px;
+  box-shadow: none;
+}
+
+.cm .cbtn-text:hover { color: var(--cm-ink); }
+
+.cm .cbtn-sm { font-size: 12.5px; padding: 9px 16px; }
+
+/* savedtick */
+.cm .savedtick {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--cm-ink);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: auto;
+  opacity: 0;
+  transition: .2s;
+}
+
+.cm .savedtick.show { opacity: 1; }
+.cm .savedtick svg { width: 14px; height: 14px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cm, .cm .mcard, .cm .cbtn, .cm .mx { transition: none; }
+}
+
+/* ====================================================================
+   MODAL VARYANTLARI
+   • cm-dark  → KOYU plastik başlık + beyaz/siyah-çerçeveli alanlar (Yeni Danışan Kaydı)
+   • cm-light → SİYAH başlık + beyaz/siyah-çerçeveli alanlar (Yeni Randevu)
+   ==================================================================== */
+
+/* düz SİYAH başlık — yalnız cm-dark (Yeni Randevu modalıyla TUTARLI; eski plastik
+   doku kaldırıldı — kullanıcı isteği 2026-06-18) */
+.cm.cm-dark .mhead {
+  background: var(--cm-black);
+  border-bottom: none;
+  border-radius: var(--cm-r-card) var(--cm-r-card) 0 0;
+}
+.cm.cm-dark .mhead .eyebrow { color: rgba(248,246,240,.56); }
+.cm.cm-dark .mhead h2 { color: #F8F6F0; }
+.cm.cm-dark .mhead .sub { color: rgba(248,246,240,.72); }
+.cm.cm-dark .mhead .mx {
+  background: rgba(255,255,255,.1);
+  color: #F8F6F0;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.2);
+}
+.cm.cm-dark .mhead .mx:hover { background: rgba(255,255,255,.18); }
+
+/* form alanları → yeni temiz tasarım: BEYAZ iç + SİYAH hairline çerçeve — yalnız cm-dark
+   (plastik siyah başlık KORUNUR; yalnız form Yeni Randevu diline geçer) */
+.cm.cm-dark .flabel { color: var(--cm-ink); }
+.cm.cm-dark .cinput, .cm.cm-dark textarea.cinput, .cm.cm-dark select.cinput {
+  background: #FFFFFF;
+  color: var(--cm-ink);
+  box-shadow: inset 0 0 0 1px var(--cm-ink);
+}
+.cm.cm-dark .cinput::placeholder { color: var(--cm-ink-faint); }
+.cm.cm-dark .cinput:focus, .cm.cm-dark textarea.cinput:focus, .cm.cm-dark select.cinput:focus {
+  background: #FFFFFF;
+  box-shadow: inset 0 0 0 2px var(--cm-ink);
+}
+
+/* "Seans Öncesi Ayarlar" bloğu + toggle track de beyaz + siyah çerçeve — yalnız cm-dark */
+.cm.cm-dark .subblock {
+  background: #FFFFFF;
+  box-shadow: inset 0 0 0 1px var(--cm-ink);
+}
+.cm.cm-dark .toggle .track {
+  background: #FFFFFF;
+  box-shadow: inset 0 0 0 1px var(--cm-ink);
+}
+/* açık (checked) durumda anahtar siyah dolu kalır — kontrast için dokunulmadı */
+
+/* ====================================================================
+   cm-light — "Yeni Randevu" TEMİZ TASARIM (görsel referansı)
+   • Başlık ("TAKVİM · Yeni Randevu") → dolu SİYAH blok + BEYAZ yazı
+   • Alanlar (gri dolgu yerine) → BEYAZ iç + SİYAH hairline çerçeve
+   • Etiketler/değerler → net SİYAH
+   ==================================================================== */
+
+/* dolu siyah başlık */
+.cm.cm-light .mhead {
+  background: var(--cm-black);
+  border-bottom: none;
+  border-radius: var(--cm-r-card) var(--cm-r-card) 0 0;
+}
+.cm.cm-light .mhead .eyebrow { color: rgba(248,246,240,.58); }
+.cm.cm-light .mhead h2 { color: var(--cm-on-black); }
+.cm.cm-light .mhead .sub { color: rgba(248,246,240,.72); }
+.cm.cm-light .mhead .mx {
+  background: rgba(255,255,255,.10);
+  color: var(--cm-on-black);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.22);
+}
+.cm.cm-light .mhead .mx:hover { background: rgba(255,255,255,.18); color: #FFF; }
+
+/* net siyah etiketler */
+.cm.cm-light .flabel { color: var(--cm-ink); }
+
+/* beyaz iç + siyah çerçeveli alanlar */
+.cm.cm-light .cinput,
+.cm.cm-light textarea.cinput,
+.cm.cm-light select.cinput {
+  background: #FFFFFF;
+  color: var(--cm-ink);
+  box-shadow: inset 0 0 0 1px var(--cm-ink);
+}
+.cm.cm-light .cinput::placeholder { color: var(--cm-ink-faint); }
+.cm.cm-light .cinput:focus,
+.cm.cm-light textarea.cinput:focus,
+.cm.cm-light select.cinput:focus {
+  background: #FFFFFF;
+  box-shadow: inset 0 0 0 2px var(--cm-ink);
+}

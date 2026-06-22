@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import type { Intervention } from '@/components/MudahalePanel';
+import type { Intervention } from '@/lib/types';
 import SeansPlanlayiciV2 from '@/components/SeansPlanlayiciV2';
 
 function SeansPlanlayiciInner() {
@@ -29,8 +29,8 @@ function SeansPlanlayiciInner() {
       client={client ?? undefined}
       library={library}
       seedIds={seedIds}
-      onBack={() => (clientId ? router.push(`/profil/${clientId}`) : router.push('/?tab=calisma-alani'))}
-      onNav={(target) => router.push(target === 'home' ? '/' : `/?tab=${target}`)}
+      onBack={() => (clientId ? router.push(`/profil/${clientId}`) : router.push('/uygulama?tab=calisma-alani'))}
+      onNav={(target) => router.push(target === 'home' ? '/' : `/uygulama?tab=${target}`)}
       onOpenFile={() => clientId && router.push(`/profil/${clientId}`)}
       onSave={async ({ goal, items }) => {
         await fetch('/api/session-plans', {

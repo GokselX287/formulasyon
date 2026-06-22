@@ -24,7 +24,7 @@ export type AnamnezData = {
     adSoyad?: string; yas?: number; cinsiyet?: string; egitim?: string;
     meslek?: string; medeniDurum?: string; cocukSayisi?: number; sehir?: string;
   };
-  basvuru?: { sebep?: string; yonlendiren?: string; hedef?: string };
+  basvuru?: { sebep?: string; yonlendiren?: string; hedef?: string; gorusmeSekli?: 'Yüz yüze' | 'Online' | 'Hibrit' };
   sikayet?: {
     baslangic?: string; seyir?: string;
     siddetSerisi?: number[];

@@ -1,5 +1,6 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
+import { ownerOr401 } from '@/lib/tenant';
 import path from 'path';
 import fs from 'fs';
 import { randomUUID } from 'crypto';
@@ -17,16 +18,18 @@ function ensureDir() {
 }
 
 // GET — tüm tasarım dosyalarını listele
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const uid = ownerOr401(req); if (uid instanceof NextResponse) return uid;
   const db = getDb();
   const rows = db.prepare(
-    'SELECT * FROM design_files ORDER BY created_at DESC'
-  ).all();
+    'SELECT * FROM design_files WHERE owner_id = ? ORDER BY created_at DESC'
+  ).all(uid);
   return Response.json(rows);
 }
 
 // POST — dosya yükle
 export async function POST(req: NextRequest) {
+  const uid = ownerOr401(req); if (uid instanceof NextResponse) return uid;
   ensureDir();
 
   const formData = await req.formData();
@@ -56,9 +59,9 @@ export async function POST(req: NextRequest) {
   const now = new Date().toISOString();
 
   getDb().prepare(`
-    INSERT INTO design_files (id, name, original_name, mime_type, size_bytes, source, path, notes, created_at)
-    VALUES (?, ?, ?, ?, ?, 'upload', ?, ?, ?)
-  `).run(id, file.name, file.name, file.type, file.size, publicPath, notes ?? null, now);
+    INSERT INTO design_files (id, name, original_name, mime_type, size_bytes, source, path, notes, created_at, owner_id)
+    VALUES (?, ?, ?, ?, ?, 'upload', ?, ?, ?, ?)
+  `).run(id, file.name, file.name, file.type, file.size, publicPath, notes ?? null, now, uid);
 
   return Response.json({ ok: true, id, path: publicPath });
 }

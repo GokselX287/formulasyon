@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import './SeansPlanlayiciV2.css';
-import type { Intervention } from './MudahalePanel';
+import type { Intervention } from '@/lib/types';
 
 // ──────────────────────────────────────────────────────────────────────────
 // Seans Planlayıcı — "Klinik Editöryel Dosya" · Seans Planlayıcı v2.html port.
@@ -69,7 +69,7 @@ export default function SeansPlanlayiciV2(props: SeansPlanlayiciV2Props) {
     <>
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,300;1,400;1,500;1,600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,300;1,400;1,500;1,600&display=swap" rel="stylesheet" />
 
       <div className="sx2">
         <div className="shell">

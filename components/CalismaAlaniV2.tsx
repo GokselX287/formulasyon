@@ -10,7 +10,7 @@ import './CalismaAlaniV2.css';
 // ──────────────────────────────────────────────────────────────────────────
 
 export type HubStat = { v: string; l: string };
-export type RecentClient = { id: string; name: string; topic: string };
+export type RecentClient = { id: string; name: string; topic: string; missing?: string[]; filled?: number; total?: number };
 
 export type CalismaAlaniV2Props = {
   therapistName?: string;
@@ -25,6 +25,8 @@ export type CalismaAlaniV2Props = {
   onOpenTasarimlar?(): void;
   onOpenTakvim?(): void;
   onOpenMuhasebe?(): void;
+  onOpenLibrary?(): void;
+  onOpenOrtak?(): void;
   onOpenClient?(id: string): void;
 };
 
@@ -49,7 +51,7 @@ const DOCK = [
 
 export default function CalismaAlaniV2(props: CalismaAlaniV2Props) {
   const { therapistName = 'Göksel Akkaya', stats, recent, onBack, onNav, onNewClient, onOpenProfile,
-    onOpenDanisanlar, onOpenTasarimlar, onOpenTakvim, onOpenMuhasebe, onOpenClient } = props;
+    onOpenDanisanlar, onOpenTasarimlar, onOpenTakvim, onOpenMuhasebe, onOpenLibrary, onOpenOrtak, onOpenClient } = props;
 
   const entries = [
     {
@@ -76,13 +78,25 @@ export default function CalismaAlaniV2(props: CalismaAlaniV2Props) {
       meta: ['Drive', 'Fatura', 'Yükle'], go: 'Muhasebeyi aç',
       icon: <><path d="M3 7h18v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z" /><path d="M3 7l2.5-4h13L21 7" /><path d="M8 12h8" /></>,
     },
+    {
+      no: '05', cls: 'c5', title: 'Müdahale Kütüphanesi', onClick: onOpenLibrary,
+      desc: 'Kanıta dayalı teknik ve protokoller — ekol filtresi, favoriler, seans sepeti; danışana ata, PDF al.',
+      meta: ['Teknikler', 'Favoriler', 'Sepet'], go: 'Kütüphaneyi aç',
+      icon: <><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z" /></>,
+    },
+    {
+      no: '06', cls: 'c6', title: 'Projeni ortak yürüt', onClick: onOpenOrtak,
+      desc: 'Başka terapistlerle ortak şablon çalış — istek gönder, iki formülasyonu yan yana karşılaştır, yorum iste.',
+      meta: ['Davet', 'Karşılaştır', 'Yorum'], go: 'Ortak çalışmayı aç',
+      icon: <><circle cx="9" cy="7" r="3" /><circle cx="17" cy="9" r="2.5" /><path d="M3 20v-1.5A4.5 4.5 0 0 1 7.5 14h3A4.5 4.5 0 0 1 15 18.5V20" /><path d="M16 14h.5a4 4 0 0 1 4 4V20" /></>,
+    },
   ];
 
   return (
     <>
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,300;1,400;1,500;1,600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,300;1,400;1,500;1,600&display=swap" rel="stylesheet" />
 
       <div className="ca2">
         <div className="shell">
@@ -127,25 +141,31 @@ export default function CalismaAlaniV2(props: CalismaAlaniV2Props) {
                 ))}
               </div>
 
-              {recent.length > 0 && (
-                <div className="recent" data-screen-label="Son çalışılan">
-                  <div className="recent-head">
-                    <span className="eyebrow">Son çalışılan dosyalar</span>
-                    <a href="#" onClick={(e) => { e.preventDefault(); onOpenDanisanlar?.(); }}>Tüm danışanlar →</a>
-                  </div>
+              <div className="recent" data-screen-label="Tamamlanmamış dosyalar">
+                <div className="recent-head">
+                  <span className="eyebrow">Tamamlanmamış danışan dosyaları</span>
+                  <a href="#" onClick={(e) => { e.preventDefault(); onOpenDanisanlar?.(); }}>Tüm danışanlar →</a>
+                </div>
+                {recent.length > 0 ? (
                   <div className="rgrid">
                     {recent.map((r) => {
                       const t = toneFor(r.name);
+                      const miss = r.missing ?? [];
                       return (
-                        <button type="button" className="rcard" key={r.id} onClick={() => onOpenClient?.(r.id)}>
+                        <button type="button" className="rcard incomplete" key={r.id} onClick={() => onOpenClient?.(r.id)} title={miss.length ? `Eksik: ${miss.join(', ')}` : undefined}>
                           <span className="av" style={{ background: t.bg, color: t.ink }}>{initials(r.name)}</span>
                           <span className="who"><b>{r.name}</b><span>{r.topic}</span></span>
+                          {miss.length > 0 && (
+                            <span className="miss-tag"><span className="md" />{miss.length} eksik</span>
+                          )}
                         </button>
                       );
                     })}
                   </div>
-                </div>
-              )}
+                ) : (
+                  <p className="recent-empty">Tüm danışan dosyaları tamamlanmış görünüyor.</p>
+                )}
+              </div>
 
             </div>
           </div>

@@ -2,7 +2,7 @@
 
 import { use, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import DanisanRaporu from '@/components/DanisanRaporu';
+import { DanisanOzetSunum } from '@/components/DanisanRaporu';
 import { EMPTY_PROFIL_DATA as EMPTY } from '@/components/danisanRaporuData';
 
 /** Metni satır/noktalı virgülle böl, boşları at */
@@ -24,9 +24,13 @@ export default function DanisanProfilPage({ params }: { params: Promise<{ id: st
 
   const goBack = () => {
     const from = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('from') : null;
-    if (from === 'havuz') router.push('/?tab=calendar&takvim=hazirlik');
-    else if (from === 'home') router.push('/?tab=home&focus=havuz');
-    else router.back();
+    if (from === 'havuz') router.push('/uygulama?tab=calendar&takvim=hazirlik');
+    else if (from === 'home') router.push('/uygulama?tab=home&focus=havuz');
+    // Varsayılan (from yok ya da 'danisanlar') → Danışanlar listesine DÖN.
+    // ⚠️ router.back() GÜVENİLMEZDİ: kullanıcı FAB ile "Formülasyon adımları"na gidip
+    // "Dosya" ile profile döndüyse, geçmiş yığınında o sayfa kalıyor ve "Danışanlar"
+    // düğmesi listeye değil oraya geri atıyordu. Artık deterministik. (2026-06-18)
+    else router.push('/uygulama?tab=calisma-alani&room=danisanlar');
   };
 
   const handleBriefing = async () => {
@@ -41,6 +45,7 @@ export default function DanisanProfilPage({ params }: { params: Promise<{ id: st
     const sp = new URLSearchParams(window.location.search);
     const from = sp.get('from');
     const focus = sp.get('focus');
+    const eksik = sp.get('eksik') === '1'; // tamamlanmamış dosya → boş bölümleri kırmızı vurgula
     setBackLabel(from === 'havuz' || from === 'home' ? 'Günün seansları' : 'Danışanlar');
 
     Promise.all([
@@ -91,13 +96,21 @@ export default function DanisanProfilPage({ params }: { params: Promise<{ id: st
       const fpKeys = ['predisposing', 'precipitating', 'perpetuating', 'protective'];
       const fourP = (EMPTY.fourP as any[]).map((p, idx) => {
         const arr: string[] = fd?.fourP?.[fpKeys[idx]] ?? [];
-        return { ...p, body: arr.length ? arr.join('; ') : '', chips: arr.slice(0, 2) };
+        // body = faktörlerin birleşik metni. chips, body'yi AYNEN tekrar ettiği için
+        // kaldırıldı (PDF'de her pencerede metin iki kez görünüyordu — 2026-06-18).
+        return { ...p, body: arr.length ? arr.join('; ') : '', chips: [] };
       });
 
       // ── Esneklik (hexaflex → yetenek skoru) ──
-      let flexibility = EMPTY.flexibility;
-      if (fd?.hexaflex) {
-        const h = fd.hexaflex;
+      // Gerçek hexaflex verisi yoksa eksenleri SIFIRLA → özet sunumda "Psikolojik
+      // esneklik" bölümü gizlenir (flexHasData=false). Veri girilince sergilenir.
+      let flexibility = { ...EMPTY.flexibility, score: 0, axes: (EMPTY.flexibility.axes as any[]).map((a) => ({ ...a, value: 0 })) };
+      // Backend dokunulmamış hexaflex'i tüm eksenler 5 (nötr) döndürür → gerçek veri
+      // DEĞİL, gizle. En az bir eksen 5'ten farklıysa terapist girmiş demektir.
+      const hx = fd?.hexaflex;
+      const hexReal = hx && ['fusion', 'avoidance', 'selfAsContent', 'presentMoment', 'values', 'committedAction'].some((k) => (hx[k] ?? 5) !== 5);
+      if (hexReal) {
+        const h = hx;
         const vals = [10 - (h.fusion ?? 5), 10 - (h.avoidance ?? 5), h.presentMoment ?? 5, 10 - (h.selfAsContent ?? 5), h.values ?? 5, h.committedAction ?? 5];
         const axes = (EMPTY.flexibility.axes as any[]).map((a, i) => ({ ...a, value: Math.max(0, Math.min(10, vals[i] ?? 0)) }));
         const score = +(axes.reduce((s, a) => s + a.value, 0) / axes.length).toFixed(1);
@@ -192,10 +205,24 @@ export default function DanisanProfilPage({ params }: { params: Promise<{ id: st
       // ── Değerler ──
       const values = (sec.values ?? []).map((t: string) => ({ label: t, level: '', strength: 0, note: '' }));
 
+      // ── Eksik bölüm tespiti (yalnız ?eksik=1 ile gelindiyse kırmızı vurgula) ──
+      const missingKeys: string[] = eksik ? [
+        (problems.length === 0 && goals.length === 0) && 'sorun',
+        (strengthsWeaknesses.strengths.length === 0 && strengthsWeaknesses.weaknesses.length === 0) && 'bariyerler',
+        (strengthsWeaknesses.strengths.length === 0 && strengthsWeaknesses.weaknesses.length === 0) && 'gucluler',
+        (!fd?.hexaflex) && 'esneklik',
+        (values.length === 0) && 'degerler',
+        (!narrative) && 'hikaye',
+        (interventions.length === 0) && 'mudahaleler',
+        (!relationship.note && !relationship.rupture && (relationship.supervision?.length ?? 0) === 0) && 'iliski',
+        (fourP.every((p: any) => !p.body)) && 'formulasyon',
+      ].filter(Boolean) as string[] : [];
+
       setData({
         ...EMPTY,
         from: from === 'havuz' ? 'havuz' : EMPTY.from,
         focus: focus === 'seanslar' ? 'seanslar' : null,
+        highlightMissing: missingKeys,
         client: {
           ...EMPTY.client,
           vakaNo:           valid ? (c.id ?? id) : id,
@@ -230,34 +257,24 @@ export default function DanisanProfilPage({ params }: { params: Promise<{ id: st
   }, [id]);
 
   return (
-    <DanisanRaporu
+    <>
+    <DanisanOzetSunum
       data={data}
+      clientId={id}
       backLabel={backLabel}
       onBack={goBack}
-      onCreateBriefing={handleBriefing}
-      onOpenFormulationHub={() => router.push(`/?tab=formulation&client=${id}`)}
-      onOpenStory={() => router.push(`/?tab=formulation&client=${id}`)}
-      onSaveBenlik={async (notes) => {
-        const fd = fdRef.current;
-        if (!fd?.formulationId) return;
-        await fetch(`/api/formulations/${fd.formulationId}`, {
-          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ benlikAlgisiJson: JSON.stringify(notes) }),
-        }).catch(() => {});
-      }}
-      onSaveFee={async (amount) => {
-        await fetch(`/api/clients/${id}`, {
-          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ seansUcreti: amount }),
-        }).catch(() => {});
-      }}
-      onSaveClientPatch={async (patch) => {
-        await fetch(`/api/clients/${id}`, {
-          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(patch),
-        }).catch(() => {});
-      }}
-      onNav={(t) => { if (t === 'home') router.push('/?tab=home'); else router.push(`/?tab=${t}`); }}
+      onNav={(t) => { if (t === 'home') router.push('/uygulama?tab=home'); else router.push(`/uygulama?tab=${t}`); }}
     />
+    <button
+      type="button"
+      className="print-hide"
+      onClick={() => router.push(`/clients/${id}/dongu`)}
+      title="Profesyonel Formülasyon Adımları"
+      style={{ position: 'fixed', right: 22, bottom: 22, zIndex: 70, display: 'inline-flex', alignItems: 'center', gap: 8, background: '#100F0D', color: '#F8F6F0', fontSize: 13, fontWeight: 600, borderRadius: 999, padding: '12px 18px', border: 'none', cursor: 'pointer', boxShadow: '0 10px 28px -10px rgba(16,15,13,.5)' }}
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true"><path d="M4 6h10M4 12h16M4 18h12" /><circle cx="18" cy="6" r="2" fill="currentColor" stroke="none" /></svg>
+      Formülasyon adımları
+    </button>
+    </>
   );
 }

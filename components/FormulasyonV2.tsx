@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import './FormulasyonV2.css';
-import type { FourP, Hexaflex } from './FormulasyonPanel';
+import type { FourP, Hexaflex } from '@/lib/types';
+import DanisanSayfasiModal from './DanisanSayfasiModal';
 import { DEFAULT_HEX_SCALE, type HexGroup } from '@/lib/hexaflexScale';
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -15,6 +16,7 @@ import { DEFAULT_HEX_SCALE, type HexGroup } from '@/lib/hexaflexScale';
 
 export type FormulasyonV2Props = {
   client?: { id?: string; name?: string; issue?: string };
+  clientPhone?: string;
   fourP?: FourP;
   hexaflex?: Hexaflex;
   summary?: string;
@@ -23,13 +25,15 @@ export type FormulasyonV2Props = {
   onNav?(target: string): void;
   onSave?(): void;
   onOpenLibrary?(): void;
+  onApplyTemplate?(key: 'p4' | 'hex' | 'cycle'): void;
+  interventionsPlanned?: string[];
 };
 
 type TabId = 'p4' | 'hex' | 'cycle' | 'map' | 'values' | 'tmpl';
 
 const TABS: { id: TabId; label: string }[] = [
-  { id: 'p4', label: '4P Formülasyon' }, { id: 'hex', label: 'ACT Hexaflex' }, { id: 'cycle', label: 'Bozukluk Döngüsü' },
-  { id: 'map', label: 'Vaka Haritası' }, { id: 'values', label: 'Değer Kartları' }, { id: 'tmpl', label: 'Şablonlar & Ekler' },
+  { id: 'p4', label: 'Sorunun kökleri ve sürdürücüleri' }, { id: 'hex', label: 'Psikolojik esneklik' }, { id: 'cycle', label: 'Düşünce–duygu–davranış döngüsü' },
+  { id: 'map', label: 'Bütünleşik harita' }, { id: 'values', label: 'Danışan için önemli olanlar' }, { id: 'tmpl', label: 'Şablonlar & ekler' },
 ];
 
 const DOCK = [
@@ -62,9 +66,9 @@ const EX_VALUES = [
   { n: 'Dürüstlük', imp: 8, act: 6, a: 'Hayır diyebilmek; sınır koymak.' },
 ];
 const EX_TEMPLATES = [
-  { t: '4P Formülasyon şablonu', s: 'Boş şablon · PDF' },
-  { t: 'ACT Vaka Kavramsallaştırma', s: 'Hexaflex tablosu' },
-  { t: 'Bozukluk döngüsü (Beck)', s: '5 alanlı şema' },
+  { t: '4P Formülasyon şablonu', s: '4P alanlarına başlangıç maddeleri ekler', tab: 'p4' as const },
+  { t: 'ACT Vaka Kavramsallaştırma', s: 'Hexaflex sekmesini açar', tab: 'hex' as const },
+  { t: 'Bozukluk döngüsü (Beck)', s: 'Döngü sekmesini açar', tab: 'cycle' as const },
 ];
 const EX_ATTACH = [
   { t: 'Maruziyet hiyerarşisi.pdf', s: 'Eklendi · 2 gün önce' },
@@ -80,7 +84,7 @@ function hexAxes(h: Hexaflex) {
     { ax: 'Şimdiki an', val: clamp(h.presentMoment) },
     { ax: 'Kabul', val: clamp(10 - h.avoidance) },
     { ax: 'Defüzyon', val: clamp(10 - h.fusion) },
-    { ax: 'Gözlemleyen benlik', val: clamp(10 - h.selfAsContent) },
+    { ax: 'Bağlamsal benlik', val: clamp(10 - h.selfAsContent) },
     { ax: 'Değerler', val: clamp(h.values) },
     { ax: 'Kararlı eylem', val: clamp(h.committedAction) },
   ];
@@ -111,7 +115,7 @@ function HexRadar({ axes }: { axes: { ax: string; val: number }[] }) {
       {axes.map((a, i) => {
         const [lx, ly] = pt(i, R + 24);
         const anchor = Math.abs(lx - cx) < 8 ? 'middle' : (lx > cx ? 'start' : 'end');
-        return <text key={i} x={lx} y={ly} textAnchor={anchor} dominantBaseline="middle" fontFamily="'Space Mono',monospace" fontSize="10.5" fontWeight="700" fill="#57554F">{a.ax}</text>;
+        return <text key={i} x={lx} y={ly} textAnchor={anchor} dominantBaseline="middle" fontFamily="'Plus Jakarta Sans', sans-serif" fontSize="10.5" fontWeight="700" fill="#57554F">{a.ax}</text>;
       })}
     </svg>
   );
@@ -159,9 +163,22 @@ function MapDiagram({ center, branches }: { center: string; branches: { t: strin
 const FileIcon = () => (<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /></svg>);
 
 export default function FormulasyonV2(props: FormulasyonV2Props) {
-  const { client, onBack, onNav, onSave, onOpenLibrary } = props;
+  const { client, clientPhone, onBack, onNav, onSave, onOpenLibrary } = props;
   const [tab, setTab] = useState<TabId>('p4');
   const [saved, setSaved] = useState(false);
+  const [clientPageOpen, setClientPageOpen] = useState(false);
+  const [cycleInVaka, setCycleInVaka] = useState(false);
+  useEffect(() => {
+    try { setCycleInVaka(!!client?.id && !!localStorage.getItem(`vaka_cycle_${client.id}`)); } catch { /* yok */ }
+  }, [client?.id]);
+  const toggleCycleVaka = () => {
+    if (!client?.id) return;
+    const key = `vaka_cycle_${client.id}`;
+    try {
+      if (cycleInVaka) { localStorage.removeItem(key); setCycleInVaka(false); }
+      else { localStorage.setItem(key, JSON.stringify(EX_CYCLE)); setCycleInVaka(true); }
+    } catch { /* sessizce geç */ }
+  };
   const [eduOpen, setEduOpen] = useState(false);     // 4P öğretici intro açık mı
   const [openQ, setOpenQ] = useState<string | null>(null); // hangi pencere kartının "nedir?"i açık
 
@@ -194,6 +211,33 @@ export default function FormulasyonV2(props: FormulasyonV2Props) {
       try { await navigator.clipboard.writeText(link); } catch {}
       setSendState('sent');
     } catch { setSendState('error'); }
+  };
+
+  // ── Danışana özel SMS — telefon takvim notlarından gelir, Netgsm ile gönderilir ──
+  const [smsOpen, setSmsOpen] = useState(false);
+  const [smsPhone, setSmsPhone] = useState('');
+  const [smsText, setSmsText] = useState('');
+  const [smsState, setSmsState] = useState<'' | 'sending' | 'sent' | 'error'>('');
+  const [smsErr, setSmsErr] = useState('');
+  const openSms = () => { setSmsPhone(clientPhone ?? ''); setSmsText(''); setSmsState(''); setSmsErr(''); setSmsOpen(true); };
+  useEffect(() => {
+    if (!smsOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setSmsOpen(false); };
+    window.addEventListener('keydown', onKey); return () => window.removeEventListener('keydown', onKey);
+  }, [smsOpen]);
+  const sendSms = async () => {
+    const phone = smsPhone.trim(); const message = smsText.trim();
+    if (!phone || !message || smsState === 'sending') return;
+    setSmsState('sending'); setSmsErr('');
+    try {
+      const res = await fetch('/api/sms', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, name: client?.name ?? '', message, trigger_type: 'manual' }),
+      });
+      const row = await res.json().catch(() => ({} as any));
+      if (res.ok && row.ok) setSmsState('sent');
+      else { setSmsState('error'); setSmsErr(row.error || 'Gönderilemedi'); }
+    } catch (e: any) { setSmsState('error'); setSmsErr(e?.message || 'Ağ hatası'); }
   };
 
   const fourP = props.fourP ?? EX_FOURP;
@@ -247,7 +291,7 @@ export default function FormulasyonV2(props: FormulasyonV2Props) {
     <>
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,300;1,400;1,500;1,600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,300;1,400;1,500;1,600&display=swap" rel="stylesheet" />
 
       <div className="fm2" data-tab={tab}>
         <div className="shell">
@@ -257,12 +301,46 @@ export default function FormulasyonV2(props: FormulasyonV2Props) {
               <button className="back" type="button" onClick={() => onBack?.()}><span className="chev">‹</span>Dosya</button>
               <div className="tb-title"><span className="e">Klinik Formülasyon</span><b>{client?.name ?? '—'}</b></div>
             </div>
-            <button className={`tb-save${saved ? ' done' : ''}`} type="button" onClick={doSave}>
-              {saved
-                ? <><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M20 6 9 17l-5-5" /></svg>Kaydedildi</>
-                : <><svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><path d="M17 21v-8H7v8M7 3v5h8" /></svg>Kaydet</>}
-            </button>
+            <div className="tb-actions">
+              <button className="tb-sms" type="button" onClick={() => setClientPageOpen(true)} title="Danışana sunulacak vaka sunumu">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /></svg>Vaka sunumu
+              </button>
+              <button className="tb-sms" type="button" onClick={openSms} title="Danışana SMS gönder">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>SMS gönder
+              </button>
+              <button className={`tb-save${saved ? ' done' : ''}`} type="button" onClick={doSave}>
+                {saved
+                  ? <><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M20 6 9 17l-5-5" /></svg>Kaydedildi</>
+                  : <><svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><path d="M17 21v-8H7v8M7 3v5h8" /></svg>Kaydet</>}
+              </button>
+            </div>
           </div>
+
+          {smsOpen && (
+            <div className="fm-sms-overlay" onClick={(e) => { if (e.target === e.currentTarget) setSmsOpen(false); }}>
+              <div className="fm-sms" role="dialog" aria-modal="true" aria-label="Danışana SMS gönder">
+                <div className="fm-sms-head">
+                  <div className="fm-sms-h"><span className="s">Danışana SMS</span><span className="h">{client?.name ?? '—'}</span></div>
+                  <button type="button" className="fm-sms-x" aria-label="Kapat" onClick={() => setSmsOpen(false)}><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" /></svg></button>
+                </div>
+                <div className="fm-sms-body">
+                  <label className="fm-sms-lbl">Telefon</label>
+                  <input className="fm-sms-phone num" type="tel" value={smsPhone} placeholder="5XX XXX XX XX" onChange={(e) => { setSmsPhone(e.target.value); setSmsState(''); }} />
+                  <p className="fm-sms-note">{clientPhone ? 'Numara takvim notlarından alındı.' : 'Takvim notlarında numara bulunamadı — elle girebilirsin.'}</p>
+                  <label className="fm-sms-lbl">Mesaj</label>
+                  <textarea className="fm-sms-text" maxLength={500} value={smsText} placeholder="Danışana iletmek istediğin mesaj…" onChange={(e) => { setSmsText(e.target.value); setSmsState(''); }} />
+                  <span className="fm-sms-count">{smsText.length} / 500</span>
+                </div>
+                <div className="fm-sms-foot">
+                  <button type="button" className="fm-sms-send" disabled={!smsPhone.trim() || !smsText.trim() || smsState === 'sending'} onClick={sendSms}>
+                    {smsState === 'sending' ? 'Gönderiliyor…' : 'Gönder'}
+                  </button>
+                  {smsState === 'sent' && <span className="fm-sms-ok">Gönderildi · teşekkürler</span>}
+                  {smsState === 'error' && <span className="fm-sms-fail">{smsErr || 'Gönderilemedi'}</span>}
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="modal-body">
 
@@ -280,7 +358,7 @@ export default function FormulasyonV2(props: FormulasyonV2Props) {
               <div className="panel on">
 
                 {tab === 'p4' && (<>
-                  <PHead eyebrow="formülasyon · 4P" title={<>Vakanın dört <i>penceresi</i></>} desc="Vakayı hazırlayıcı, tetikleyici, sürdürücü ve koruyucu faktörlerle çerçeveler." />
+                  <PHead eyebrow="değerlendirme" title={<>Sorunun <i>kökleri</i></>} desc="Sorunu hazırlayan, tetikleyen, sürdüren ve koruyan etkenlerle çerçeveler." />
 
                   {/* Öğretici intro — açılır/kapanır */}
                   <div className={`edu${eduOpen ? ' open' : ''}`}>
@@ -329,7 +407,7 @@ export default function FormulasyonV2(props: FormulasyonV2Props) {
                 </>)}
 
                 {tab === 'hex' && (<>
-                  <PHead eyebrow="act formülasyon · hexaflex" title={<>Psikolojik <i>esneklik</i></>} desc="Altı çekirdek süreç; ortalama esneklik skoru." />
+                  <PHead eyebrow="değerlendirme" title={<>Psikolojik <i>esneklik</i></>} desc="Danışanın esneklik profili; ortalama esneklik skoru." />
                   <div className="hex-wrap">
                     <div className="hex-card"><HexRadar axes={axes} /></div>
                     <div className="hex-side">
@@ -383,18 +461,24 @@ export default function FormulasyonV2(props: FormulasyonV2Props) {
                 </>)}
 
                 {tab === 'cycle' && (<>
-                  <PHead eyebrow="bozukluk döngüsü · beck" title={<>Kısır <i>döngü</i></>} desc="Durum → düşünce → duygu → beden → davranış; rahatlama döngüyü pekiştirir." />
+                  <PHead eyebrow="değerlendirme" title={<>Kısır <i>döngü</i></>} desc="Durum → düşünce → duygu → beden → davranış; kısa rahatlama döngüyü pekiştirir." />
                   <CycleDiagram nodes={EX_CYCLE} />
                   <div className="legend"><span>↻ saat yönünde akış</span><span>kısa rahatlama → uzun vadede sürdürür</span></div>
+                  <div style={{ display: 'flex', justifyContent: 'center', marginTop: 18 }}>
+                    <button type="button" onClick={toggleCycleVaka} disabled={!client?.id}
+                      style={{ border: '1px solid #E5E7EB', background: cycleInVaka ? '#0E0F12' : '#fff', color: cycleInVaka ? '#fff' : '#0E0F12', borderRadius: 12, padding: '10px 18px', fontSize: 14, fontWeight: 600, cursor: client?.id ? 'pointer' : 'not-allowed' }}>
+                      {cycleInVaka ? '✓ Vaka sunumunda — çıkar' : '+ Vaka sunumuna ekle'}
+                    </button>
+                  </div>
                 </>)}
 
                 {tab === 'map' && (<>
-                  <PHead eyebrow="vaka haritası · mind map" title={<>Vaka <i>haritası</i></>} desc="Çekirdek inanç, değer, sürdürücü, müdahale ve hedef arasındaki bağlar." />
+                  <PHead eyebrow="değerlendirme" title={<>Bütünleşik <i>harita</i></>} desc="Çekirdek inanç, değer, sürdürücü, müdahale ve hedef arasındaki bağlar." />
                   <MapDiagram center={mapCenter} branches={mapBranches} />
                 </>)}
 
                 {tab === 'values' && (<>
-                  <PHead eyebrow="değer kartları" title={<>Değerler &amp; <i>eylem</i></>} desc="Önem ve mevcut eylem uyumu; aradaki fark müdahale alanını gösterir." />
+                  <PHead eyebrow="danışan için önemli olanlar" title={<>Değerler &amp; <i>eylem</i></>} desc="Önem ve mevcut eylem uyumu; aradaki fark çalışılacak alanı gösterir." />
                   <div className="vals">
                     {EX_VALUES.map((v, i) => (
                       <div className="vcard" key={i}>
@@ -415,9 +499,15 @@ export default function FormulasyonV2(props: FormulasyonV2Props) {
                     <div className="tcol">
                       <span className="eyebrow">Şablonlar</span>
                       {EX_TEMPLATES.map((t, i) => (
-                        <div className="trow" key={i}><span className="ic"><FileIcon /></span><div className="tx"><b>{t.t}</b><span>{t.s}</span></div><span className="go">Kullan →</span></div>
+                        <div className="trow" key={i} role="button" tabIndex={0} style={{ cursor: 'pointer' }} onClick={() => { setTab(t.tab); props.onApplyTemplate?.(t.tab); }}><span className="ic"><FileIcon /></span><div className="tx"><b>{t.t}</b><span>{t.s}</span></div><span className="go">Kullan →</span></div>
                       ))}
                       <button className="tadd" type="button" onClick={() => onOpenLibrary?.()}><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>Müdahale kütüphanesinden ekle</button>
+                      {(props.interventionsPlanned ?? []).length > 0 && (
+                        <span className="eyebrow" style={{ marginTop: 14 }}>Kütüphaneden eklenenler</span>
+                      )}
+                      {(props.interventionsPlanned ?? []).map((m, i) => (
+                        <div className="trow" key={`iv-${i}`}><span className="ic"><FileIcon /></span><div className="tx"><b>{m}</b><span>Müdahale · kütüphaneden</span></div></div>
+                      ))}
                     </div>
                     <div className="tcol">
                       <span className="eyebrow">Ekler</span>
@@ -442,6 +532,17 @@ export default function FormulasyonV2(props: FormulasyonV2Props) {
 
         </div>
       </div>
+
+      <DanisanSayfasiModal
+        open={clientPageOpen}
+        onClose={() => setClientPageOpen(false)}
+        clientName={client?.name}
+        clientId={client?.id}
+        clientPhone={clientPhone}
+        fourP={props.fourP}
+        summary={props.summary}
+        interventionsPlanned={props.interventionsPlanned}
+      />
     </>
   );
 }

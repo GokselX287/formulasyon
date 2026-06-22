@@ -1,0 +1,51 @@
+/* Danışan Konum Haritası — Çalışma Alanı kutusu (flat premium beyaz kart) */
+.dkh{
+  background:#fff;border-radius:22px;padding:22px 24px 20px;
+  box-shadow:0 1px 0 rgba(20,21,26,.04), inset 0 0 0 1px rgba(20,21,26,.07);
+  font-family:'Plus Jakarta Sans',system-ui,sans-serif;color:#14151A;
+}
+.dkh-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px;}
+.dkh-eyebrow{font-family:'Space Mono',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#9A9CA2;}
+.dkh-title{font-size:19px;font-weight:700;letter-spacing:-.01em;margin:4px 0 0;color:#14151A;}
+.dkh-stats{display:flex;gap:22px;}
+.dkh-stat{display:flex;flex-direction:column;align-items:flex-end;}
+.dkh-stat b{font-size:24px;font-weight:800;line-height:1;}
+.dkh-stat span{font-size:10.5px;color:#83868C;margin-top:3px;letter-spacing:.01em;}
+
+.dkh-empty{padding:34px 18px;text-align:center;color:#83868C;font-size:13px;line-height:1.6;
+  background:#FAFAF8;border-radius:14px;box-shadow:inset 0 0 0 1px rgba(20,21,26,.05);}
+.dkh-empty b{color:#14151A;font-weight:700;}
+
+.dkh-body{display:flex;gap:22px;align-items:stretch;}
+.dkh-mapwrap{flex:1 1 58%;min-width:0;display:flex;align-items:center;
+  background:#FAFAF7;border-radius:16px;padding:14px 16px;box-shadow:inset 0 0 0 1px rgba(20,21,26,.05);}
+.dkh-map{width:100%;height:auto;overflow:visible;}
+.dkh-outline{fill:rgba(20,21,26,.035);stroke:rgba(20,21,26,.16);stroke-width:1.6;stroke-linejoin:round;}
+.dkh-dot{fill:rgba(20,21,26,.14);}
+.dkh-bub{cursor:pointer;}
+.dkh-bub circle{fill:rgba(31,111,99,.82);stroke:#fff;stroke-width:1.4;transition:fill .15s,transform .15s;}
+.dkh-bub:hover circle{fill:#1F6F63;}
+.dkh-bub.on circle{fill:#13443D;stroke:#13443D;stroke-width:2;}
+.dkh-bub text{fill:#fff;font-family:'Space Mono',ui-monospace,monospace;font-size:13px;font-weight:700;text-anchor:middle;pointer-events:none;}
+
+.dkh-side{flex:1 1 42%;min-width:200px;display:flex;flex-direction:column;}
+.dkh-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px;max-height:220px;overflow:auto;}
+.dkh-list button{position:relative;display:flex;align-items:center;gap:10px;width:100%;
+  padding:8px 12px;border-radius:10px;background:transparent;cursor:pointer;overflow:hidden;
+  box-shadow:inset 0 0 0 1px rgba(20,21,26,.06);transition:box-shadow .14s;}
+.dkh-list button:hover{box-shadow:inset 0 0 0 1px rgba(20,21,26,.16);}
+.dkh-list button.on{box-shadow:inset 0 0 0 1.5px #13443D;}
+.dkh-bar{position:absolute;inset:0 auto 0 0;height:100%;background:rgba(31,111,99,.12);z-index:0;}
+.dkh-li-name{position:relative;z-index:1;font-size:12.5px;font-weight:600;flex:1;text-align:left;}
+.dkh-li-n{position:relative;z-index:1;font-family:'Space Mono',ui-monospace,monospace;font-size:12px;font-weight:700;color:#1F6F63;}
+
+.dkh-ilce{margin-top:12px;padding-top:12px;box-shadow:inset 0 1px 0 rgba(20,21,26,.07);}
+.dkh-ilce-h{font-family:'Space Mono',ui-monospace,monospace;font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#83868C;margin-bottom:8px;}
+.dkh-ilce-tags{display:flex;flex-wrap:wrap;gap:6px;}
+.dkh-ilce-tags span{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;
+  padding:4px 9px;border-radius:999px;background:#F2F4F3;color:#14151A;}
+.dkh-ilce-tags span i{font-style:normal;font-family:'Space Mono',ui-monospace,monospace;font-size:10px;color:#1F6F63;}
+.dkh-ilce-empty{font-size:12px;color:#9A9CA2;font-style:italic;margin:0;}
+.dkh-note{font-size:11px;color:#9A9CA2;margin:12px 0 0;}
+
+@media(max-width:760px){.dkh-body{flex-direction:column;}.dkh-mapwrap,.dkh-side{flex:1 1 auto;}}

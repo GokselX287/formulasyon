@@ -157,7 +157,7 @@ export default function OzetInceleme(props: OzetIncelemeProps) {
       {/* Tasarım fontları (React head'e hoist eder) */}
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600;1,700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600;1,700&display=swap" rel="stylesheet" />
 
       <div className="oz">
         <div className="shell">
@@ -165,7 +165,7 @@ export default function OzetInceleme(props: OzetIncelemeProps) {
           {/* ÜST BAR */}
           <div className="topbar">
             <button className="back" type="button" onClick={() => props.onBack?.()}>
-              <span className="chev">‹</span><span>Çalışma Alanı</span>
+              <span className="chev">‹</span><span>Geri</span>
             </button>
             <div className="topbar-right">
               <a className="print-link" href="#" onClick={(e) => { e.preventDefault(); if (typeof window !== 'undefined') window.print(); }}>Yazdır / PDF</a>

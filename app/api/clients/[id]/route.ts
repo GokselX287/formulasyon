@@ -1,17 +1,19 @@
 import { updateClient, deleteClient } from '@/lib/queries';
 import { getDb } from '@/lib/db';
-import { NextRequest } from 'next/server';
+import { ownerOr401 } from '@/lib/tenant';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const uid = ownerOr401(request); if (uid instanceof NextResponse) return uid;
   const { id } = await params;
   const db = getDb();
   const clientId = parseInt(id);
   const row = db
-    .prepare(`SELECT * FROM clients WHERE id = ?`)
-    .get(clientId) as Record<string, unknown> | undefined;
+    .prepare(`SELECT * FROM clients WHERE id = ? AND owner_id = ?`)
+    .get(clientId, uid) as Record<string, unknown> | undefined;
 
   if (!row) return Response.json({ error: 'Not found' }, { status: 404 });
 
@@ -19,10 +21,10 @@ export async function GET(
   const nextRow = db
     .prepare(
       `SELECT tarih FROM seanslar
-       WHERE client_id = ? AND tarih >= datetime('now')
+       WHERE client_id = ? AND owner_id = ? AND tarih >= datetime('now')
        ORDER BY tarih ASC LIMIT 1`
     )
-    .get(clientId) as { tarih: string } | undefined;
+    .get(clientId, uid) as { tarih: string } | undefined;
   let nextSession: string | null = null;
   if (nextRow?.tarih) {
     const d = nextRow.tarih.slice(0, 10).replace(/-/g, '.');
@@ -51,20 +53,23 @@ export async function GET(
     sinif: row.sinif,
     okul: row.okul,
     status: row.status ?? 'intake',
+    referral: row.referral_source ?? null,
     nextSession,
     createdAt: row.created_at,
   });
 }
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const uid = ownerOr401(request); if (uid instanceof NextResponse) return uid;
   const { id } = await params;
   const data = await request.json();
-  updateClient(parseInt(id), data);
+  updateClient(parseInt(id), data, uid);
   return Response.json({ ok: true });
 }
 
-export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const uid = ownerOr401(request); if (uid instanceof NextResponse) return uid;
   const { id } = await params;
-  deleteClient(parseInt(id));
+  deleteClient(parseInt(id), uid);
   return Response.json({ ok: true });
 }

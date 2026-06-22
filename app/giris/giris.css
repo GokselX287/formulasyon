@@ -1,0 +1,92 @@
+/* =====================================================================
+   GİRİŞ — terapist oturumu kapısı. Tema mesh/foto zemin CalmieChrome'dan
+   (.cchrome + app-bg) gelir; burada yalnız frosted gate kartı + form dili.
+   Token/kontrol dili AdminPanel (.adm) / Ayarlar (.ay) ile birebir.
+   ===================================================================== */
+.giris{
+  --font-display:'Plus Jakarta Sans','Helvetica Neue',Arial,sans-serif;
+  --font-ui:'Plus Jakarta Sans','Helvetica Neue',Arial,sans-serif;
+  --font-mono:'Plus Jakarta Sans','Helvetica Neue',Arial,sans-serif;
+  --surface:#FFFFFF; --well:#ECEBE8;
+  --ink:#1B1B1D; --ink-soft:#6B6B69; --ink-mute:#9A9996; --ink-faint:#BCBBB7;
+  --black:#1A1A1C; --on-black:#FAFAF8;
+  --line:rgba(28,28,32,.08);
+  --sh-inset-sm:inset 2px 2px 5px rgba(30,30,34,.1), inset -2px -2px 5px rgba(255,255,255,.85);
+  --sh-black-sm:4px 6px 14px -5px rgba(12,12,16,.46), -1px -1px 5px rgba(255,255,255,.18);
+  --sh-black:7px 10px 22px -6px rgba(12,12,16,.5), -2px -2px 7px rgba(255,255,255,.22);
+  --sh-modal:30px 40px 80px -28px rgba(20,18,24,.5), -10px -10px 30px rgba(255,255,255,.4);
+  --r-card:28px; --r-md:16px; --r-pill:999px;
+
+  position:relative; height:100vh; width:100%; overflow:hidden;
+  font-family:var(--font-ui); color:var(--ink); background:#0A0A0C;
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+}
+.giris *{box-sizing:border-box;}
+.giris button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;}
+.giris input{font-family:inherit;}
+
+/* üst marka şeridi */
+.giris .g-top{position:absolute;top:0;left:0;right:0;z-index:50;display:flex;align-items:center;gap:6px;
+  padding:15px clamp(18px,4vw,40px);font-family:var(--font-display);font-weight:600;font-size:19px;
+  letter-spacing:-.022em;color:#F4F2F6;line-height:1;text-shadow:0 1px 10px rgba(40,18,40,.4);}
+.giris .g-top b{font-weight:700;}
+.giris .g-top i{font-weight:400;font-style:normal;color:rgba(244,242,246,.7);}
+
+/* frosted gate */
+.giris .gate{position:absolute;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;padding:24px;}
+.giris .gate-card{width:min(420px,100%);background:var(--surface);border-radius:var(--r-card);box-shadow:var(--sh-modal);padding:34px clamp(24px,4vw,36px);}
+.giris .lock{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;background:var(--black);color:var(--on-black);box-shadow:var(--sh-black-sm);margin-bottom:18px;}
+.giris .gate-card h2{font-family:var(--font-display);font-weight:600;font-size:23px;letter-spacing:-.01em;margin:0 0 6px;}
+.giris .gate-card p{font-size:13px;line-height:1.55;color:var(--ink-soft);margin:0 0 20px;}
+
+.giris .field{margin:0 0 15px;}
+.giris .field>label{display:block;font-family:var(--font-mono);font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-mute);margin-bottom:8px;}
+.giris .inp{width:100%;font-size:14px;color:var(--ink);background:var(--well);border:none;border-radius:var(--r-md);padding:12px 14px;box-shadow:var(--sh-inset-sm);transition:.16s;-webkit-appearance:none;appearance:none;}
+.giris .inp::placeholder{color:var(--ink-faint);}
+.giris .inp:focus{outline:none;background:#F6F5F3;box-shadow:var(--sh-inset-sm), 0 0 0 2px var(--black);}
+
+.giris .remember{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--ink-soft);margin:2px 0 18px;cursor:pointer;user-select:none;}
+.giris .remember input{width:16px;height:16px;accent-color:var(--black);cursor:pointer;}
+
+.giris .note{font-size:12.5px;line-height:1.5;border-radius:var(--r-md);padding:10px 13px;margin-bottom:12px;}
+.giris .note.err{color:#B23B3B;background:rgba(178,59,59,.1);}
+
+.giris .btn{font-size:13px;font-weight:600;border-radius:var(--r-pill);padding:11px 20px;transition:.16s;display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;}
+.giris .btn.primary{width:100%;background:var(--black);color:var(--on-black);box-shadow:var(--sh-black-sm);padding:13px;}
+.giris .btn.primary:hover{transform:translateY(-1px);box-shadow:var(--sh-black);}
+.giris .btn.primary:disabled{background:var(--well);color:var(--ink-faint);box-shadow:var(--sh-inset-sm);cursor:default;transform:none;}
+.giris .btn .spin{width:13px;height:13px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;display:inline-block;animation:giris-spin .7s linear infinite;}
+@keyframes giris-spin{to{transform:rotate(360deg);}}
+
+/* ── sosyal giriş (OAuth) ── */
+.giris .oauth-row{display:flex;flex-direction:column;gap:9px;margin:0 0 4px;}
+.giris .btn.oauth{width:100%;background:var(--surface);color:var(--ink);box-shadow:var(--sh-black-sm);padding:12px;border:1px solid var(--line);font-weight:600;}
+.giris .btn.oauth:hover{transform:translateY(-1px);box-shadow:var(--sh-black);}
+.giris .btn.oauth svg{width:17px;height:17px;flex:none;}
+
+/* "veya" ayracı */
+.giris .divider{display:flex;align-items:center;gap:12px;margin:18px 0;color:var(--ink-faint);font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;}
+.giris .divider::before,.giris .divider::after{content:"";height:1px;flex:1;background:var(--line);}
+
+/* alt bilgi / bağlantılar */
+.giris .gate-foot{margin-top:18px;text-align:center;font-size:13px;color:var(--ink-soft);}
+.giris .gate-foot a,.giris .gate-link{color:var(--black);font-weight:600;text-decoration:none;cursor:pointer;}
+.giris .gate-foot a:hover,.giris .gate-link:hover{text-decoration:underline;}
+.giris .forgot{display:block;text-align:right;font-size:12.5px;margin:-6px 0 16px;}
+
+/* başarı / bilgi notu */
+.giris .note.ok{color:#2F5D50;background:rgba(47,93,80,.1);}
+.giris .note.info{color:var(--ink-soft);background:var(--well);}
+.giris .field-hint{font-size:11.5px;color:var(--ink-mute);margin-top:6px;line-height:1.45;}
+
+/* dev kutusu — gerçek e-posta yokken doğrulama/sıfırlama linki */
+.giris .devbox{margin-top:14px;padding:11px 13px;border-radius:var(--r-md);background:rgba(201,138,60,.1);border:1px dashed rgba(201,138,60,.5);font-size:12px;color:#7a5320;line-height:1.5;word-break:break-all;}
+.giris .devbox a{color:#7a5320;font-weight:700;}
+
+/* dikey başlık üstü adım göstergesi */
+.giris .steps{display:flex;gap:6px;margin:0 0 18px;}
+.giris .steps i{height:4px;flex:1;border-radius:2px;background:var(--well);}
+.giris .steps i.on{background:var(--black);}
+
+/* yükleniyor/durum ortalama */
+.giris .center{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;}

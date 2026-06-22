@@ -20,7 +20,7 @@ export const HEX_GROUP_META: { key: HexGroupKey; label: string; sade: string }[]
   { key: 'present_moment',   label: 'Şimdiki an',        sade: 'Ana odaklanma' },
   { key: 'acceptance',       label: 'Kabul',             sade: 'Duyguları kabul' },
   { key: 'defusion',         label: 'Defüzyon',          sade: 'Düşünceden ayrışma' },
-  { key: 'self_as_context',  label: 'Gözlemleyen benlik', sade: 'Kendini izleme' },
+  { key: 'self_as_context',  label: 'Bağlamsal benlik', sade: 'Gözlemleyen benlik' },
   { key: 'values_clarity',   label: 'Değerler',          sade: 'Değer netliği' },
   { key: 'committed_action', label: 'Kararlı eylem',     sade: 'Değerli adımlar' },
 ];
@@ -41,7 +41,7 @@ export const DEFAULT_HEX_SCALE: HexGroup[] = [
     { id: 'df2', text: 'Bir düşüncenin gerçek değil, sadece bir düşünce olduğunu fark edebilirim.' },
     { id: 'df3', text: 'Zihnimin söylediği her şeye inanmak zorunda olmadığımı bilirim.' },
   ] },
-  { key: 'self_as_context', label: 'Gözlemleyen benlik', sade: 'Kendini izleme', questions: [
+  { key: 'self_as_context', label: 'Bağlamsal benlik', sade: 'Gözlemleyen benlik', questions: [
     { id: 'sc1', text: 'Düşünce ve duygularımı, onlar tarafından tanımlanmadan gözlemleyebilirim.' },
     { id: 'sc2', text: 'Duygularım değişse de "ben"in değişmeden kaldığını hissederim.' },
     { id: 'sc3', text: 'Kendime, içimdeki deneyimleri izleyen bir gözlemci gibi bakabilirim.' },

@@ -145,8 +145,8 @@ export default function BriefingPage({
       onBack={() => router.back()}
       onStartSession={() => router.push(`/clients/${id}/seans/yeni`)}
       onPrint={() => window.print()}
-      onExportPdf={() => fetch(`/api/brief/${id}/pdf`)}
-      onAddTool={() => router.push('/?tab=mudahale-kutuphanesi')}
+      onExportPdf={() => window.print()}
+      onAddTool={() => router.push('/uygulama?tab=mudahale-kutuphanesi')}
       onOpenTool={(toolId) => console.log('open tool', toolId)}
       onOpenLastSession={() => router.push(`/clients/${id}`)}
     />

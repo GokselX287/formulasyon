@@ -7,8 +7,8 @@ export default function OzetIncelemePage() {
   const router = useRouter();
   return (
     <OzetInceleme
-      onBack={() => router.push('/?tab=calisma-alani')}
-      onNav={(t) => { if (t === 'home') router.push('/?tab=home'); else router.push(`/?tab=${t}`); }}
+      onBack={() => router.back()}
+      onNav={(t) => { if (t === 'home') router.push('/uygulama?tab=home'); else router.push(`/uygulama?tab=${t}`); }}
       onSave={({ mode, fields }) => {
         // TODO (AI fazı): POST /api/ozet-cikar onayı → seanslar/formulations yazımı
         // Şimdilik yalnızca kabul edilen alanları konsola döker.

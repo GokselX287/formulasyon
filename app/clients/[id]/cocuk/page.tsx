@@ -39,7 +39,7 @@ export default function CocukPage({ params }: { params: Promise<{ id: string }> 
       clientNo={`#${id}`}
       onChange={(s, v) => setData((d) => ({ ...d, [s]: v }))}
       onBack={() => router.push(`/profil/${id}`)}
-      onNav={(target) => router.push(target === 'home' ? '/' : `/?tab=${target}`)}
+      onNav={(target) => router.push(target === 'home' ? '/' : `/uygulama?tab=${target}`)}
       onAiFill={() => router.push('/ozet')}
       onSave={saveNow}
     />

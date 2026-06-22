@@ -1,7 +1,9 @@
 import { getDb } from '@/lib/db';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { ownerOr401, ownsClient, notFound } from '@/lib/tenant';
 
 export async function GET(request: NextRequest) {
+  const uid = ownerOr401(request); if (uid instanceof NextResponse) return uid;
   const { searchParams } = new URL(request.url);
   const clientId = searchParams.get('clientId') ?? searchParams.get('patientId');
   const db = getDb();
@@ -11,15 +13,16 @@ export async function GET(request: NextRequest) {
         SELECT s.*, c.alias as ad_soyad
         FROM seanslar s
         JOIN clients c ON s.client_id = c.id
-        WHERE s.client_id = ?
+        WHERE s.client_id = ? AND s.owner_id = ?
         ORDER BY s.tarih ASC
-      `).all(clientId)
+      `).all(clientId, uid)
     : db.prepare(`
         SELECT s.*, c.alias as ad_soyad
         FROM seanslar s
         JOIN clients c ON s.client_id = c.id
+        WHERE s.owner_id = ?
         ORDER BY s.tarih DESC
-      `).all()
+      `).all(uid)
   ) as any[];
 
   const result = rows.map(r => ({
@@ -41,6 +44,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const uid = ownerOr401(request); if (uid instanceof NextResponse) return uid;
   const body = await request.json();
   const db = getDb();
   const id = `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
@@ -48,12 +52,16 @@ export async function POST(request: NextRequest) {
 
   const { patientId, tarih, tip, no, anamnez, seansNotu } = body;
   const clientId = patientId ?? body.client_id;
+
+  // Bu danışan bu kullanıcının değilse 404 (varlığı sızdırma)
+  if (!ownsClient(uid, clientId)) return notFound();
+
   const DURUMLAR = ['katildi', 'katilmadi', 'ertelendi', 'iptal'];
   const durum = DURUMLAR.includes(body.durum) ? body.durum : 'katildi';
 
   db.prepare(`
-    INSERT INTO seanslar (id, client_id, tarih, tip, no, anamnez_data, seans_notu_data, durum, created_at, guncelleme_tarihi)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO seanslar (id, client_id, tarih, tip, no, anamnez_data, seans_notu_data, durum, created_at, guncelleme_tarihi, owner_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     id,
     clientId,
@@ -65,6 +73,7 @@ export async function POST(request: NextRequest) {
     durum,
     now,
     now,
+    uid,
   );
 
   return Response.json({ ok: true, id });

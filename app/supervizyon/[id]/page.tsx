@@ -27,7 +27,7 @@ export default function SupervizyonNotuPage({
       data={data}                            // undefined → component kendi mock'ını kullanır
       onBack={() => router.back()}
       onPrint={() => window.print()}
-      onExportPdf={() => window.open(`/api/supervizyon-notu/${id}/pdf`)}
+      onExportPdf={() => window.print()}
       onSave={async (next) => {
         await fetch(`/api/supervizyon-notu/${id}`, {
           method:  'PATCH',

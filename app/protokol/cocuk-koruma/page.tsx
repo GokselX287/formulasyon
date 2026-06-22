@@ -54,19 +54,19 @@ export default function CocukKorumaProtokolPage() {
   const router = useRouter();
   const [done, setDone] = useState<Set<number>>(new Set());
   const toggle = (i: number) => setDone((prev) => { const n = new Set(prev); if (n.has(i)) n.delete(i); else n.add(i); return n; });
-  const nav = (target: string) => router.push(target === 'home' ? '/' : `/?tab=${target}`);
+  const nav = (target: string) => router.push(target === 'home' ? '/' : `/uygulama?tab=${target}`);
   let n = 0; const sn = () => String(++n).padStart(2, '0');
 
   return (
     <>
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,300;1,400;1,500;1,600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,300;1,400;1,500;1,600&display=swap" rel="stylesheet" />
 
       <div className="ck2">
         <div className="shell">
           <div className="topbar">
-            <button className="back" type="button" onClick={() => router.push('/?tab=calisma-alani')}><span className="chev">‹</span>Çalışma Alanı</button>
+            <button className="back" type="button" onClick={() => router.push('/uygulama?tab=calisma-alani')}><span className="chev">‹</span>Çalışma Alanı</button>
             <button className="tb-print" type="button" onClick={() => window.print()}><svg viewBox="0 0 24 24"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2M6 14h12v7H6z" /></svg>Yazdır</button>
           </div>
 

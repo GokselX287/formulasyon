@@ -1,5 +1,6 @@
-import { getFormulationByClient, updateFormulation } from '@/lib/queries';
-import { NextRequest } from 'next/server';
+import { getFormulationByClient, updateFormulationByClient } from '@/lib/queries';
+import { ownerOr401 } from '@/lib/tenant';
+import { NextRequest, NextResponse } from 'next/server';
 
 function toAdminShape(f: ReturnType<typeof getFormulationByClient>) {
   if (!f) return null;
@@ -41,14 +42,16 @@ function toAdminShape(f: ReturnType<typeof getFormulationByClient>) {
 }
 
 // GET /api/formulations/[id] — id is client_id
-export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const uid = ownerOr401(request); if (uid instanceof NextResponse) return uid;
   const { id } = await params;
-  const f = getFormulationByClient(parseInt(id));
+  const f = getFormulationByClient(parseInt(id), uid);
   return Response.json(toAdminShape(f));
 }
 
-// PATCH /api/formulations/[id] — id is formulation row id
+// PATCH /api/formulations/[id] — id is client_id (GET ile tutarlı; 1:1 formülasyon)
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const uid = ownerOr401(request); if (uid instanceof NextResponse) return uid;
   const { id } = await params;
   const data = await request.json();
 
@@ -78,6 +81,6 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (cc in data) { mapped[sc] = data[cc]; delete mapped[cc]; }
   }
 
-  updateFormulation(parseInt(id), mapped as any);
+  updateFormulationByClient(parseInt(id), mapped as any, uid);
   return Response.json({ ok: true });
 }

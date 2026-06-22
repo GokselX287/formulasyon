@@ -7,23 +7,36 @@
 .cd2{
   --font-display:'Plus Jakarta Sans','Helvetica Neue',Arial,sans-serif;
   --font-ui:'Plus Jakarta Sans','Helvetica Neue',Arial,sans-serif;
-  --font-mono:'Space Mono',ui-monospace,'SFMono-Regular',monospace;
-  --ink:#2A2926; --ink-soft:#57554F; --ink-mute:#8C8A84; --ink-faint:#B6B4AD;
-  --on-dark:#F2F1ED; --on-dark-mute:rgba(242,241,237,.66);
-  --stage:#E6E4DF; --paper:#F1EFEA; --paper-2:#E7E4DE; --panel:#1B1A18;
-  --clay:#2A2926; --clay-soft:#D6D3CD; --sage:#6E6C66; --accent-gray:#A6A6A1;
+  --font-mono:'Plus Jakarta Sans','Helvetica Neue',Arial,sans-serif;
+  /* PREMIUM DÜZ — yüksek kontrast siyah/krem, gölge yok (anamnez ile aynı dil) */
+  --ink:#100F0D; --ink-soft:#56544D; --ink-mute:#8B887E; --ink-faint:#B9B6AD;
+  --on-dark:#F8F6F0; --on-dark-mute:rgba(248,246,240,.66);
+  --stage:#EDEAE2; --paper:#F4F1E9; --paper-2:#FBFAF6; --panel:#100F0D;
+  --clay:#100F0D; --clay-soft:#E6E3DB; --sage:#56544D; --accent-gray:#8B887E;
   --now:#B5654A; --now-soft:rgba(181,101,74,.14); --now-tint:#F4E7E2; --pos:#6E8A6E; --pos-soft:rgba(110,138,110,.16);
-  --line:rgba(42,41,38,.07); --line-2:rgba(42,41,38,.13); --line-dark:rgba(242,241,237,.14);
-  --shadow-sm:-3px -3px 8px rgba(255,255,255,.62), 4px 6px 13px -5px rgba(45,42,36,.16);
-  --shadow-card:-7px -7px 18px rgba(255,255,255,.72), 11px 14px 30px -10px rgba(45,42,36,.20);
-  --shadow-pop:-10px -10px 24px rgba(255,255,255,.7), 16px 20px 46px -12px rgba(45,42,36,.26);
+  --line:rgba(16,15,13,.13); --line-2:rgba(16,15,13,.20); --line-dark:rgba(248,246,240,.14);
+  /* "shadow" token'ları net hairline kenarlara çevrildi — kabartı/gölge yok */
+  --shadow-sm:0 0 0 1px var(--line);
+  --shadow-card:0 0 0 1px var(--line);
+  --shadow-pop:0 0 0 1px rgba(16,15,13,.16);
   --r-card:24px; --r-lg:18px; --r-md:13px; --r-pill:999px;
 }
 .cd2 *{box-sizing:border-box;}
 .cd2,.cd2{margin:0;padding:0;}
 .cd2{font-family:var(--font-ui);color:var(--ink);
-  background:radial-gradient(120% 120% at 50% 32%, #EFEDE9 0%, #E4E2DC 58%, #D7D5CE 100%);
-  background-attachment:fixed;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+  /* temanın buzlu-cam hali — shell kenarlarındaki arka plan (yumuşak frost veil + mesh) */
+  background-color:#C7A9B8;
+  background-image:
+    linear-gradient(0deg, rgba(240,237,230,.46) 0%, rgba(240,237,230,.46) 100%),
+    radial-gradient(46% 52% at 0% 2%, rgba(238,88,112,.9) 0%, rgba(238,88,112,0) 58%),
+    radial-gradient(40% 46% at 22% 8%, rgba(96,134,206,.85) 0%, rgba(96,134,206,0) 55%),
+    radial-gradient(52% 60% at 100% -2%, rgba(254,214,160,.95) 0%, rgba(254,214,160,0) 58%),
+    radial-gradient(44% 72% at 106% 62%, rgba(252,205,170,.9) 0%, rgba(252,205,170,0) 62%),
+    radial-gradient(30% 34% at 58% 72%, rgba(216,82,148,.7) 0%, rgba(216,82,148,0) 55%),
+    radial-gradient(110% 74% at 22% 116%, rgba(245,138,114,.92) 0%, rgba(245,138,114,0) 66%),
+    radial-gradient(132% 122% at 50% 40%, #CFA8B8 0%, #C499AE 55%, #B289A6 100%);
+  background-attachment:fixed;
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
   font-feature-settings:"kern" 1,"liga" 1,"calt" 1;height:100vh;overflow:hidden;display:flex;}
 .cd2 a{color:inherit;text-decoration:none;}
 .cd2 button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;}

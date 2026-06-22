@@ -34,7 +34,7 @@ export default function SupervizyonNotuYeniPage() {
       isEditing={true}
       onBack={() => router.back()}
       onPrint={() => window.print()}
-      onExportPdf={() => {}}
+      onExportPdf={() => window.print()}
       onSave={async (next) => {
         if (saved) return;
         setSaved(true);

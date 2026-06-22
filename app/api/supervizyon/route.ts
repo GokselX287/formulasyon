@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
+import { ownerOr401 } from '@/lib/tenant';
 
 // v2 tasarımı için ek alanlar — idempotent migration (varsa atlar).
 function ensureColumns(db: ReturnType<typeof getDb>) {
@@ -8,10 +9,11 @@ function ensureColumns(db: ReturnType<typeof getDb>) {
   }
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const uid = ownerOr401(req); if (uid instanceof NextResponse) return uid;
   const db = getDb();
   ensureColumns(db);
-  const rows = db.prepare('SELECT * FROM supervizyon ORDER BY created_at DESC').all() as Record<string, any>[];
+  const rows = db.prepare('SELECT * FROM supervizyon WHERE owner_id=? ORDER BY created_at DESC').all(uid) as Record<string, any>[];
   return NextResponse.json(rows.map(r => ({
     ...r,
     selectedCases: r.selected_cases ? JSON.parse(r.selected_cases) : [],
@@ -21,14 +23,15 @@ export async function GET() {
   })));
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  const uid = ownerOr401(req); if (uid instanceof NextResponse) return uid;
   const db = getDb();
   ensureColumns(db);
   const body = await req.json();
   const id = body.id || `sup_${Date.now()}`;
   db.prepare(`INSERT OR REPLACE INTO supervizyon
-    (id, tarih, supervisor, format, duration, goal, selected_cases, case_notes, tools, notes, post_notes, status, challenge, learning, case_label, created_at)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,datetime('now'))
+    (id, tarih, supervisor, format, duration, goal, selected_cases, case_notes, tools, notes, post_notes, status, challenge, learning, case_label, owner_id, created_at)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,datetime('now'))
   `).run(
     id, body.tarih ?? null, body.supervisor ?? null, body.format ?? 'bireysel',
     body.duration ?? null, body.goal ?? null,
@@ -37,6 +40,7 @@ export async function POST(req: Request) {
     JSON.stringify(body.tools ?? []),
     body.notes ?? null, body.postNotes ?? null, body.status ?? 'hazirlanıyor',
     body.challenge ?? null, body.learning ?? null, body.caseLabel ?? null,
+    uid,
   );
   return NextResponse.json({ id });
 }

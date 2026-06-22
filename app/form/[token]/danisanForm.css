@@ -9,7 +9,7 @@
 .df2{
   --font-display:'Plus Jakarta Sans','Helvetica Neue',Arial,sans-serif;
   --font-ui:'Plus Jakarta Sans','Helvetica Neue',Arial,sans-serif;
-  --font-mono:'Space Mono',ui-monospace,monospace;
+  --font-mono:'Plus Jakarta Sans','Helvetica Neue',Arial,sans-serif;
   --ink:#2A2926; --ink-soft:#57554F; --ink-mute:#8C8A84; --ink-faint:#B6B4AD;
   --paper:#FFFFFF; --paper-2:#F4F2ED; --line:rgba(42,41,38,.10); --line-2:rgba(42,41,38,.16);
   --clay:#2A2926; --on-dark:#F6F4EF; --accent-gray:#A6A6A1; --now:#B5654A; --pos:#6E8A6E;

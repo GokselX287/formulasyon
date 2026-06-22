@@ -1,5 +1,6 @@
 import { getAllPending, createPending } from '@/lib/queries';
-import { NextRequest } from 'next/server';
+import { ownerOr401 } from '@/lib/tenant';
+import { NextRequest, NextResponse } from 'next/server';
 
 function toAdminShape(p: ReturnType<typeof getAllPending>[number]) {
   return {
@@ -14,12 +15,14 @@ function toAdminShape(p: ReturnType<typeof getAllPending>[number]) {
   };
 }
 
-export async function GET() {
-  return Response.json(getAllPending().map(toAdminShape));
+export async function GET(request: NextRequest) {
+  const uid = ownerOr401(request); if (uid instanceof NextResponse) return uid;
+  return Response.json(getAllPending(uid).map(toAdminShape));
 }
 
 export async function POST(request: NextRequest) {
+  const uid = ownerOr401(request); if (uid instanceof NextResponse) return uid;
   const data = await request.json();
-  createPending(data);
+  createPending(data, uid);
   return Response.json({ ok: true });
 }

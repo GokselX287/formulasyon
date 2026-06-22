@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import './DanisanlarV2.css';
-import type { Client } from './DanisanlarPanel';
+import type { Client } from '@/lib/types';
 
 // ──────────────────────────────────────────────────────────────────────────
 // Danışanlar — "Klinik Editöryel Dosya" · Danışanlar v2.html birebir port.
@@ -67,8 +67,10 @@ export default function DanisanlarV2(props: DanisanlarV2Props) {
   const [thumb, setThumb] = useState<{ left: number; width: number } | null>(null);
   const optRefs = useRef<Record<View, HTMLButtonElement | null>>({ aktif: null, gecmis: null });
 
-  const activeClients = useMemo(() => clients.filter((c) => c.status !== 'passive'), [clients]);
-  const archiveClients = useMemo(() => clients.filter((c) => c.status === 'passive'), [clients]);
+  // Her zaman yeni tarihliden eskiye — son seans tarihine göre (tarihsizler sona).
+  const byRecent = (a: Client, b: Client) => String((b as any).lastSession ?? '').localeCompare(String((a as any).lastSession ?? ''));
+  const activeClients = useMemo(() => clients.filter((c) => c.status !== 'passive').sort(byRecent), [clients]);
+  const archiveClients = useMemo(() => clients.filter((c) => c.status === 'passive').sort(byRecent), [clients]);
 
   // Ekol filtresi yalnız gerçek ekol verisi varsa gösterilir (modality !== 'Diğer')
   const ekolOptions = useMemo(() => {
@@ -135,7 +137,7 @@ export default function DanisanlarV2(props: DanisanlarV2Props) {
     <>
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,300;1,400;1,500;1,600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,300;1,400;1,500;1,600&display=swap" rel="stylesheet" />
 
       <div className="dn2" data-view={view}>
         <div className="shell">

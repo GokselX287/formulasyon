@@ -10,6 +10,12 @@ export const dynamic = 'force-dynamic';
 
 const pExecFile = promisify(execFile);
 
+// NOT: `events ... whose start date >= ...` filtresi iCloud takviminde ~18sn sürüyor,
+// üstüne per-event özellik erişimi (summary/description/uid) her olay için ayrı Apple
+// event round-trip'i yapıp toplamı ~67sn'ye çıkarıyordu → 60sn timeout'u aşıp her sync
+// 500 dönüyordu ("takvimden veri çekmiyor"). Çözüm: `whose` YOK; tüm olayların
+// özelliklerini TEK bileşik round-trip'te liste olarak çek, tarih aralığını script
+// içinde (yerel, hızlı) filtrele. ~34sn'ye düşüyor.
 const SCRIPT = `tell application "Calendar"
   set targetCal to missing value
   repeat with aCal in calendars
@@ -22,33 +28,61 @@ const SCRIPT = `tell application "Calendar"
 
   set startRange to (current date) - (14 * days)
   set endRange to (current date) + (60 * days)
-  set calEvents to (events of targetCal whose start date >= startRange and start date <= endRange)
-  set output to ""
-  repeat with anEvent in calEvents
-    set s to start date of anEvent
-    set e to end date of anEvent
-    set sYear to year of s as string
-    set sMon to my padNum(month of s as integer)
-    set sDay to my padNum(day of s)
-    set sHour to my padNum(hours of s)
-    set sMin to my padNum(minutes of s)
-    set eYear to year of e as string
-    set eMon to my padNum(month of e as integer)
-    set eDay to my padNum(day of e)
-    set eHour to my padNum(hours of e)
-    set eMin to my padNum(minutes of e)
-    set evTitle to summary of anEvent
-    set output to output & evTitle & "|" & sYear & "-" & sMon & "-" & sDay & "T" & sHour & ":" & sMin & "|" & eYear & "-" & eMon & "-" & eDay & "T" & eHour & ":" & eMin & "\\n"
-  end repeat
-  return output
+  set {evTitles, evStarts, evEnds, evUids, evNotes} to {summary, start date, end date, uid, description} of every event of targetCal
 end tell
 
-on padNum(n)
-  if n < 10 then return "0" & (n as string)
-  return n as string
-end padNum`;
+set output to ""
+set n to count of evStarts
+repeat with i from 1 to n
+  set s to item i of evStarts
+  if s >= startRange and s <= endRange then
+    set e to item i of evEnds
+    if e is missing value then set e to s
+    set rawTitle to item i of evTitles
+    if rawTitle is missing value then
+      set evTitle to ""
+    else
+      set evTitle to my clean(rawTitle)
+    end if
+    set evNote to ""
+    set rawNotes to item i of evNotes
+    if rawNotes is not missing value then set evNote to my clean(rawNotes as string)
+    set evUid to ""
+    set rawUid to item i of evUids
+    if rawUid is not missing value then set evUid to rawUid as string
+    set output to output & evTitle & "|" & my stamp(s) & "|" & my stamp(e) & "|" & evNote & "|" & evUid & "\\n"
+  end if
+end repeat
+return output
 
-type CalEvent = { id: string; title: string; start: string; end?: string };
+on stamp(d)
+  return (year of d as string) & "-" & my padNum(month of d as integer) & "-" & my padNum(day of d) & "T" & my padNum(hours of d) & ":" & my padNum(minutes of d)
+end stamp
+
+on padNum(nn)
+  if nn < 10 then return "0" & (nn as string)
+  return nn as string
+end padNum
+
+on clean(t)
+  set t to t as string
+  set t to my replaceText(t, (ASCII character 10), " ")
+  set t to my replaceText(t, (ASCII character 13), " ")
+  set t to my replaceText(t, "|", " ")
+  return t
+end clean
+
+on replaceText(t, f, r)
+  set astid to AppleScript's text item delimiters
+  set AppleScript's text item delimiters to f
+  set parts to text items of t
+  set AppleScript's text item delimiters to r
+  set t to (parts as string)
+  set AppleScript's text item delimiters to astid
+  return t
+end replaceText`;
+
+type CalEvent = { id: string; title: string; start: string; end?: string; notes?: string; phone?: string; uid?: string };
 
 // ── Önbellek: osascript ~20sn sürüyor; boş takvim "çekmiyor" gibi görünür ──
 const TTL = 5 * 60 * 1000;        // 5 dk taze say
@@ -74,39 +108,82 @@ function parse(raw: string): CalEvent[] {
     .split('\n')
     .filter((line) => line.includes('|'))
     .map((line, i) => {
-      const [title, start, end] = line.split('|');
+      const [title, start, end, notes, uidRaw] = line.split('|');
+      const noteStr = (notes ?? '').trim();
+      const uid = (uidRaw ?? '').trim() || undefined;
+      // Notlar alanından TR cep telefonu çıkar (5XXXXXXXXX; 0/90 önekleri yok sayılır)
+      const pm = noteStr.replace(/[^\d+]/g, '').match(/(?:\+?90|0)?(5\d{9})/);
       return {
-        id: `cal_${i}_${stamp}`,
+        // uid varsa kararlı kimlik (senkronlar arası sabit) — güncelleme/silme için
+        id: uid ? `cal_${uid}` : `cal_${i}_${stamp}`,
         title: title?.trim() ?? '',
         start: start?.trim() ?? '',
         end: end?.trim() || undefined,
+        notes: noteStr || undefined,
+        phone: pm ? pm[1] : undefined,
+        uid,
       };
     })
     .filter((e) => e.title && e.start);
+}
+
+// Calendar.app kapalıyken osascript -600 ("Uygulama çalışmıyor") döndürür → takvim boş
+// görünür ("veri çekmiyor"). Sorgudan önce uygulamanın ayakta olduğundan emin ol.
+async function ensureCalendarRunning(): Promise<void> {
+  try {
+    await pExecFile('pgrep', ['-x', 'Calendar']);
+    return; // zaten çalışıyor
+  } catch { /* kapalı → arka planda başlat */ }
+  try { await pExecFile('open', ['-g', '-a', 'Calendar']); } catch { /* yoksay */ }
+  // Süreç ayağa kalkana kadar bekle (~6sn üst sınır)
+  for (let i = 0; i < 12; i++) {
+    await new Promise((r) => setTimeout(r, 500));
+    try { await pExecFile('pgrep', ['-x', 'Calendar']); return; } catch { /* devam */ }
+  }
+}
+
+// Tek osascript çalıştırması (tmp dosyası yaz → çalıştır → temizle).
+async function execScript(): Promise<string> {
+  const tmpFile = join(tmpdir(), `cal_sync_${Date.now()}.applescript`);
+  try {
+    writeFileSync(tmpFile, SCRIPT, 'utf8');
+    const { stdout } = await pExecFile('osascript', [tmpFile], {
+      encoding: 'utf8',
+      timeout: 90000, // ~34sn sürer; iCloud ağ değişkenliğine marj
+      maxBuffer: 8 * 1024 * 1024,
+    });
+    return stdout;
+  } finally {
+    try { unlinkSync(tmpFile); } catch { /* yoksay */ }
+  }
 }
 
 // Gerçek osascript senkronu — eşzamanlı çağrılar tek promise'i paylaşır.
 function runSync(): Promise<CalEvent[]> {
   if (inFlight) return inFlight;
   inFlight = (async () => {
-    const tmpFile = join(tmpdir(), `cal_sync_${Date.now()}.applescript`);
+    await ensureCalendarRunning();
+    let stdout: string;
     try {
-      writeFileSync(tmpFile, SCRIPT, 'utf8');
-      const { stdout } = await pExecFile('osascript', [tmpFile], {
-        encoding: 'utf8',
-        timeout: 60000,
-        maxBuffer: 8 * 1024 * 1024,
-      });
-      if (stdout.trim().startsWith('ERROR:NOT_FOUND')) {
-        throw new Error('Randevular calendar not found');
+      stdout = await execScript();
+    } catch (e: unknown) {
+      // -600 yarışı (süreç var ama Apple event'lere henüz hazır değil) → bir kez tazele+yeniden dene
+      const msg = e instanceof Error ? e.message : String(e);
+      if (/-600|çalışmıyor|isn'?t running|not running/i.test(msg)) {
+        try { await pExecFile('open', ['-g', '-a', 'Calendar']); } catch { /* yoksay */ }
+        await new Promise((r) => setTimeout(r, 1500));
+        stdout = await execScript();
+      } else {
+        throw e;
       }
-      const events = parse(stdout);
-      memCache = { data: events, ts: Date.now() };
-      try { writeFileSync(CACHE_FILE, JSON.stringify(memCache), 'utf8'); } catch { /* yoksay */ }
-      return events;
-    } finally {
-      try { unlinkSync(tmpFile); } catch { /* yoksay */ }
     }
+    if (stdout.trim().startsWith('ERROR:NOT_FOUND')) {
+      throw new Error('Randevular calendar not found');
+    }
+    const events = parse(stdout);
+    memCache = { data: events, ts: Date.now() };
+    try { writeFileSync(CACHE_FILE, JSON.stringify(memCache), 'utf8'); } catch { /* yoksay */ }
+    return events;
   })().finally(() => { inFlight = null; });
   return inFlight;
 }

@@ -1,5 +1,6 @@
 import { getDb } from '@/lib/db';
-import { NextRequest } from 'next/server';
+import { ownerOr401 } from '@/lib/tenant';
+import { NextRequest, NextResponse } from 'next/server';
 
 function toPanel(r: Record<string, any>) {
   return {
@@ -19,15 +20,17 @@ function toPanel(r: Record<string, any>) {
   };
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const uid = ownerOr401(req); if (uid instanceof NextResponse) return uid;
   const db = getDb();
   const rows = db
-    .prepare('SELECT * FROM supervizyon_notlari ORDER BY created_at DESC')
-    .all() as Record<string, any>[];
+    .prepare('SELECT * FROM supervizyon_notlari WHERE owner_id=? ORDER BY created_at DESC')
+    .all(uid) as Record<string, any>[];
   return Response.json(rows.map(toPanel));
 }
 
 export async function POST(req: NextRequest) {
+  const uid = ownerOr401(req); if (uid instanceof NextResponse) return uid;
   const db   = getDb();
   const body = await req.json();
 
@@ -35,8 +38,8 @@ export async function POST(req: NextRequest) {
     .prepare(`
       INSERT INTO supervizyon_notlari
         (note_no, date, case_code, topic, supervisor_name, therapist_initials,
-         segments_json, themes_json, difficulty, learning, red_flag)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         segments_json, themes_json, difficulty, learning, red_flag, owner_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `)
     .run(
       body.noteNo             ?? null,
@@ -50,6 +53,7 @@ export async function POST(req: NextRequest) {
       body.difficulty ?? null,
       body.learning   ?? null,
       body.redFlag    ?? null,
+      uid,
     );
 
   return Response.json({ id: result.lastInsertRowid });

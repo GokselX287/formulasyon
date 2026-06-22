@@ -88,3 +88,23 @@ formulasyon/
 | 07 Hikaye | Serbest anlati metni |
 | 08 Mudahaleler | Yapilan/planlanan mudahaleler, eylem adimlari |
 | 09 Iliski | Klinik notlar, kirilma/onarim, supervizyon sorulari |
+
+## Giriş / kimlik doğrulama (terapist)
+
+Uygulama tek bir terapist hesabıyla giriş arkasında çalışır. İlk açılışta `/giris`
+ekranı e-posta + şifre belirlemeni ister; bilgiler sunucuda `app_settings` içinde
+scrypt ile hash'lenerek saklanır. Oturum, HMAC imzalı httpOnly çerezdir (`siyi_session`).
+
+Gerekli ortam değişkeni (`.env.local`):
+
+```
+AUTH_SECRET=<güçlü rastgele değer>   # üret: openssl rand -base64 32
+```
+
+`AUTH_SECRET` oturum çerezini imzalar; üretimde mutlaka tanımlı olmalıdır (yoksa
+oturum imzalanamaz). İsteğe bağlı ilk-açılış bootstrap'ı: `AUTH_EMAIL` + `AUTH_PASSWORD`.
+
+Şifre değiştirme, çıkış ve **yönetim paneline geçiş**: **Ayarlar → Hesap güvenliği**.
+Yönetim paneli (`/admin`) artık ayrı bir şifre kullanmaz — giriş yapan terapist (ilk
+kullanıcı = sahip) hesabıyla açılır. Danışan paylaşım linkleri (`/form/<token>`,
+`/ozet/<token>`) giriş gerektirmez.

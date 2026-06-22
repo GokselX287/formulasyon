@@ -47,10 +47,10 @@ export default function SeansaHazirlikPage({ params }: { params: Promise<{ id: s
       lastWords={null}
       toolkit={EX_TOOLKIT}
       plan={EX_PLAN}
-      onBack={() => router.push('/?tab=calendar')}
-      onNav={(target) => router.push(target === 'home' ? '/' : `/?tab=${target}`)}
+      onBack={() => router.push('/uygulama?tab=calendar')}
+      onNav={(target) => router.push(target === 'home' ? '/' : `/uygulama?tab=${target}`)}
       onOpenFile={() => router.push(`/profil/${id}`)}
-      onOpenLibrary={() => router.push('/?tab=mudahale-kutuphanesi')}
+      onOpenLibrary={() => router.push('/uygulama?tab=mudahale-kutuphanesi')}
       onSaveIntent={(text) => {
         setIntent(text);
         fetch('/api/brief', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ patientId: id, not: text }) });

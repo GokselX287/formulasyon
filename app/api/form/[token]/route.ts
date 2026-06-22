@@ -61,8 +61,8 @@ export async function POST(req: NextRequest, { params }: Params) {
 
   const id = randomUUID();
   db.prepare(`
-    INSERT INTO form_yanitlari (id, token, client_id, form_tipi, olcek_id, yanit_data)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO form_yanitlari (id, token, client_id, form_tipi, olcek_id, yanit_data, owner_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `).run(
     id,
     token,
@@ -70,6 +70,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     link.form_tipi,
     link.olcek_id ?? null,
     typeof yanitData === 'string' ? yanitData : JSON.stringify(yanitData),
+    link.owner_id ?? null,
   );
 
   // ── Hexaflex esneklik anketi → skorları flexibility_scores'a yaz (radar güncellenir) ──
@@ -79,8 +80,8 @@ export async function POST(req: NextRequest, { params }: Params) {
       const answers: Record<string, number> = data?.answers ?? {};
       const scale: HexGroup[] = link.payload ? JSON.parse(link.payload) : [];
       const scores = scoreHexGroups(scale, answers);
-      const fml = getFormulationByClient(parseInt(String(link.client_id), 10));
-      if (fml && Object.keys(scores).length) updateScores(fml.id, scores);
+      const fml = getFormulationByClient(parseInt(String(link.client_id), 10), String(link.owner_id));
+      if (fml && Object.keys(scores).length) updateScores(fml.id, scores, String(link.owner_id));
     } catch { /* skor yazılamadıysa yanıt yine de kaydedildi */ }
   }
 

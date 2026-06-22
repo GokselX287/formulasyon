@@ -1,5 +1,6 @@
 import { getAllEvents, createEvent } from '@/lib/queries';
-import { NextRequest } from 'next/server';
+import { ownerOr401 } from '@/lib/tenant';
+import { NextRequest, NextResponse } from 'next/server';
 
 function toAdminShape(e: ReturnType<typeof getAllEvents>[number]) {
   return {
@@ -11,12 +12,14 @@ function toAdminShape(e: ReturnType<typeof getAllEvents>[number]) {
   };
 }
 
-export async function GET() {
-  return Response.json(getAllEvents().map(toAdminShape));
+export async function GET(request: NextRequest) {
+  const uid = ownerOr401(request); if (uid instanceof NextResponse) return uid;
+  return Response.json(getAllEvents(uid).map(toAdminShape));
 }
 
 export async function POST(request: NextRequest) {
+  const uid = ownerOr401(request); if (uid instanceof NextResponse) return uid;
   const data = await request.json();
-  createEvent(data);
+  createEvent(data, uid);
   return Response.json({ ok: true });
 }

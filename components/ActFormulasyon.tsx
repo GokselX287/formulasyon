@@ -75,7 +75,7 @@ function HexaflexSVG({ fields, onChange }: { fields: Fields; onChange: (k: strin
   const hexNodes = [
     { key: 'act_kacınma',   label: 'Deneyimsel\nKaçınma',        color: '#dc2626', bg: '#fef2f2', desc: 'Rahatsız edici iç deneyimlerden kaçınma' },
     { key: 'act_fuzyon',    label: 'Bilişsel\nFüzyon',            color: '#ea580c', bg: '#fff7ed', desc: 'Düşüncelere yapışma, gerçek gibi yaşama' },
-    { key: 'act_kav_ben',   label: 'Kavramlaştırılmış\nBenlik',   color: '#ca8a04', bg: '#fefce8', desc: 'Benliği hikâye olarak yaşama, katı öz-kimlik' },
+    { key: 'act_kav_ben',   label: 'Kavramsallaştırılmış\nBenlik',   color: '#ca8a04', bg: '#fefce8', desc: 'Benliği hikâye olarak yaşama, katı öz-kimlik' },
     { key: 'act_eylemsiz',  label: 'Eylemsizlik /\nKaçınma Eylemi', color: '#16a34a', bg: '#f0fdf4', desc: 'Değer uyumlu eylem eksikliği' },
     { key: 'act_deger_yok', label: 'Değerlerle\nTemas Eksikliği', color: '#0891b2', bg: '#ecfeff', desc: 'Ne önemli olduğuna dair belirsizlik' },
     { key: 'act_gez_gec',   label: 'Geçmiş/Gelecek\nTakılma',    color: '#7c3aed', bg: '#f5f3ff', desc: 'Şimdiki ana temas eksikliği' },
@@ -497,7 +497,7 @@ export default function ActFormulasyon({
       <SectionCard title="7. ACT Müdahale Planı & Seans Odağı" color="#7c3aed">
         <div className="grid grid-cols-3 gap-4">
           <Field label="Öncelikli ACT Süreci" fkey="mup_surec" fields={fields} onChange={onChange}
-            placeholder="Kabul / Defüzyon / Değerler / Kararlı Eylem / Şimdiki An / Bağlam Olarak Benlik" rows={2} accent="#7c3aed" />
+            placeholder="Kabul / Defüzyon / Değerler / Kararlı Eylem / Şimdiki An / Bağlamsal Benlik" rows={2} accent="#7c3aed" />
           <Field label="Kullanılacak Metaforlar / Egzersizler" fkey="mup_metafor" fields={fields} onChange={onChange}
             placeholder="Balçık arazisi, yolcular otobüste, gözlemci benlik, nefes…" rows={2} accent="#7c3aed" />
           <Field label="Ev Ödevi / Pratik" fkey="mup_odevis" fields={fields} onChange={onChange}

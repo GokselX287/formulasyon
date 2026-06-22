@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useState, useEffect } from 'react';
+import { use, useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import type { AnamnezData } from '@/components/AnamnezPanel';
@@ -21,6 +21,8 @@ export default function AnamnezPage({
   const [data, setData] = useState<AnamnezData>({});
   const [, setSavedAt] = useState<string | undefined>();
   const [preForm, setPreForm] = useState<PreFormResponse[]>([]);
+  // İlk GET yüklemesi oto-kaydı tetiklemesin; yalnız kullanıcı düzenleyince kaydet.
+  const dirty = useRef(false);
 
   // İlk yükleme: mevcut anamnezi + ön-formu çek
   useEffect(() => {
@@ -60,9 +62,10 @@ export default function AnamnezPage({
       .catch(() => setPreForm([]));
   }, [id]);
 
-  // Debounced autosave
+  // Debounced autosave — HER düzenlemede kaydet (veri asla kaybolmasın).
+  // Zorunlu-alan kontrolü artık kaydı BLOKLAMAZ; yalnız "tamamlandı" hatırlatması olur.
   useEffect(() => {
-    if (!Object.keys(data).length) return;
+    if (!dirty.current) return;              // ilk yükleme / kullanıcı düzenlemesi değil
     const t = setTimeout(async () => {
       await fetch(`/api/anamnez/${id}`, {
         method: 'PATCH',
@@ -70,7 +73,7 @@ export default function AnamnezPage({
         body: JSON.stringify(data),
       });
       setSavedAt('şimdi');
-    }, 1500);
+    }, 1000);
     return () => clearTimeout(t);
   }, [data, id]);
 
@@ -89,12 +92,13 @@ export default function AnamnezPage({
       clientName={data.demografik?.adSoyad}
       clientNo={`#${id}`}
       hasPreForm={preForm.length > 0}
-      onChange={(s, v) => setData((d) => ({ ...d, [s]: v }))}
-      onBack={() => router.push(`/profil/${id}`)}
-      onNav={(target) => router.push(`/?tab=${target}`)}
+      onChange={(s, v) => { dirty.current = true; setData((d) => ({ ...d, [s]: v })); }}
+      onBack={() => router.push(`/uygulama?tab=calisma-alani&room=danisanlar`)}
+      onNav={(target) => router.push(`/uygulama?tab=${target}`)}
       onAiFill={() => router.push('/ozet')}
-      onImportPreForm={() => setData((d) => mergePreForm(d, preForm))}
+      onImportPreForm={() => { dirty.current = true; setData((d) => mergePreForm(d, preForm)); }}
       onSave={saveNow}
+      onOpenDongu={() => router.push(`/clients/${id}/dongu`)}
     />
   );
 }

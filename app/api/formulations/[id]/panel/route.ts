@@ -1,5 +1,6 @@
 import { getDb } from '@/lib/db';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { ownerOr401, ownsClient, notFound } from '@/lib/tenant';
 
 // ── helpers ──────────────────────────────────────────────────────────────
 
@@ -28,17 +29,19 @@ function computeMaturity(f: Record<string, unknown>, nodeCount: number): number 
 
 // GET /api/formulations/[id]/panel — id is client_id
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const uid = ownerOr401(req); if (uid instanceof NextResponse) return uid;
   const { id } = await params;
+  if (!ownsClient(uid, id)) return notFound();
   const db = getDb();
   const clientId = parseInt(id, 10);
 
   // ── Formulation row ─────────────────────────────────────────────────
   const f = db
-    .prepare('SELECT * FROM formulations WHERE client_id = ? LIMIT 1')
-    .get(clientId) as Record<string, unknown> | undefined;
+    .prepare('SELECT * FROM formulations WHERE client_id = ? AND owner_id = ? LIMIT 1')
+    .get(clientId, uid) as Record<string, unknown> | undefined;
 
   if (!f) {
     return Response.json({
@@ -57,9 +60,9 @@ export async function GET(
   // ── 4P — prefer formulation_items, fall back to text columns ─────────
   const items = db
     .prepare(
-      `SELECT category, content FROM formulation_items WHERE formulation_id = ?`
+      `SELECT category, content FROM formulation_items WHERE formulation_id = ? AND owner_id = ?`
     )
-    .all(fid) as { category: string; content: string }[];
+    .all(fid, uid) as { category: string; content: string }[];
 
   function itemsByCategory(cat: string) {
     const fromItems = items.filter((i) => i.category === cat).map((i) => i.content);
@@ -94,9 +97,9 @@ export async function GET(
     .prepare(
       `SELECT defusion, acceptance, present_moment, self_as_context,
               values_clarity, committed_action
-       FROM flexibility_scores WHERE formulation_id = ? LIMIT 1`
+       FROM flexibility_scores WHERE formulation_id = ? AND owner_id = ? LIMIT 1`
     )
-    .get(fid) as {
+    .get(fid, uid) as {
       defusion: number | null;
       acceptance: number | null;
       present_moment: number | null;
@@ -118,15 +121,15 @@ export async function GET(
     : null;
 
   // ── Mindmap stats ─────────────────────────────────────────────────────
-  const nodeRow  = db.prepare(`SELECT COUNT(*) as c FROM mindmap_nodes WHERE patient_id = ?`).get(clientId) as { c: number };
+  const nodeRow  = db.prepare(`SELECT COUNT(*) as c FROM mindmap_nodes WHERE patient_id = ? AND owner_id = ?`).get(clientId, uid) as { c: number };
   const nodeCount = nodeRow?.c ?? 0;
 
   // edges / gaps — graceful fallback (table may use different schema)
   let edgeCount = 0;
   try {
     const edgeRow = db
-      .prepare(`SELECT COUNT(*) as c FROM mindmap_edges WHERE source_id IN (SELECT id FROM mindmap_nodes WHERE patient_id = ?)`)
-      .get(clientId) as { c: number } | undefined;
+      .prepare(`SELECT COUNT(*) as c FROM mindmap_edges WHERE source_id IN (SELECT id FROM mindmap_nodes WHERE patient_id = ? AND owner_id = ?)`)
+      .get(clientId, uid) as { c: number } | undefined;
     edgeCount = edgeRow?.c ?? 0;
   } catch {
     // mindmap_edges may not exist yet
@@ -141,8 +144,8 @@ export async function GET(
 
   // ── Session timeline (last 6 seanslar → processing intensity proxy) ──
   const seanslar = db
-    .prepare(`SELECT id, tarih FROM seanslar WHERE client_id = ? ORDER BY tarih DESC LIMIT 6`)
-    .all(clientId) as { id: string; tarih: string }[];
+    .prepare(`SELECT id, tarih FROM seanslar WHERE client_id = ? AND owner_id = ? ORDER BY tarih DESC LIMIT 6`)
+    .all(clientId, uid) as { id: string; tarih: string }[];
 
   // Proxy: node count per session (mindmap nodes added near session date)
   const sessionTimeline = seanslar

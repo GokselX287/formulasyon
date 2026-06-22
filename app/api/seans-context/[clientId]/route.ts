@@ -8,21 +8,28 @@
  */
 
 import { getDb } from '@/lib/db';
+import { NextRequest, NextResponse } from 'next/server';
+import { ownerOr401, ownsClient, notFound } from '@/lib/tenant';
 
 type DbRow = Record<string, unknown>;
 
-export async function GET(_req: Request, { params }: { params: Promise<{ clientId: string }> }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ clientId: string }> }) {
+  const uid = ownerOr401(req); if (uid instanceof NextResponse) return uid;
   const { clientId } = await params;
+
+  // Danışan bağlamı yalnızca sahibi tarafından okunabilir (varlığı sızdırma)
+  if (!ownsClient(uid, clientId)) return notFound();
+
   const db = getDb();
   const numId = Number(clientId);
 
   // Son seans
   const lastSeans = db.prepare(`
-    SELECT * FROM seanslar WHERE client_id = ? ORDER BY tarih DESC LIMIT 1
-  `).get(numId) as DbRow | undefined;
+    SELECT * FROM seanslar WHERE client_id = ? AND owner_id = ? ORDER BY tarih DESC LIMIT 1
+  `).get(numId, uid) as DbRow | undefined;
 
   // Toplam seans sayısı
-  const countRow = db.prepare(`SELECT COUNT(*) as cnt FROM seanslar WHERE client_id = ?`).get(numId) as { cnt: number };
+  const countRow = db.prepare(`SELECT COUNT(*) as cnt FROM seanslar WHERE client_id = ? AND owner_id = ?`).get(numId, uid) as { cnt: number };
   const nextSessionNumber = (countRow?.cnt ?? 0) + 1;
 
   // Sonraki randevu (takvimden — table may not exist yet)
@@ -30,9 +37,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ clientI
   try {
     nextEvent = db.prepare(`
       SELECT * FROM events WHERE title LIKE '%' || (
-        SELECT alias FROM clients WHERE id = ?
+        SELECT alias FROM clients WHERE id = ? AND owner_id = ?
       ) || '%' AND start >= datetime('now') ORDER BY start ASC LIMIT 1
-    `).get(numId) as DbRow | undefined;
+    `).get(numId, uid) as DbRow | undefined;
   } catch { /* table doesn't exist */ }
 
   // Son seans notları / detay
@@ -62,8 +69,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ clientI
   try {
     const formRow = db.prepare(`
       SELECT act_kabul, act_defuzyon, act_simdi, act_baglam, act_degerler, act_eylem
-      FROM formulations WHERE client_id = ? ORDER BY updated_at DESC LIMIT 1
-    `).get(numId) as DbRow | undefined;
+      FROM formulations WHERE client_id = ? AND owner_id = ? ORDER BY updated_at DESC LIMIT 1
+    `).get(numId, uid) as DbRow | undefined;
     if (formRow) {
       // If ACT fields are populated, suggest ACT; otherwise no modality filter
       const hasAct = Object.values(formRow).some(v => v && String(v).trim().length > 0);
@@ -72,7 +79,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ clientI
   } catch { /* formulations table may have different schema */ }
 
   // Öneri müdahaleler: client'ın yaşına göre + modaliteye göre
-  const clientRow = db.prepare(`SELECT age FROM clients WHERE id = ?`).get(numId) as DbRow | undefined;
+  const clientRow = db.prepare(`SELECT age FROM clients WHERE id = ? AND owner_id = ?`).get(numId, uid) as DbRow | undefined;
   const age = clientRow?.age ? Number(clientRow.age) : null;
   const ageGroup = !age ? 'yetiskin' : age < 7 ? 'cocuk-4-6' : age < 12 ? 'cocuk-7-11' : age < 18 ? 'ergen' : 'yetiskin';
 

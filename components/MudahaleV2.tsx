@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import './MudahaleV2.css';
-import type { Intervention } from './MudahalePanel';
+import type { Intervention, AssignTarget } from '@/lib/types';
 
 // ──────────────────────────────────────────────────────────────────────────
 // Müdahale Kütüphanesi — "Klinik Editöryel Dosya" · Müdahale v2.html port.
@@ -13,12 +13,16 @@ import type { Intervention } from './MudahalePanel';
 export type MudahaleV2Props = {
   interventions: Intervention[];
   basket: string[];
+  clients?: { id: string; name: string }[];
   onBack?(): void;
   onNav?(target: string): void;
   onToggleFavorite?(id: string): void;
   onAddToBasket?(id: string): void;
   onRemoveFromBasket?(id: string): void;
   onCreateSessionPlan?(ids: string[]): void;
+  onSavePersonalNotes?(id: string, notes: string): void;
+  onAssignToClient?(id: string, target: AssignTarget): void;
+  onExportPdf?(id: string): void;
 };
 
 const DURATION_LABEL: Record<string, string> = {
@@ -48,11 +52,13 @@ const DOCK = [
 ];
 
 export default function MudahaleV2(props: MudahaleV2Props) {
-  const { interventions, basket, onBack, onNav, onToggleFavorite, onAddToBasket, onRemoveFromBasket, onCreateSessionPlan } = props;
+  const { interventions, basket, clients, onBack, onNav, onToggleFavorite, onAddToBasket, onRemoveFromBasket, onCreateSessionPlan, onSavePersonalNotes, onAssignToClient, onExportPdf } = props;
   const [ekol, setEkol] = useState('');
   const [query, setQuery] = useState('');
   const [favOnly, setFavOnly] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [noteDraft, setNoteDraft] = useState('');
+  const [assignClient, setAssignClient] = useState('');
 
   const ekolOptions = useMemo(() => {
     const set = new Set<string>();
@@ -82,13 +88,21 @@ export default function MudahaleV2(props: MudahaleV2Props) {
     return () => document.removeEventListener('keydown', onKey);
   }, []);
 
+  // Detay açıldığında kişisel not / atama alanlarını senkronla
+  useEffect(() => {
+    const cur = openId ? interventions.find((i) => i.id === openId) : null;
+    setNoteDraft(cur?.personalNotes ?? '');
+    setAssignClient('');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openId]);
+
   const HeartIcon = () => (<svg viewBox="0 0 24 24"><path d="M12 21s-7-4.5-9.5-9A5 5 0 0 1 12 5a5 5 0 0 1 9.5 7c-2.5 4.5-9.5 9-9.5 9z" /></svg>);
 
   return (
     <>
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,300;1,400;1,500;1,600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,300;1,400;1,500;1,600&display=swap" rel="stylesheet" />
 
       <div className="mk2">
         <div className="shell">
@@ -185,16 +199,43 @@ export default function MudahaleV2(props: MudahaleV2Props) {
                       <p className="src">{srcText(open)}</p>
                     </div>
                   )}
+                  {onSavePersonalNotes && (
+                    <div className="blk">
+                      <div className="bh">Kişisel not<span className="ln" /></div>
+                      <textarea
+                        value={noteDraft}
+                        onChange={(e) => setNoteDraft(e.target.value)}
+                        onBlur={() => { if (noteDraft !== (open.personalNotes ?? '')) onSavePersonalNotes(open.id, noteDraft); }}
+                        placeholder="Bu teknikle ilgili kişisel notların…"
+                        rows={3}
+                        style={{ width: '100%', resize: 'vertical', border: '1px solid #e5e7eb', borderRadius: 10, padding: '8px 10px', font: 'inherit', fontSize: 14 }}
+                      />
+                    </div>
+                  )}
+                  {onAssignToClient && clients && clients.length > 0 && (
+                    <div className="blk">
+                      <div className="bh">Danışana ata<span className="ln" /></div>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <select value={assignClient} onChange={(e) => setAssignClient(e.target.value)} style={{ flex: 1, border: '1px solid #e5e7eb', borderRadius: 10, padding: '8px 10px', font: 'inherit', fontSize: 14, background: '#fff' }}>
+                          <option value="">Danışan seç…</option>
+                          {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        </select>
+                        <button className="btn solid" disabled={!assignClient} onClick={() => { if (assignClient) { onAssignToClient(open.id, { clientId: assignClient, when: 'sonraki-seans' }); setAssignClient(''); } }}>Ata</button>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div className="sheet-foot">
                   <button className="btn ghost" onClick={() => onToggleFavorite?.(open.id)}>
                     <svg viewBox="0 0 24 24" fill={open.favorite ? 'currentColor' : 'none'}><path d="M12 21s-7-4.5-9.5-9A5 5 0 0 1 12 5a5 5 0 0 1 9.5 7c-2.5 4.5-9.5 9-9.5 9z" /></svg>
                     {open.favorite ? 'Favoride' : 'Favorile'}
                   </button>
-                  <button className="btn solid" onClick={() => { if (inBasket(open.id)) onCreateSessionPlan?.(basket); else onAddToBasket?.(open.id); }}>
-                    <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>
-                    {inBasket(open.id) ? 'Sepette · danışana ata' : 'Seans sepetine ekle'}
-                  </button>
+                  {onExportPdf && (
+                    <button className="btn ghost" onClick={() => onExportPdf(open.id)}>
+                      <svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6z" /><path d="M14 2v6h6" /></svg>
+                      PDF
+                    </button>
+                  )}
                 </div>
               </div>
             )}

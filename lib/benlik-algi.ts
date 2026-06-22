@@ -173,9 +173,9 @@ export const NEGATIVE_KEYWORDS: readonly string[] = [
   // Tehdit / güvensizlik
   'guvenilmez', 'tehlikeli', 'korkunc', 'kontrolsuz',
   // Çaresizlik / umutsuzluk
-  'carsiz', 'umutsuz', 'anlamsiz', 'bos', 'yük', 'kayip',
+  'caresiz', 'umutsuz', 'anlamsiz', 'bos', 'yuk', 'kayip',
   // Zayıflık
-  'zayif', 'kırılgan', 'hassas', 'dayanamiyorum',
+  'zayif', 'kirilgan', 'hassas', 'dayanamiyorum',
 ];
 
 /**
@@ -184,7 +184,7 @@ export const NEGATIVE_KEYWORDS: readonly string[] = [
  */
 export const POSITIVE_KEYWORDS: readonly string[] = [
   // Yetkinlik / güç
-  'guclu', 'yetkin', 'basarabilirim', 'uzesin', 'cesur',
+  'guclu', 'yetkin', 'basarabilirim', 'ustesinden', 'cesur',
   // Kabul / açıklık
   'kabul', 'aciklik', 'ozgurluk', 'esnek', 'uyum',
   // Değerler

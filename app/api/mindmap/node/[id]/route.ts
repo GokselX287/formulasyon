@@ -1,18 +1,20 @@
 import { getDb } from '@/lib/db';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { ownerOr401 } from '@/lib/tenant';
 
 // GET /api/mindmap/node/[id]
 // Returns SelectedNode shape for FormulasyonPanel
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const uid = ownerOr401(req); if (uid instanceof NextResponse) return uid;
   const { id } = await params;
   const db = getDb();
 
   const node = db
-    .prepare('SELECT * FROM mindmap_nodes WHERE id = ?')
-    .get(id) as {
+    .prepare('SELECT * FROM mindmap_nodes WHERE id = ? AND owner_id = ?')
+    .get(id, uid) as {
       id: string;
       patient_id: number;
       parent_process: string | null;
@@ -34,11 +36,12 @@ export async function GET(
       .prepare(
         `SELECT id, tarih, konu, notlar FROM seanslar
          WHERE client_id = ?
+           AND owner_id = ?
            AND (konu LIKE ? OR notlar LIKE ?)
          ORDER BY tarih DESC
          LIMIT 3`
       )
-      .all(node.patient_id, `%${labelKeyword}%`, `%${labelKeyword}%`) as {
+      .all(node.patient_id, uid, `%${labelKeyword}%`, `%${labelKeyword}%`) as {
         id: string;
         tarih: string;
         konu: string | null;

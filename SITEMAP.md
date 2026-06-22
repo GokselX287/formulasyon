@@ -1,315 +1,110 @@
-# Klinik Asistan — Site Haritası
+# Formülasyon — Site Haritası (Gerçek Mimari)
 
-## Genel Yapı
+_Son güncelleme: 13.06.2026 · Bu doküman koddaki **canlı** yapıyı yansıtır._
 
-```
-Uygulama
-├── Navbar (sabit üstte, tam genişlik)
-│   ├── Logo: "Klinik" (Fraunces italic) + "Asistan" (Jakarta)
-│   ├── [Ana Sayfa] [Takvim & Randevular] [Danışanlar] [Formülasyon]
-│   │   [Kütüphane] [Terapist Profili] [Yol Haritası]
-│   └── CTA: "Bekleme" butonu
-│
-├── 1. ANA SAYFA (HomePanel)
-├── 2. TAKVİM & RANDEVULAR (TakvimPanel)
-├── 3. DANIŞANLAR (DanisanlarPanel)
-├── 4. FORMÜLASYON (FormulationPanel)
-├── 5. KÜTÜPHANE (KutuphanePaneli)
-├── 6. TERAPİST PROFİLİ (TerapistProfil)
-└── 7. YOL HARİTASI (TasarimArsivi)
-```
+> Önceki sürüm eski (artık silinmiş) bileşenleri anlatıyordu. Bu sürüm `app/page.tsx`
+> ve `app/**/page.tsx` route'larındaki gerçek render ağacına göre yazıldı.
 
 ---
 
-## 1. ANA SAYFA
+## Genel yapı
 
-```
-Ana Sayfa
-├── Hero (full-bleed, gradient arka plan, navbar üzerinde kayar)
-│   ├── Sol: Başlık + Alt başlık + 2 CTA butonu
-│   ├── Sağ: Editoryal istatistikler (kart yok, düz metin)
-│   │   ├── Toplam Seans Sayısı
-│   │   ├── Aktif Danışan
-│   │   ├── Süreklilik Oranı
-│   │   └── Bekleyen Randevu
-│   └── Arka plan görsel yükleme sistemi (PCden yükle / kaldır)
-│
-└── Scroll-over İçerik (hero üzerine kayar, yuvarlak üst köşe)
-    ├── Haftalık Özet Kartları (StatCard × 4)
-    │   ├── Bu Haftaki Seanslar (ring progress)
-    │   ├── Aktif Danışan
-    │   ├── Tamamlama Oranı
-    │   └── Bekleyen Görevler
-    │
-    ├── Seans Yoğunluk Grafiği (AreaChart)
-    │
-    ├── Danışan Dağılımı + Cinsiyet / Yaş kartları (yan yana)
-    │
-    ├── Seansa Girmeden: Önemli Notlar (briefing kartı, açık renk)
-    │   ├── Bir sonraki seans için hazırlık notları
-    │   └── InfoChip'ler (Seans, Danışan, Hafta, Süre)
-    │
-    ├── Bildirimler Kartı
-    │   ├── Seans hatırlatıcıları
-    │   ├── Görev bildirimleri
-    │   └── Sistem uyarıları
-    │
-    ├── Coğrafi Dağılım
-    │
-    └── Terapistin Planları
-        ├── Ruh Hali Slider
-        └── Günlük plan girişi
-```
+Uygulama iki katmandan oluşur:
+
+1. **Tek sayfa kabuğu (`app/page.tsx`)** — üst navigasyonla sekme değiştiren ana SPA.
+2. **Ayrı Next.js route'ları (`app/**/page.tsx`)** — danışan dosyası, süpervizyon, briefing gibi derin akışlar.
 
 ---
 
-## 2. TAKVİM & RANDEVULAR
+## 1. Üst navigasyon (`NAV`, app/page.tsx)
 
-```
-Takvim & Randevular
-├── Takvim Görünümü (WeekCalendar)
-│   ├── Haftalık görünüm
-│   └── Randevu kartları (tıklanabilir)
-│
-├── Randevu Paneli (RandevuPanel)
-│   ├── Yaklaşan randevular listesi
-│   └── Yeni randevu ekle
-│
-└── SMS Paneli (SmsPanel)
-    ├── Randevu hatırlatma SMS
-    └── Gönderim durumu
-```
+| Sekme (`tab`) | Etiket | Render edilen bileşen |
+|---|---|---|
+| `home` | Ana Sayfa | `AnaSayfaV3` |
+| `calisma-alani` | Çalışma Alanı | Hub + alt-sekmeler (aşağıda) |
+| `terapist` | Profil | `TerapistProfilV2` |
+| `tasarim-arsivi` | Yol Haritası | `YolHaritasiV2` |
+| `act-gelistirme` | ACT Geliştirme | `ACTGelistirmeV2` |
+
+> `mudahale-kutuphanesi` sekmesi (→ `MudahaleV2`) navigasyonda görünmez; "Kütüphane"
+> bağlantılarından açılır.
 
 ---
 
-## 3. DANIŞANLAR
+## 2. Çalışma Alanı alt-sekmeleri (`calismaSubTab`)
 
-```
-Danışanlar
-├── Alt Sekmeler: [Danışanlar] [Seanslar]
-│
-├── Danışanlar Sekmesi (IntakeInbox)
-│   ├── Danışan listesi (kartlar)
-│   │   ├── Ad, yaş, cinsiyet
-│   │   ├── Son seans tarihi
-│   │   └── Formülasyona git butonu
-│   └── Yeni danışan ekle
-│
-└── Seanslar Sekmesi (SeansPanel)
-    ├── Danışan seçimi
-    ├── Seans listesi (SeansCard × n)
-    │   ├── Tarih, süre, seans numarası
-    │   ├── SUDS / Ruh Hali skorları (slider)
-    │   └── Seans detayına git
-    └── Yeni seans ekle
-        └── Seans Detayı (SeansDetay)
-            ├── Seans notu (SeansNotuForm)
-            ├── Ölçek puanlama (slider, 0-10)
-            │   ├── SUDS (Öznel Rahatsızlık Birimi)
-            │   └── Ruh Hali
-            ├── Ödev takibi
-            └── Bir sonraki seans planı
-```
+| Alt-sekme | Render edilen bileşen | Açıklama |
+|---|---|---|
+| `hub` | `CalismaAlaniV2` | Çalışma alanı giriş/hub ekranı |
+| `takvim` | `TakvimRandevular` | Takvim & randevular (kendi alt-sekmeleri var) |
+| `danisanlar` | `DanisanlarV2` | Danışan listesi |
+| `formulasyon` | `FormulasyonV2` | Formülasyon çalışma ekranı |
+| `tasarimlar` | `TasarimDosyalariV2` | Tasarım dosyaları |
+| `muhasebe` | `MuhasebePanel` | Muhasebe/ücret takibi |
+
+### Takvim & Randevular (`TakvimRandevular`) iç sekmeleri
+`takvim` · `hazirlik` · `musaitlik` · `gecmis` · `sms` · `gelisim` · **`takip` (yeni → `TakipListesi`)** · `websitesi`
 
 ---
 
-## 4. FORMÜLASYON
+## 3. Ayrı route'lar
 
-```
-Formülasyon
-├── Danışan seçimi
-│
-├── [Yetişkin Danışan Alt Sekmeleri]
-│   ├── Formülasyon      → Ana formülasyon formu (4P + ACT + BDT alanları)
-│   ├── Ekler            → FormulasyonEkleri
-│   ├── Şemalar          → SemaTerapisi
-│   ├── Döngü            → BozuklukDongusu (interaktif SVG döngü)
-│   ├── Şablonlar        → FormulasyonSablonlari
-│   ├── Model            → ModelOlustur (BDT modeli oluşturucu)
-│   ├── ACT              → ActFormulasyon
-│   ├── Pratik           → PratikYap
-│   ├── Değer            → DegerKartlari
-│   ├── Protokol         → SeansPlanlayici
-│   └── 🌐 3D Map        → DanisanMindMap / DanisanMindMap3D
-│
-├── [Çocuk Danışan Alt Sekmeleri]
-│   ├── Çocuk Formu      → CocukDegerlendirme
-│   ├── BDT Formu        → CocukBdtForm
-│   ├── Oyun Terapisi    → OyunTerapisi
-│   ├── Ekler            → FormulasyonEkleri
-│   ├── Şemalar          → SemaTerapisi
-│   ├── Döngü            → BozuklukDongusu
-│   ├── Şablonlar        → FormulasyonSablonlari
-│   ├── Pratik           → PratikYap
-│   ├── Değer            → DegerKartlari
-│   ├── Protokol         → SeansPlanlayici
-│   └── 🌐 3D Map        → DanisanMindMap / DanisanMindMap3D
-│
-└── Vaka Haritası (VakaHaritasi) — modal olarak açılır
-```
+| Route | Render eden | Not |
+|---|---|---|
+| `/profil` | `TerapistProfilPanel` | Terapistin kendi profili |
+| `/profil/[id]` | `DanisanRaporu` | Danışanın zengin raporu/dosyası |
+| `/clients/[id]` ve `/clients/[id]/[tab]` | — | **`/profil/[id]`'ye yönlendirir** (eski 10-sekmeli dosya kaldırıldı) |
+| `/clients/[id]/anamnez` | `AnamnezPanel` | Anamnez formu |
+| `/clients/[id]/cocuk` | `CocukPanel` | Çocuk değerlendirme |
+| `/danisan/[id]` | (danışan açılış) | |
+| `/briefing/[id]` | `BriefingPanel` | Seans öncesi özet |
+| `/seansa-hazirlik/[id]` | `SeansaHazirlikV2` | Seansa hazırlık |
+| `/seans-planlayici` | `SeansPlanlayiciV2` | Seans planlayıcı |
+| `/supervizyon`, `/supervizyon/[id]`, `/supervizyon/yeni` | `SupervizyonV2` / `SupervizyonNotuPanel` | Süpervizyon |
+| `/sozluk` | `SozlukV2` | Klinik sözlük |
+| `/ozet` | `OzetInceleme` | Özet inceleme |
+| `/protokol/cocuk-koruma` | (protokol) | Çocuk koruma protokolü |
+| `/form/[token]` | (danışan formu) | Dışa açık danışan formu |
 
 ---
 
-## 5. KÜTÜPHANE
+## 4. Modaller (herhangi bir ekran üzerinde)
 
-```
-Kütüphane
-├── Alt Sekmeler: [Kütüphane] [Arşiv]
-│
-├── Kütüphane (MudahaleKutuphanesi)
-│   ├── Klinik etiket marquee (çift satır, renk kodlu kategoriler)
-│   ├── Kategori filtre butonları
-│   └── Müdahale kartları (arama + filtre)
-│
-└── Arşiv (ArchivePanel)
-    └── Arşivlenmiş içerikler
-```
+`BriefModal` (danışan briefing) · `AnamnezForm` · `VakaHaritasi` (tam ekran vaka haritası) · `OnamMetinleri`
 
 ---
 
-## 6. TERAPİST PROFİLİ
+## 5. Tasarım sistemi
 
-```
-Terapist Profili (TerapistProfil)
-├── Alt Sekmeler: [Profil] [Süpervizyon] [Onam Metinleri]
-│
-├── Profil Sekmesi
-│   ├── Ad, unvan, uzmanlık alanları
-│   ├── Eğitim bilgileri
-│   └── İletişim bilgileri
-│
-├── Süpervizyon Sekmesi (SupervizyonPanel)
-│   ├── Süpervizyon kayıtları
-│   ├── Saat takibi
-│   └── Yeni kayıt ekle
-│
-└── Onam Metinleri Sekmesi (OnamMetinleri)
-    ├── Aydınlatılmış onam metni
-    ├── Gizlilik politikası
-    └── PDF çıktı
-```
+**Editöryel primitifler — tek kaynak: `components/ui/primitives.tsx`**
+`Btn` · `Input` · `Textarea` · `Card` · `Label` · `Badge` · `Modal`
+
+> Ayrıca `components/ui/` altında shadcn tabanlı (jenerik) `button/card/label/...` seti
+> bulunur; bunlar editöryel görünümü kurmaz, yalnızca birkaç yerde kullanılır.
+
+**Renkler:** arka plan `#F4F5F8` · ana metin `#0E0F12` · ikincil `#6B7280` ·
+seans `#C2522A` · danışan `#6D28D9` · süreklilik `#166534` · bekleyen `#92400E`
+
+**Tipografi:** Başlık serif **Fraunces** (italic) · UI **Plus Jakarta Sans** · ağırlıklar 300/400/600
+
+**Sınıflar:** `.card` (glassmorphism) · `.card-dark` · `.card-stat` · `.glass` · `.pill-toggle` · `.hover-3d`
 
 ---
 
-## 7. YOL HARİTASI (TasarimArsivi)
+## 6. Tip kaynağı
 
-```
-Yol Haritası
-├── İlerleme çubuğu (n/18 tamamlandı)
-├── Filtre: [Tümü] [Bekleyen] [Tamamlandı]
-│
-└── Özellik Kartları (18 madde, tıkla → tamamlandı işaretle)
-    │
-    ├── Ölçüm Araçları (PHQ-9, GAD-7, BDI-II…)
-    ├── BDT Döngüsü Görselleştirme
-    ├── ACT Matriks Görselleştirme
-    ├── Radar Chart & Heatmap Dashboard
-    ├── Otomatik Klinik Rapor Taslağı
-    ├── Terapist Profil & Yeterlilik Takibi
-    ├── Deficit/Excess Davranış Takibi
-    ├── Kariyer Danışmanlığı & Okul Ortak Sistemi
-    ├── Ders Programı Hazırlama
-    ├── Etkinlik Dosyası Oluşturma
-    ├── Anlaşmalı Eğitimler
-    ├── Maruziyet Rasyoneli Formu
-    ├── Maruziyet Çalışma Formu
-    ├── Maruziyet Karşılaştırma Grafikleri
-    ├── Kişilik Tipleri Bilgilendirme Formları
-    ├── Örnek Formülasyon (Kişilik Tiplerine Göre)
-    ├── Kişilik Örüntüsü İçerik Kütüphanesi
-    └── Aile Bilgilendirme Formları
-```
+Ortak tipler **tek dosyada**: `lib/types.ts`
+(`Client`, `FourP`, `BeckChain`, `Hexaflex`, `SelectedNode`, `TakvimSubTab`, `GelisimEvent`,
+`AnamnezData`, `BdtSeans`, `HexaflexScores` …)
 
 ---
 
-## Danışan Dosyası (Ayrı Route: /clients/[id]/[tab])
+## Çözülen / bekleyen notlar
 
-```
-/clients/:id/
-├── Header: ← Danışanlar | [Danışan Adı] [Yaş]
-├── Sol Menü (dikey sekme çubuğu)
-│
-├── 01 Profil
-│   └── Ad, yaş, cinsiyet, meslek, medeni durum, yönlendiren
-│
-├── 02 Sorun & Hedef
-│   └── Sunulan sorun, danışan hedefi, terapist hedefi
-│
-├── 03 Bariyerler
-│   └── Engel olan düşünceler, duygular, anılar,
-│       kontrol stratejileri, dikkat kalıpları, benlik kalıpları
-│
-├── 04 Esneklik
-│   └── ACT Hexaflex radar chart (6 boyut, 0-10 slider)
-│
-├── 05 Değerler
-│   └── Temel değerler chip listesi + ACT Matrisi (4 kadrant)
-│
-├── 06 Güçlü Yanlar
-│   └── Güçlü yanlar ve kaynaklar chip listesi
-│
-├── 07 Hikaye
-│   └── Serbest anlatı metin alanı (Fraunces serif)
-│
-├── 08 Müdahaleler
-│   └── Yapılan müdahaleler, planlanan müdahaleler, eylem adımları
-│
-├── 09 İlişki
-│   └── Klinik notlar, kırılma/onarım notları, süpervizyon soruları
-│
-└── 10 Boylamsal Formülasyon
-    ├── 4P Modeli
-    │   ├── Yatkınlaştıran (Predispozan)
-    │   ├── Tetikleyici (Presipitan)
-    │   ├── Sürdürücü (Perpetuan)
-    │   └── Koruyucu (Protektif)
-    ├── Beck Bilişsel Modeli — İnanç Yapısı
-    │   ├── Temel İnançlar
-    │   ├── Ara İnançlar & Varsayımlar
-    │   └── Telafi & Başa Çıkma Stratejileri
-    └── Durumsal Tepki Zinciri
-        ├── Otomatik Düşünceler
-        ├── Duygu & Bedensel Tepkiler
-        └── Davranışlar
-```
-
----
-
-## Modal / Overlay Katmanı
-
-```
-Modaller (herhangi bir ekranın üzerinde açılabilir)
-├── BriefModal          → Danışan özet briefing
-├── FormulasyonOzetiModal → Formülasyon özeti
-├── AnamnezForm         → Anamnez formu
-└── VakaHaritası        → Interaktif vaka haritası (tam ekran)
-```
-
----
-
-## Tasarım Sistemi Referansı
-
-```
-Renkler
-├── Arka plan: #F4F5F8
-├── Yüzey: rgba(255,255,255,0.88) — glassmorphism
-├── Ana metin: #0E0F12
-├── İkincil metin: #6B7280
-├── Vurgu seans: #C2522A (turuncu-kırmızı)
-├── Vurgu danışan: #6D28D9 (mor)
-├── Vurgu süreklilik: #166534 (yeşil)
-└── Vurgu bekleyen: #92400E (amber)
-
-Tipografi
-├── Başlık serif: Fraunces (italic)
-├── UI genel: Plus Jakarta Sans
-└── Ağırlıklar: 300 (light) → 400 (regular) → 600 (semibold)
-
-Bileşen Sınıfları
-├── .card         → Glassmorphism kart (beyaz, blur, shadow)
-├── .card-dark    → Koyu gradyan kart
-├── .card-stat    → İstatistik kartı (hafif glassmorphism)
-├── .glass        → Ham glassmorphism yüzey
-├── .pill-toggle  → Segment control (filtre çubuğu)
-└── .hover-3d     → 3D hover efekti (translateY + rotateX/Y)
-```
+- ✅ **Mudahale ikizi çözüldü** — Kütüphane artık tek bileşen: `MudahaleV2`. Eski
+  `MudahalePanel`'deki PDF / kişisel not / danışana atama özellikleri V2'ye taşındı;
+  ölü `MudahalePanel`, `SeansPlanlayiciPanel`, `MudahaleDetayModal` silindi.
+- ⏳ **"Önerilen müdahaleler"** (eski panelde vardı) bağlamsal olduğu için V2'ye
+  taşınmadı — istenirse sonra eklenebilir.
+- ⏳ **`page.tsx` (4.545 satır)** hâlâ büyük — derin bölme (alt-bileşenler, veri hook'ları)
+  bir sonraki sadeleştirme turunda.

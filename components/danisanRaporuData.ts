@@ -220,7 +220,7 @@ export const PROFIL_DATA = {
       { name: "Defüzyon",      sade: "Düşüncelerden ayrışma", value: 6 },
       { name: "Kabul",         sade: "Duyguya alan açma",      value: 4 },
       { name: "Şimdiki an",    sade: "Ana dönme",              value: 7 },
-      { name: "Bağlam-benlik", sade: "Gözlemleyen benlik",     value: 5 },
+      { name: "Bağlamsal benlik", sade: "Gözlemleyen benlik",  value: 5 },
       { name: "Değerler",      sade: "Senin için önemli olan", value: 8 },
       { name: "Eylem",         sade: "Değerlere göre adım",    value: 6 }
     ]

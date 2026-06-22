@@ -55,6 +55,46 @@ export function mergePreForm(
   };
 }
 
+// ──────────────────────────────────────────────────────────────────────────
+// Türetilmiş klinik boyut: AİLE YAPISI.
+// Rigid "genel aile yapısı" alanı yerine; aile sinyalleri (anne/baba/kardeş
+// tarifleri, ebeveyn-rol, genogram, istismar) anamnezin neresinde belirirse
+// oradan OKUMA ANINDA derlenir. Hiçbir üretilmiş metin SAKLANMAZ — yalnızca
+// terapistin "baktım ve sahiplendim" damgası (derived.aile = {status,at,snapshotHash})
+// ayrıca saklanır. snapshotHash ham alanların imzasıdır; sinyaller değişince
+// damga "bayat" olur ve yeniden onay istenir. Aynı kalıp başka boyutlara genellenir.
+// ──────────────────────────────────────────────────────────────────────────
+export type DerivedRow = { l: string; v: string };
+const dtx = (s: any): string => (typeof s === 'string' ? s.trim() : '');
+
+// Ham aile sinyallerinin deterministik imzası (FNV-1a · 32-bit). istismar dahil:
+// rapora girmese de değişirse yeniden onay istensin.
+export function aileSnapshotHash(aile: any): string {
+  const a = aile || {};
+  const joined = [
+    a.genogram, a.anneTarif, a.babaTarif, a.anneBabaIliski,
+    a.kardesDurum, a.kardesTarif, a.ebeveynRolKardes, a.istismarVar, a.istismarNot,
+  ].map(dtx).join('|');
+  let h = 0x811c9dc5;
+  for (let i = 0; i < joined.length; i++) { h ^= joined.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+  return h.toString(16);
+}
+
+// Aile sinyallerini özet satırlarına derler + imzayı döndürür. (Bugünkü
+// DanisanRaporu aileRows mantığının tek, saf kaynağı.)
+export function compileAile(aile: any): { rows: DerivedRow[]; hash: string } {
+  const a = aile || {};
+  const rows: DerivedRow[] = [
+    { l: 'Ailede psikiyatrik öykü', v: dtx(a.genogram) },
+    { l: 'Anne', v: dtx(a.anneTarif) },
+    { l: 'Baba', v: dtx(a.babaTarif) },
+    { l: 'Anne–baba ilişkisi', v: dtx(a.anneBabaIliski) },
+    { l: 'Kardeşler', v: dtx(a.kardesTarif) || dtx(a.kardesDurum) },
+    { l: 'Ebeveyn rolü üstlenen kardeş', v: dtx(a.ebeveynRolKardes) },
+  ].filter((x) => x.v);
+  return { rows, hash: aileSnapshotHash(a) };
+}
+
 function phq9Class(s: number): string {
   if (s < 5) return 'Minimal';
   if (s < 10) return 'Hafif';

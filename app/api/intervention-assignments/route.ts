@@ -1,15 +1,17 @@
 import { getDb } from '@/lib/db';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { ownerOr401 } from '@/lib/tenant';
 
 export async function POST(request: NextRequest) {
+  const uid = ownerOr401(request); if (uid instanceof NextResponse) return uid;
   const data = await request.json();
   const db = getDb();
 
   const result = db.prepare(`
     INSERT INTO intervention_assignments
       (intervention_id, client_id, when_type, scheduled_date, duration_minutes,
-       as_homework, note, outcome)
-    VALUES (?,?,?,?,?,?,?,?)
+       as_homework, note, outcome, owner_id)
+    VALUES (?,?,?,?,?,?,?,?,?)
   `).run(
     Number(data.interventionId),
     Number(data.clientId),
@@ -19,6 +21,7 @@ export async function POST(request: NextRequest) {
     data.asHomework ? 1 : 0,
     data.note ?? null,
     data.outcome ?? null,
+    uid,
   );
 
   // Increment use_count

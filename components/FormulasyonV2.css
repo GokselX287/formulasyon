@@ -11,7 +11,7 @@
 .fm2{
   --font-display:'Plus Jakarta Sans','Helvetica Neue',Arial,sans-serif;
   --font-ui:'Plus Jakarta Sans','Helvetica Neue',Arial,sans-serif;
-  --font-mono:'Space Mono',ui-monospace,'SFMono-Regular',monospace;
+  --font-mono:'Plus Jakarta Sans','Helvetica Neue',Arial,sans-serif;
   --ink:#2A2926; --ink-soft:#57554F; --ink-mute:#8C8A84; --ink-faint:#B6B4AD;
   --on-dark:#F2F1ED; --on-dark-mute:rgba(242,241,237,.66);
   --stage:#E6E4DF; --paper:#F1EFEA; --paper-2:#E7E4DE; --panel:#1B1A18;
@@ -27,7 +27,20 @@
 .fm2 *{box-sizing:border-box;}
 .fm2,.fm2{margin:0;padding:0;}
 .fm2{font-family:var(--font-ui);color:var(--ink);
-  background:radial-gradient(120% 120% at 50% 32%, #EFEDE9 0%, #E4E2DC 58%, #D7D5CE 100%);
+  background-color:#C99AAE;
+  /* Calmie tema mesh + frosted veil — diğer ekranlarla aynı zemin (eski düz greige radyal değiştirildi) */
+  background-image:
+    linear-gradient(180deg, rgba(238,237,233,.42) 0px, rgba(238,237,233,.64) 120px, rgba(238,237,233,.85) 320px, rgba(238,237,233,.93) 100%),
+    radial-gradient(46% 52% at 0% 2%, rgba(238,88,112,.96) 0%, rgba(238,88,112,0) 58%),
+    radial-gradient(38% 46% at 23% 8%, rgba(96,134,206,.9) 0%, rgba(96,134,206,0) 55%),
+    radial-gradient(52% 60% at 100% -2%, rgba(254,214,160,.98) 0%, rgba(254,214,160,0) 58%),
+    radial-gradient(44% 72% at 106% 62%, rgba(252,205,170,.95) 0%, rgba(252,205,170,0) 62%),
+    radial-gradient(40% 42% at 50% 38%, rgba(124,138,186,.62) 0%, rgba(124,138,186,0) 56%),
+    radial-gradient(30% 34% at 58% 72%, rgba(216,82,148,.78) 0%, rgba(216,82,148,0) 55%),
+    radial-gradient(110% 74% at 22% 116%, rgba(245,138,114,.98) 0%, rgba(245,138,114,0) 66%),
+    radial-gradient(70% 46% at 58% 112%, rgba(248,160,138,.85) 0%, rgba(248,160,138,0) 60%),
+    radial-gradient(132% 122% at 50% 40%, #CFA8B8 0%, #C499AE 55%, #B289A6 100%);
+  background-attachment:fixed;
   background-attachment:fixed;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
   font-feature-settings:"kern" 1,"liga" 1,"calt" 1;height:100vh;overflow:hidden;display:flex;}
 .fm2 a{color:inherit;text-decoration:none;}
@@ -219,3 +232,37 @@
 .fm2 .hs-qdel:hover{color:var(--now);}
 .fm2 .hs-qadd{margin-top:9px;font-family:var(--font-mono);font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-mute);background:transparent;border:1px dashed var(--line-2);border-radius:var(--r-pill);padding:6px 12px;cursor:pointer;}
 .fm2 .hs-qadd:hover{color:var(--ink);border-color:var(--ink-faint);}
+
+/* ── Danışana özel SMS — topbar butonu + kompoze modalı ───────────────── */
+.fm2 .tb-actions{display:flex;align-items:center;gap:10px;flex:none;}
+.fm2 .tb-sms{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--ink-soft);background:var(--paper-2);
+  border:1px solid var(--line-2);border-radius:var(--r-pill);padding:10px 16px;box-shadow:var(--shadow-sm);transition:.15s;cursor:pointer;white-space:nowrap;}
+.fm2 .tb-sms:hover{transform:translateY(-1px);color:var(--ink);box-shadow:var(--shadow-card);}
+.fm2 .tb-sms svg{width:15px;height:15px;}
+.fm2 .fm-sms-overlay{position:fixed;inset:0;z-index:240;display:flex;align-items:center;justify-content:center;padding:clamp(16px,4vw,48px);
+  background:rgba(24,22,20,.46);-webkit-backdrop-filter:blur(8px) saturate(1.1);backdrop-filter:blur(8px) saturate(1.1);}
+.fm2 .fm-sms{width:min(460px,94vw);background:linear-gradient(158deg,#FFFFFF,#FAF9F7);border:1px solid rgba(0,0,0,.05);
+  border-radius:var(--r-card);box-shadow:0 44px 90px -32px rgba(20,18,16,.6);padding:22px 24px 20px;}
+.fm2 .fm-sms-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px;}
+.fm2 .fm-sms-h{display:flex;flex-direction:column;gap:3px;min-width:0;}
+.fm2 .fm-sms-h .s{font-family:var(--font-display);font-weight:600;font-size:18px;letter-spacing:-.02em;color:var(--ink);}
+.fm2 .fm-sms-h .h{font-family:var(--font-mono);font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-mute);}
+.fm2 .fm-sms-x{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--paper-2);border:1px solid var(--line-2);color:var(--ink-soft);cursor:pointer;transition:.15s;}
+.fm2 .fm-sms-x:hover{transform:scale(1.06);}
+.fm2 .fm-sms-x svg{width:14px;height:14px;stroke:currentColor;stroke-width:2.2;fill:none;}
+.fm2 .fm-sms-lbl{display:block;font-family:var(--font-mono);font-size:9.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-mute);margin:0 0 7px;}
+.fm2 .fm-sms-phone{width:100%;box-sizing:border-box;font-family:var(--font-ui);font-size:15px;color:var(--ink);background:var(--paper-2);
+  border:1px solid var(--line-2);border-radius:var(--r-md);padding:11px 14px;outline:none;box-shadow:inset 0 1px 3px rgba(45,42,36,.08);}
+.fm2 .fm-sms-note{margin:7px 0 14px;font-size:11.5px;color:var(--ink-mute);}
+.fm2 .fm-sms-body{position:relative;}
+.fm2 .fm-sms-text{width:100%;min-height:110px;resize:vertical;box-sizing:border-box;font-family:var(--font-ui);font-size:14.5px;line-height:1.55;color:var(--ink);
+  background:var(--paper-2);border:1px solid var(--line-2);border-radius:var(--r-md);padding:13px 15px 26px;outline:none;box-shadow:inset 0 1px 3px rgba(45,42,36,.08);}
+.fm2 .fm-sms-text::placeholder,.fm2 .fm-sms-phone::placeholder{color:var(--ink-faint);}
+.fm2 .fm-sms-count{position:absolute;right:13px;bottom:10px;font-family:var(--font-mono);font-size:10px;color:var(--ink-faint);}
+.fm2 .fm-sms-foot{display:flex;align-items:center;gap:14px;margin-top:16px;}
+.fm2 .fm-sms-send{display:inline-flex;align-items:center;gap:8px;background:var(--clay);color:var(--on-dark);border:none;cursor:pointer;
+  border-radius:var(--r-pill);padding:11px 22px;font-family:var(--font-ui);font-size:13.5px;font-weight:600;box-shadow:var(--shadow-card);transition:.15s;}
+.fm2 .fm-sms-send:hover{transform:translateY(-2px);}
+.fm2 .fm-sms-send:disabled{opacity:.5;cursor:default;transform:none;}
+.fm2 .fm-sms-ok{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:#4E8C6A;}
+.fm2 .fm-sms-fail{font-family:var(--font-mono);font-size:10.5px;color:#C0573B;}

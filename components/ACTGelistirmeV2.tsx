@@ -83,7 +83,7 @@ function Radar({ axes }: { axes: { ax: string; val: number }[] }) {
       {axes.map((_, i) => { const [x, y] = pt(i, R); return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="rgba(42,41,38,.10)" strokeWidth="1" />; })}
       <path d={poly} fill="url(#ag2vgf)" stroke="url(#ag2vg)" strokeWidth="2.5" strokeLinejoin="round" />
       {axes.map((a, i) => { const [x, y] = pt(i, R * (a.val / max)); return <circle key={i} cx={x} cy={y} r="3.5" fill="#fff" stroke="url(#ag2vg)" strokeWidth="2" />; })}
-      {axes.map((a, i) => { const [lx, ly] = pt(i, R + 22); const anchor = Math.abs(lx - cx) < 8 ? 'middle' : (lx > cx ? 'start' : 'end'); return <text key={i} x={lx} y={ly} textAnchor={anchor} dominantBaseline="middle" fontFamily="'Space Mono',monospace" fontSize="10" fontWeight="700" fill="#57554F">{a.ax}</text>; })}
+      {axes.map((a, i) => { const [lx, ly] = pt(i, R + 22); const anchor = Math.abs(lx - cx) < 8 ? 'middle' : (lx > cx ? 'start' : 'end'); return <text key={i} x={lx} y={ly} textAnchor={anchor} dominantBaseline="middle" fontFamily="'Plus Jakarta Sans', sans-serif" fontSize="10" fontWeight="700" fill="#57554F">{a.ax}</text>; })}
     </svg>
   );
 }
@@ -117,13 +117,13 @@ export default function ACTGelistirmeV2(props: ACTGelistirmeV2Props) {
     <>
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,300;1,400;1,500;1,600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,300;1,400;1,500;1,600&display=swap" rel="stylesheet" />
 
       <div className="ag2" data-tool={tool}>
         <div className="shell">
 
           <div className="topbar">
-            <button className="back" type="button" onClick={() => onBack?.()}><span className="chev">‹</span>Ana Sayfa</button>
+            <button className="back" type="button" onClick={() => onBack?.()}><span className="chev">‹</span>Çalışma Alanı</button>
             <span className="tb-tag">Kişisel gelişim · ekol pratiği</span>
           </div>
 
@@ -132,6 +132,9 @@ export default function ACTGelistirmeV2(props: ACTGelistirmeV2Props) {
               <span className="eyebrow">Mesleki Gelişim · ACT &amp; Ekoller</span>
               <h1>ACT <i>geliştirme</i> atölyesi</h1>
               <p>Aynı vakaya farklı pencerelerden bakmayı çalıştığın kişisel alan. Modeli seç; kendi esnekliğini, ekol bilgini ve hedeflerini izle.</p>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 10, padding: '4px 10px', borderRadius: 999, fontSize: 11, fontWeight: 600, letterSpacing: '.02em', color: 'var(--ink-soft, #6B7280)', background: 'rgba(0,0,0,.04)', border: '1px solid rgba(0,0,0,.06)' }}>
+                ÖRNEK GÖRÜNÜM · esneklik skoru, pratik ve hedefler kendi takibinle dolar
+              </span>
             </div>
 
             <div className="toolbar">

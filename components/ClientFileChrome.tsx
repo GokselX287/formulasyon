@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 
 // Eski client-file kabuğu (üst bar + sol sekme şeridi). Yeni "Klinik Editöryel
 // Dosya" tam-ekran alt-ekranları (ör. /anamnez) bu kabuğu atlar — kendi shell'i var.
-const FULLSCREEN_SUFFIXES = ['/anamnez', '/cocuk'];
+const FULLSCREEN_SUFFIXES = ['/anamnez', '/cocuk', '/dongu'];
 
 const TABS = [
   { slug: '01-profil', label: '01 Profil' },
@@ -36,7 +36,7 @@ export default function ClientFileChrome({
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <header style={{ borderBottom: '1px solid var(--line)', background: 'var(--surface)', padding: '12px 32px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-        <Link href="/" style={{ color: 'var(--ink-soft)', fontSize: '13px', textDecoration: 'none' }}>← Danisanlar</Link>
+        <Link href="/uygulama?tab=calisma-alani&room=danisanlar" style={{ color: 'var(--ink-soft)', fontSize: '13px', textDecoration: 'none' }}>← Danisanlar</Link>
         <span style={{ color: 'var(--line-strong)' }}>|</span>
         <span style={{ fontFamily: 'var(--font-fraunces), serif', fontSize: '18px' }}>{alias}</span>
         {age && <span style={{ fontSize: '13px', color: 'var(--ink-soft)' }}>{age} yas</span>}

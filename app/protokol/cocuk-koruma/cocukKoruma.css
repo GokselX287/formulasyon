@@ -8,7 +8,7 @@
 .ck2{
   --font-display:'Plus Jakarta Sans','Helvetica Neue',Arial,sans-serif;
   --font-ui:'Plus Jakarta Sans','Helvetica Neue',Arial,sans-serif;
-  --font-mono:'Space Mono',ui-monospace,'SFMono-Regular',monospace;
+  --font-mono:'Plus Jakarta Sans','Helvetica Neue',Arial,sans-serif;
   --ink:#2A2926; --ink-soft:#57554F; --ink-mute:#8C8A84; --ink-faint:#B6B4AD;
   --on-dark:#F2F1ED; --on-dark-mute:rgba(242,241,237,.66);
   --stage:#E6E4DF; --paper:#F1EFEA; --paper-2:#E7E4DE; --panel:#1B1A18;

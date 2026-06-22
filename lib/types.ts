@@ -32,7 +32,7 @@ export interface HexaflexScores {
   defuzyon: number;       // 0-10  Bilişsel defuzyon
   kabul: number;          // 0-10  Kabul / yaşantısal açıklık
   andaOlma: number;       // 0-10  Şimdiki ana temas
-  baglamBenlik: number;   // 0-10  Bağlam olarak benlik
+  baglamBenlik: number;   // 0-10  Bağlamsal benlik (gözlemleyen benlik)
   degerNetligi: number;   // 0-10  Değer netliği
   bagliEylem: number;     // 0-10  Bağlı eylem
 }
@@ -107,4 +107,123 @@ export const EMPTY_SEANS_NOTU: SeansNotuData = {
   ruhHali: 5, gundemMaddeleri: '', evOdeviTakibi: '', evOdeviTamamlandi: null,
   seansOdagi: '', kullanilanTeknikler: [], danisanTepkisi: '', gelisimGozlemi: '',
   sonrakiSeansPlani: '', evOdevi: '', riskDegerlendirme: '', riskNotu: '', terapistNotu: '',
+};
+
+// ════════════════════════════════════════════════════════════════════════
+// Tek kaynak tipler — component'ler V2'ye geçtiği için eski panel dosyaları
+// (DanisanlarPanel / FormulasyonPanel / TakvimPanel) silindi; yalnızca tip
+// için tutuldukları bu tanımlar buraya taşındı.
+// ════════════════════════════════════════════════════════════════════════
+
+// ── Danışan (eski DanisanlarPanel) ─────────────────────────────────────────
+export type ClientModality =
+  | 'BDT' | 'ACT' | 'EFT' | 'CFT' | 'EMDR' | 'Şema' | 'Diğer';
+
+export type ClientStatus = 'active' | 'passive' | 'follow';
+
+export type Client = {
+  id: string;
+  name: string;
+  age?: number;
+  issue: string;
+  modality: ClientModality;
+  sessionCount: number;
+  lastSession?: string;
+  nextAppointment?: string;
+  continuityPct: number;
+  dropRisk?: 'low' | 'medium' | 'high';
+  tags?: string[];
+  telefon?: string;
+  email?: string;
+  status?: ClientStatus;
+  exitReason?: 'completed' | 'dropout' | 'financial';
+  takipSikligi?: 'haftalik' | 'iki_haftalik' | 'aylik';
+};
+
+// ── Formülasyon (eski FormulasyonPanel) ────────────────────────────────────
+export type FormulationViewMode = 'focus' | 'gaps' | 'bdt' | 'act';
+export type FormulationVizMode  = 'harita' | 'radar' | 'dongu' | 'vaka' | 'sema';
+
+export type FourP = {
+  predisposing:  string[];
+  precipitating: string[];
+  perpetuating:  string[];
+  protective:    string[];
+};
+
+export type BeckChain = {
+  earlyLife:           string;
+  coreBelief:          string;
+  rules:               string;
+  automaticThoughts:   string[];
+};
+
+export type Hexaflex = {
+  fusion:           number;
+  avoidance:        number;
+  selfAsContent:    number;
+  presentMoment:    number;
+  values:           number;
+  committedAction:  number;
+};
+
+export type SelectedNode = {
+  id?:               string;
+  type:              string;
+  label:             string;
+  content:           string;
+  relatedSessions?:  { ix: string; date: string; quote: string }[];
+  gaps?:             string[];
+};
+
+// ── Takvim (eski TakvimPanel) ──────────────────────────────────────────────
+export type TakvimSubTab = 'takvim' | 'hazirlik' | 'musaitlik' | 'gecmis' | 'sms' | 'gelisim';
+
+export type GelisimEvent = {
+  id: string;
+  title: string;
+  date: string;      // "YYYY-MM-DD"
+  time: string;      // "HH:MM"
+  durationMin: number;
+  done?: boolean;
+};
+
+// ── Müdahale / Kütüphane (eski MudahalePanel) ──────────────────────────────
+export type Modality = 'BDT' | 'ACT' | 'EFT' | 'CFT' | 'EMDR' | 'Şema' | 'Sistemik' | 'Diğer';
+export type AgeGroup = 'yetiskin' | 'ergen' | 'cocuk-7-11' | 'cocuk-4-6' | 'cift';
+export type Format   = 'seans-ici' | 'ev-odevi' | 'psikoegitim' | 'calisma-kagidi';
+export type Duration = 'kisa' | 'orta' | 'uzun' | 'tam-seans';
+export type Evidence = 'rkc' | 'sistematik-review' | 'klinik-kilavuz' | 'vaka-serisi';
+export type Outcome  = 'yararli' | 'notr' | 'yararsiz';
+
+export type Intervention = {
+  id: string;
+  title: string;
+  modality: Modality;
+  problems: string[];
+  ageGroups: AgeGroup[];
+  format: Format;
+  duration: Duration;
+  durationMinutes?: number;
+  evidence: Evidence;
+  description: string;
+  protocol?: string[];
+  materials?: string[];
+  contraindications?: string[];
+  variants?:    { age: AgeGroup; label: string; notes: string }[];
+  references?:  { title: string; doi?: string; url?: string }[];
+  personalNotes?: string;
+  homeworkVariant?: string;
+  usageHistory?:  { clientName: string; date: string; outcome: Outcome; note?: string }[];
+  favorite?:  boolean;
+  useCount?:  number;
+};
+
+export type AssignTarget = {
+  clientId: string;
+  when: 'bugun' | 'sonraki-seans' | 'tarih';
+  date?: string;
+  durationMinutes?: number;
+  asHomework?: boolean;
+  note?: string;
 };

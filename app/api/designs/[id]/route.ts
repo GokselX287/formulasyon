@@ -1,16 +1,18 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
+import { ownerOr401 } from '@/lib/tenant';
 import path from 'path';
 import fs from 'fs';
 
 // DELETE — dosyayı sil
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const uid = ownerOr401(req); if (uid instanceof NextResponse) return uid;
   const { id } = await params;
   const db = getDb();
-  const row = db.prepare('SELECT path FROM design_files WHERE id = ?').get(id) as
+  const row = db.prepare('SELECT path FROM design_files WHERE id = ? AND owner_id = ?').get(id, uid) as
     { path: string } | undefined;
 
   if (!row) return Response.json({ error: 'Bulunamadı.' }, { status: 404 });
@@ -19,7 +21,7 @@ export async function DELETE(
   const diskPath = path.join(process.cwd(), 'public', row.path);
   if (fs.existsSync(diskPath)) fs.unlinkSync(diskPath);
 
-  db.prepare('DELETE FROM design_files WHERE id = ?').run(id);
+  db.prepare('DELETE FROM design_files WHERE id = ? AND owner_id = ?').run(id, uid);
   return Response.json({ ok: true });
 }
 
@@ -28,8 +30,9 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const uid = ownerOr401(req); if (uid instanceof NextResponse) return uid;
   const { id } = await params;
   const { notes } = await req.json() as { notes?: string };
-  getDb().prepare('UPDATE design_files SET notes = ? WHERE id = ?').run(notes ?? null, id);
+  getDb().prepare('UPDATE design_files SET notes = ? WHERE id = ? AND owner_id = ?').run(notes ?? null, id, uid);
   return Response.json({ ok: true });
 }

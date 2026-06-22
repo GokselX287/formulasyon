@@ -3,7 +3,17 @@ import { NextRequest } from 'next/server';
 
 const DEFAULTS = {
   therapistName: 'Terapist',
+  // Terapist profili — düzenlenebilir alanlar (boşsa bileşen kendi varsayılan metnini gösterir)
+  therapistTitle: '',
+  therapistAbout: '',
+  therapistLocation: '',
+  therapistEmail: '',
+  therapistPhone: '',
+  therapistSchools: '',
   smsWebhookUrl: '',
+  netgsmUser: '',
+  netgsmPassword: '',
+  netgsmHeader: '',
   smsAutoAppointmentReminder: 'true',
   smsAutoWorkshopSignup: 'true',
   smsDayOfReminder: 'true',
@@ -20,7 +30,16 @@ export async function GET() {
   const merged = { ...DEFAULTS, ...raw };
   return Response.json({
     therapistName: merged.therapistName,
+    therapistTitle: merged.therapistTitle,
+    therapistAbout: merged.therapistAbout,
+    therapistLocation: merged.therapistLocation,
+    therapistEmail: merged.therapistEmail,
+    therapistPhone: merged.therapistPhone,
+    therapistSchools: merged.therapistSchools,
     smsWebhookUrl: merged.smsWebhookUrl,
+    netgsmUser: merged.netgsmUser,
+    netgsmPassword: merged.netgsmPassword,
+    netgsmHeader: merged.netgsmHeader,
     smsAutoAppointmentReminder: merged.smsAutoAppointmentReminder === 'true',
     smsAutoWorkshopSignup: merged.smsAutoWorkshopSignup === 'true',
     smsDayOfReminder: merged.smsDayOfReminder === 'true',

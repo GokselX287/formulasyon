@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import './SupervizyonV2.css';
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -28,6 +29,7 @@ const todayISO = () => new Date().toISOString().slice(0, 10);
 
 export default function SupervizyonV2(props: SupervizyonV2Props) {
   const { onBack, onNav } = props;
+  const router = useRouter();
   const [pane, setPane] = useState<'liste' | 'form'>('liste');
   const [recs, setRecs] = useState<Rec[]>([]);
   const [saved, setSaved] = useState(false);
@@ -55,16 +57,19 @@ export default function SupervizyonV2(props: SupervizyonV2Props) {
     <>
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,300;1,400;1,500;1,600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,300;1,400;1,500;1,600&display=swap" rel="stylesheet" />
 
       <div className="sp2" data-pane={pane}>
         <div className="shell">
 
           <div className="topbar">
-            <button className="back" type="button" onClick={() => onBack?.()}><span className="chev">‹</span>Profil</button>
-            <button className={`tb-new${pane === 'form' ? ' ghost' : ''}`} type="button" onClick={() => setPane((p) => (p === 'form' ? 'liste' : 'form'))}>
-              {pane === 'form' ? 'Listeye dön' : <><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>Yeni süpervizyon notu</>}
-            </button>
+            <button className="back" type="button" onClick={() => onBack?.()}><span className="chev">‹</span>Geri</button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <button className="tb-new ghost" type="button" onClick={() => router.push('/supervizyon/yeni')}><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>Yeni vaka sunumu oluştur</button>
+              <button className={`tb-new${pane === 'form' ? ' ghost' : ''}`} type="button" onClick={() => setPane((p) => (p === 'form' ? 'liste' : 'form'))}>
+                {pane === 'form' ? 'Listeye dön' : <><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>Yeni süpervizyon notu</>}
+              </button>
+            </div>
           </div>
 
           <div className="modal-body">

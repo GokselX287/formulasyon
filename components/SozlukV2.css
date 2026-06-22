@@ -7,7 +7,7 @@
 .sz2{
   --font-display:'Plus Jakarta Sans','Helvetica Neue',Arial,sans-serif;
   --font-ui:'Plus Jakarta Sans','Helvetica Neue',Arial,sans-serif;
-  --font-mono:'Space Mono',ui-monospace,'SFMono-Regular',monospace;
+  --font-mono:'Plus Jakarta Sans','Helvetica Neue',Arial,sans-serif;
   --ink:#2A2926; --ink-soft:#57554F; --ink-mute:#8C8A84; --ink-faint:#B6B4AD;
   --on-dark:#F2F1ED; --on-dark-mute:rgba(242,241,237,.66);
   --stage:#E6E4DF; --paper:#F1EFEA; --paper-2:#E7E4DE; --panel:#1B1A18;
@@ -22,7 +22,20 @@
 .sz2 *{box-sizing:border-box;}
 .sz2,.sz2{margin:0;padding:0;}
 .sz2{font-family:var(--font-ui);color:var(--ink);
-  background:radial-gradient(120% 120% at 50% 32%, #EFEDE9 0%, #E4E2DC 58%, #D7D5CE 100%);
+  background-color:#C99AAE;
+  /* Calmie tema mesh + frosted veil — diğer ekranlarla aynı zemin (eski düz greige radyal değiştirildi) */
+  background-image:
+    linear-gradient(180deg, rgba(238,237,233,.42) 0px, rgba(238,237,233,.64) 120px, rgba(238,237,233,.85) 320px, rgba(238,237,233,.93) 100%),
+    radial-gradient(46% 52% at 0% 2%, rgba(238,88,112,.96) 0%, rgba(238,88,112,0) 58%),
+    radial-gradient(38% 46% at 23% 8%, rgba(96,134,206,.9) 0%, rgba(96,134,206,0) 55%),
+    radial-gradient(52% 60% at 100% -2%, rgba(254,214,160,.98) 0%, rgba(254,214,160,0) 58%),
+    radial-gradient(44% 72% at 106% 62%, rgba(252,205,170,.95) 0%, rgba(252,205,170,0) 62%),
+    radial-gradient(40% 42% at 50% 38%, rgba(124,138,186,.62) 0%, rgba(124,138,186,0) 56%),
+    radial-gradient(30% 34% at 58% 72%, rgba(216,82,148,.78) 0%, rgba(216,82,148,0) 55%),
+    radial-gradient(110% 74% at 22% 116%, rgba(245,138,114,.98) 0%, rgba(245,138,114,0) 66%),
+    radial-gradient(70% 46% at 58% 112%, rgba(248,160,138,.85) 0%, rgba(248,160,138,0) 60%),
+    radial-gradient(132% 122% at 50% 40%, #CFA8B8 0%, #C499AE 55%, #B289A6 100%);
+  background-attachment:fixed;
   background-attachment:fixed;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
   font-feature-settings:"kern" 1,"liga" 1,"calt" 1;height:100vh;overflow:hidden;display:flex;}
 .sz2 a{color:inherit;text-decoration:none;}

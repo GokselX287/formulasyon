@@ -1,10 +1,12 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
+import { ownerOr401 } from '@/lib/tenant';
 
 export async function PATCH(
-  req: Request,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const uid = ownerOr401(req); if (uid instanceof NextResponse) return uid;
   const { id } = await params;
   const db = getDb();
   const b = await req.json();
@@ -19,8 +21,8 @@ export async function PATCH(
         takip_notu   = ?,
         sonraki_adim = ?,
         durum        = COALESCE(?, durum)
-      WHERE id = ?
-    `).run(now, b.takipNotu ?? null, b.sonrakiAdim ?? null, b.durum ?? null, id);
+      WHERE id = ? AND owner_id = ?
+    `).run(now, b.takipNotu ?? null, b.sonrakiAdim ?? null, b.durum ?? null, id, uid);
     return NextResponse.json({ ok: true });
   }
 
@@ -42,17 +44,18 @@ export async function PATCH(
     sets.push('kapandi_at = ?'); vals.push(now);
   }
   if (!sets.length) return NextResponse.json({ ok: true });
-  vals.push(id);
-  db.prepare(`UPDATE seans_bildirimleri SET ${sets.join(', ')} WHERE id = ?`).run(...vals);
+  vals.push(id, uid);
+  db.prepare(`UPDATE seans_bildirimleri SET ${sets.join(', ')} WHERE id = ? AND owner_id = ?`).run(...vals);
 
   return NextResponse.json({ ok: true });
 }
 
 export async function DELETE(
-  _req: Request,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const uid = ownerOr401(req); if (uid instanceof NextResponse) return uid;
   const { id } = await params;
-  getDb().prepare('DELETE FROM seans_bildirimleri WHERE id=?').run(id);
+  getDb().prepare('DELETE FROM seans_bildirimleri WHERE id=? AND owner_id=?').run(id, uid);
   return NextResponse.json({ ok: true });
 }

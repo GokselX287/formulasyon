@@ -1,0 +1,452 @@
+/* =====================================================================
+   Danışan Dosyası — açılış ekranı (durum odaklı) · v2 "geliştirilmiş"
+   Handoff: Cv görsel-31 / design_handoff_danisan_dosyasi (yeni).
+   Tüm token + plastik (nöromorfik) yüzeyler .ddx altında kapsüllendi;
+   app/globals.css token'larıyla çakışmaz. Işık daima sol-üstten.
+   ===================================================================== */
+
+.ddx {
+  --font-display: 'Plus Jakarta Sans', 'Helvetica Neue', Arial, sans-serif;
+  --font-ui: 'Plus Jakarta Sans', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'Space Mono', 'Plus Jakarta Sans', 'Helvetica Neue', Arial, monospace;
+
+  --ink: #111111;
+  --ink-soft: #555555;
+  --ink-mute: #9a9a9a;
+  --ink-faint: #b3b3b3;
+  --on-dark: #F2F1ED;
+
+  --tray: #f0f0f0;
+  --card: #ffffff;
+  --chip: #f0f0f0;
+
+  --line: rgba(0, 0, 0, .07);
+  --line-2: rgba(0, 0, 0, .08);
+
+  --ok: #1f8a5b;
+  --ok-bg: rgba(31, 138, 91, .10);
+  --wait: #9a7b16;
+  --wait-bg: rgba(154, 123, 22, .10);
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, .04);
+  --r-tray: 26px;
+  --r-card: 16px;
+  --r-md: 12px;
+  --r-badge: 8px;
+  --r-pill: 999px;
+}
+
+/* SAHNE (body) — sıcak açık gri radial */
+.ddx {
+  height: 100vh; overflow: hidden; display: flex; align-items: center; justify-content: center;
+  padding: clamp(14px, 3vh, 40px);
+  background: radial-gradient(130% 120% at 50% 0%, #ECECEC 0%, #E4E4E4 60%, #D9D9D9 100%);
+  font-family: var(--font-ui); color: var(--ink);
+  -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+  font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+}
+
+/* =====================================================================
+   KABUK (şasi) — beyaz plastik
+   ===================================================================== */
+.ddx .app-shell {
+  position: relative; width: min(960px, 100%); height: min(806px, 100%); margin: 0 auto;
+  border-radius: 28px; overflow: hidden; display: flex; flex-direction: column;
+  background: radial-gradient(135% 110% at 22% -8%,
+    #ffffff 0%, #ffffff 30%, #f5f6f8 60%, #e8eaef 100%);
+  box-shadow:
+    inset 0 2px 1px rgba(255, 255, 255, 0.95),
+    inset 0 -40px 90px -50px rgba(20, 24, 33, 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 1),
+    0 44px 120px -40px rgba(0, 0, 0, .40),
+    0 8px 28px -14px rgba(0, 0, 0, .18);
+}
+.ddx .app-shell::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 40%;
+  border-radius: 28px 28px 50% 50% / 28px 28px 26% 26%;
+  background: linear-gradient(180deg,
+    rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.30) 44%, rgba(255, 255, 255, 0) 100%);
+  pointer-events: none; z-index: 1;
+}
+.ddx .app-shell::after {
+  content: ''; position: absolute; top: -22%; left: -5%; width: 38%; height: 120%;
+  transform: rotate(18deg); filter: blur(10px); pointer-events: none; z-index: 1;
+  background: linear-gradient(90deg,
+    rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.38) 50%, rgba(255, 255, 255, 0) 100%);
+}
+
+/* =====================================================================
+   ÜST BAR — KOYU plastik
+   ===================================================================== */
+.ddx .app-topbar {
+  display: flex; align-items: center; justify-content: space-between; gap: 18px;
+  position: relative; z-index: 50; flex: none; overflow: hidden; padding: 15px clamp(20px, 4vw, 36px);
+  background: radial-gradient(135% 200% at 22% -40%,
+    #3a3a3a 0%, #232323 35%, #151515 70%, #0a0a0a 100%);
+  box-shadow:
+    inset 0 2px 1px rgba(255, 255, 255, 0.20),
+    inset 0 -12px 26px -12px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.26);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.5);
+}
+.ddx .app-topbar::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 130%;
+  background: linear-gradient(180deg,
+    rgba(255, 255, 255, 0.20) 0%, rgba(255, 255, 255, 0.05) 46%, rgba(255, 255, 255, 0) 100%);
+  pointer-events: none; z-index: 0;
+}
+.ddx .app-topbar::after {
+  content: ''; position: absolute; top: -70%; left: 7%; width: 13%; height: 260%;
+  transform: rotate(18deg); filter: blur(7px); pointer-events: none; z-index: 1;
+  background: linear-gradient(90deg,
+    rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.22) 50%, rgba(255, 255, 255, 0) 100%);
+}
+.ddx .app-topbar > * { position: relative; z-index: 2; }
+
+.ddx .app-back {
+  display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-ui); font-size: 12.5px;
+  font-weight: 600; color: #15201f; padding: 8px 15px 8px 12px; border-radius: var(--r-pill);
+  background: radial-gradient(135% 160% at 22% -30%, #ffffff 0%, #f4f5f6 55%, #e7e9ea 100%);
+  border: 1px solid rgba(255, 255, 255, .7);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 1), 0 6px 14px -6px rgba(0, 0, 0, .55);
+  transition: transform .15s, filter .15s; cursor: pointer;
+}
+.ddx .app-back:hover { transform: translateX(-2px); filter: brightness(1.03); }
+.ddx .app-back .chev { font-size: 14px; color: var(--ink-mute); }
+.ddx .app-topbar-right { display: flex; align-items: center; gap: 14px; }
+
+/* kitle switch — koyu üst barda açık pill */
+.ddx .audience { position: relative; display: inline-flex; background: rgba(255, 255, 255, .14); border-radius: var(--r-pill); padding: 3px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .12); }
+.ddx .audience button {
+  position: relative; z-index: 1; font-family: var(--font-ui); font-size: 11.5px; font-weight: 600;
+  color: rgba(255, 255, 255, .6); padding: 6px 13px; border-radius: var(--r-pill); transition: color .2s;
+  white-space: nowrap; border: none; background: transparent; cursor: pointer;
+}
+.ddx .audience button[aria-pressed="true"] { color: #171717; }
+.ddx .audience .thumb {
+  position: absolute; top: 3px; bottom: 3px; border-radius: var(--r-pill); background: #fff;
+  transition: transform .25s cubic-bezier(.4, 0, .2, 1), width .25s, left .25s cubic-bezier(.4, 0, .2, 1); z-index: 0;
+}
+
+/* gövde — scroll burada */
+.ddx .app-body {
+  flex: 1; min-height: 0; position: relative; z-index: 2; overflow-y: auto; overflow-x: hidden;
+}
+.ddx .app-body::-webkit-scrollbar { width: 10px; }
+.ddx .app-body::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, .14); border-radius: 8px; border: 3px solid transparent; background-clip: content-box;
+}
+.ddx .app-body::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, .24); background-clip: content-box; }
+
+.ddx .main { display: block; padding-bottom: 70px; }
+
+/* =====================================================================
+   genel metin yardımcıları + bloklar
+   ===================================================================== */
+.ddx .dd-eyebrow {
+  font-family: var(--font-ui); font-size: 10.5px; font-weight: 700; letter-spacing: .09em;
+  text-transform: uppercase; color: var(--ink); display: block;
+}
+.ddx .dd-tray-label {
+  font-family: var(--font-ui); font-size: 14px; font-weight: 600; color: var(--ink);
+  display: block; white-space: nowrap; padding-left: 2px;
+}
+.ddx .num { font-feature-settings: "tnum" 1; }
+
+.ddx .dd-section { position: relative; display: flex; flex-direction: column;
+  padding: clamp(22px, 3.4vh, 34px) clamp(22px, 4vw, 40px); }
+.ddx .dd-section > * { width: 100%; max-width: 760px; margin-left: auto; margin-right: auto; }
+
+/* =====================================================================
+   BLOK 1 — DOSYA KİMLİĞİ (hero)
+   ===================================================================== */
+.ddx .dd-top { display: grid; grid-template-columns: minmax(0, 1fr) clamp(260px, 33vw, 330px);
+  gap: clamp(22px, 4vw, 46px); align-items: start; }
+@media (max-width: 820px) { .ddx .dd-top { grid-template-columns: 1fr; } }
+
+/* kimlik kartı — COOL SAGE-TEAL plastik */
+.ddx .dd-id {
+  position: relative; overflow: hidden;
+  display: flex; gap: 16px; align-items: flex-start;
+  padding: 24px 26px; border-radius: 24px;
+  background: radial-gradient(135% 110% at 22% -10%,
+    #e3ecec 0%, #d6e1e1 30%, #b9cdce 62%, #a4babb 100%);
+  box-shadow:
+    inset 0 2px 1px rgba(255, 255, 255, 0.85),
+    inset 0 -26px 52px -20px rgba(20, 30, 32, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 28px 50px -28px rgba(30, 45, 48, 0.40),
+    0 2px 6px rgba(30, 45, 48, 0.10);
+}
+.ddx .dd-id::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 58%;
+  border-radius: 24px 24px 50% 50% / 24px 24px 30% 30%;
+  background: linear-gradient(180deg,
+    rgba(255, 255, 255, 0.80) 0%, rgba(255, 255, 255, 0.28) 42%, rgba(255, 255, 255, 0) 100%);
+  pointer-events: none; z-index: 1;
+}
+.ddx .dd-id::after {
+  content: ''; position: absolute; top: -40%; left: -6%; width: 34%; height: 120%;
+  transform: rotate(18deg); filter: blur(7px); pointer-events: none; z-index: 1;
+  background: linear-gradient(90deg,
+    rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.50) 50%, rgba(255, 255, 255, 0) 100%);
+}
+.ddx .dd-id > * { position: relative; z-index: 2; }
+.ddx .dd-id .dd-eyebrow { color: rgba(20, 33, 35, 0.58); }
+
+/* monogram — KOYU plastik, krem harf */
+.ddx .dd-monogram {
+  width: 54px; height: 54px; flex: none; border-radius: 15px; display: grid; place-items: center;
+  font-family: var(--font-display); font-weight: 700; font-size: 15.5px; letter-spacing: .01em; color: #F2F1ED;
+  background: radial-gradient(135% 110% at 22% -10%, #3a3a3a 0%, #232323 40%, #0f0f0f 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 5px 12px -4px rgba(20, 30, 32, 0.55);
+}
+.ddx .dd-name { font-family: var(--font-display); font-weight: 700; font-size: clamp(26px, 3vw, 32px);
+  line-height: 1.04; letter-spacing: -.015em; color: #16201f; margin: 9px 0 0; }
+.ddx .dd-name span { font-weight: 400; color: rgba(22, 32, 31, 0.50); }
+.ddx .dd-status { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 14px; }
+.ddx .dd-chip { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; font-family: var(--font-ui);
+  font-size: 12px; font-weight: 600; color: var(--ink-soft); padding: 6px 12px; border-radius: var(--r-pill);
+  background: var(--chip); }
+.ddx .dd-chip .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-mute); }
+.ddx .dd-chip.live .dot { background: var(--ok); }
+.ddx .dd-id .dd-chip.live { background: rgba(255, 255, 255, 0.55); }
+.ddx .dd-chip.soft { background: transparent; color: var(--ink-mute); border: 1px solid var(--line-2); }
+.ddx .dd-id .dd-chip.soft { color: rgba(22, 33, 32, 0.62); border-color: rgba(20, 33, 35, 0.20); }
+
+/* sağ — "Dosya durumu" tepsisi → KOYU plastik */
+.ddx .dd-tray {
+  position: relative; overflow: hidden;
+  border-radius: var(--r-tray); padding: 20px;
+  background: radial-gradient(135% 130% at 22% -20%,
+    #3a3a3a 0%, #262626 38%, #161616 72%, #0a0a0a 100%);
+  box-shadow:
+    inset 0 2px 1px rgba(255, 255, 255, 0.18),
+    inset 0 -30px 60px -28px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 28px 50px -28px rgba(0, 0, 0, 0.55),
+    0 2px 6px rgba(0, 0, 0, 0.30);
+}
+.ddx .dd-tray::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 46%;
+  background: linear-gradient(180deg,
+    rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.04) 46%, rgba(255, 255, 255, 0) 100%);
+  pointer-events: none; z-index: 0;
+}
+.ddx .dd-tray > * { position: relative; z-index: 1; }
+.ddx .dd-tray .dd-tray-label { color: #F2F1ED; }
+
+/* iç beyaz kart */
+.ddx .dd-statuscard {
+  position: relative; overflow: hidden;
+  border-radius: var(--r-card); padding: 20px 22px; margin-top: 12px;
+  background: radial-gradient(135% 110% at 22% -10%,
+    #ffffff 0%, #ffffff 32%, #f4f5f7 62%, #e7e9ee 100%);
+  box-shadow:
+    inset 0 2px 1px rgba(255, 255, 255, 0.95),
+    inset 0 -22px 44px -18px rgba(20, 24, 33, 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 1),
+    0 28px 50px -28px rgba(20, 24, 33, 0.34),
+    0 2px 6px rgba(20, 24, 33, 0.06);
+}
+.ddx .dd-statuscard::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 58%;
+  border-radius: 16px 16px 50% 50% / 16px 16px 30% 30%;
+  background: linear-gradient(180deg,
+    rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.32) 42%, rgba(255, 255, 255, 0) 100%);
+  pointer-events: none; z-index: 1;
+}
+.ddx .dd-statuscard::after {
+  content: ''; position: absolute; top: -40%; left: -10%; width: 55%; height: 120%;
+  transform: rotate(18deg); filter: blur(6px); pointer-events: none; z-index: 1;
+  background: linear-gradient(90deg,
+    rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.55) 50%, rgba(255, 255, 255, 0) 100%);
+}
+.ddx .dd-statuscard > * { position: relative; z-index: 2; }
+.ddx .dd-stage { display: flex; align-items: baseline; gap: 8px; }
+.ddx .dd-stage .big { font-family: var(--font-display); font-weight: 700; font-size: 32px; line-height: 1;
+  letter-spacing: -.02em; color: var(--ink); }
+.ddx .dd-stage .den { font-family: var(--font-ui); font-size: 12.5px; font-weight: 500; color: var(--ink-mute); }
+.ddx .dd-stagedesc { font-family: var(--font-ui); font-size: 14px; font-weight: 600; color: var(--ink); margin: 8px 0 0; }
+.ddx .dd-track { height: 6px; border-radius: var(--r-pill); background: var(--tray); margin: 13px 0 0; overflow: hidden; }
+.ddx .dd-track > span { display: block; height: 100%; border-radius: var(--r-pill); background: var(--ink);
+  transition: width .5s cubic-bezier(.4, 0, .2, 1); }
+.ddx .dd-meta { margin-top: 13px; display: flex; flex-direction: column; }
+.ddx .dd-meta .row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  padding: 9px 0; border-top: 1px solid var(--line); }
+.ddx .dd-meta .row:first-child { border-top: none; padding-top: 3px; }
+.ddx .dd-meta .k { font-family: var(--font-ui); font-size: 14px; font-weight: 600; color: var(--ink); white-space: nowrap; }
+.ddx .dd-meta .v { font-family: var(--font-ui); font-size: 12.5px; font-weight: 600; color: var(--ink-soft); white-space: nowrap; }
+
+/* =====================================================================
+   BLOK 2 — DOSYA SÜRECİ (pipeline)
+   ===================================================================== */
+/* tepsi — COOL SAGE-TEAL plastik (kimlik kartıyla aynı) */
+.ddx .dd-pipe-tray {
+  position: relative; overflow: hidden;
+  border-radius: var(--r-tray); padding: 24px 26px 26px;
+  background: radial-gradient(135% 110% at 22% -10%,
+    #e3ecec 0%, #d6e1e1 30%, #b9cdce 62%, #a4babb 100%);
+  box-shadow:
+    inset 0 2px 1px rgba(255, 255, 255, 0.85),
+    inset 0 -26px 52px -20px rgba(20, 30, 32, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 28px 50px -28px rgba(30, 45, 48, 0.40),
+    0 2px 6px rgba(30, 45, 48, 0.10);
+}
+.ddx .dd-pipe-tray::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 46%;
+  background: linear-gradient(180deg,
+    rgba(255, 255, 255, 0.80) 0%, rgba(255, 255, 255, 0.28) 42%, rgba(255, 255, 255, 0) 100%);
+  pointer-events: none; z-index: 0;
+}
+.ddx .dd-pipe-tray::after {
+  content: ''; position: absolute; left: -10%; top: 8%; width: 70%; height: 60%;
+  background: radial-gradient(60% 80% at 40% 30%, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0) 70%);
+  transform: rotate(-18deg); filter: blur(6px); pointer-events: none; z-index: 0;
+}
+.ddx .dd-pipe-tray > * { position: relative; z-index: 1; }
+.ddx .dd-pipe-tray .dd-tray-label { color: var(--ink); font-size: 17px; font-weight: 700; letter-spacing: -.01em; }
+.ddx .dd-pipe-intro { font-family: var(--font-ui); font-size: 13px; line-height: 1.5; color: var(--ink);
+  margin: 9px 0 0; max-width: 62ch; }
+.ddx .dd-pipe-intro b { font-weight: 700; color: var(--ink); }
+
+.ddx .dd-pipe { list-style: none; margin: 0; padding: 0; }
+.ddx .dd-pipe-card { background: var(--card); border-radius: var(--r-card); padding: 6px 44px 6px 48px;
+  box-shadow: var(--shadow-card); margin-top: 22px; }
+.ddx .dd-step { position: relative; padding: 15px 0; border-top: 1px solid var(--line); }
+.ddx .dd-step:first-child { border-top: none; }
+.ddx .dd-step::before { content: ""; position: absolute; left: 11px; top: 0; bottom: 0; width: 2px;
+  background: var(--line-2); z-index: 0; }
+.ddx .dd-step:first-child::before { top: 30px; }
+.ddx .dd-step:last-child::before { bottom: auto; height: 30px; }
+.ddx .dd-head { position: relative; z-index: 1; display: flex; align-items: center; gap: 13px; min-height: 30px; }
+.ddx .dd-no { position: relative; z-index: 1; flex: none; width: 24px; height: 24px; border-radius: 50%; display: grid;
+  place-items: center; font-family: var(--font-ui); font-size: 10px; font-weight: 700; letter-spacing: .01em; }
+.ddx .is-active .dd-no, .ddx .is-done .dd-no { background: #111; color: #fff; }
+.ddx .is-done .dd-no svg { width: 12px; height: 12px; }
+.ddx .is-locked .dd-no { background: var(--chip); color: var(--ink-mute); border: 1px solid var(--line); }
+.ddx .dd-step-title { flex: 1; min-width: 0; font-family: var(--font-ui); font-size: 15px; font-weight: 600;
+  color: var(--ink); line-height: 1.3; }
+.ddx .is-locked .dd-step-title { color: var(--ink-mute); font-weight: 500; }
+.ddx .dd-sub { position: relative; z-index: 1; padding-left: 37px; }
+.ddx .dd-desc { font-family: var(--font-ui); font-size: 12.5px; line-height: 1.45; color: var(--ink-soft);
+  margin: 3px 0 0; max-width: 52ch; }
+.ddx .is-locked .dd-desc { color: var(--ink-mute); }
+.ddx .dd-caps { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 11px; }
+.ddx .dd-caps .cap { font-family: var(--font-ui); font-size: 11.5px; font-weight: 500; color: var(--ink-soft);
+  background: var(--chip); border-radius: var(--r-pill); padding: 4px 11px; }
+@media (max-width: 560px) { .ddx .dd-caps { display: none; } }
+.ddx .dd-step-meta { flex: none; display: flex; align-items: center; gap: 9px; }
+.ddx .dd-state { display: inline-flex; align-items: center; gap: 5px; font-family: var(--font-mono); font-size: 9px;
+  font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding: 5px 9px;
+  border-radius: var(--r-badge); white-space: nowrap; }
+.ddx .dd-state.now { background: #111; color: #fff; }
+.ddx .dd-state.done { background: var(--ok-bg); color: var(--ok); }
+.ddx .dd-state.locked { background: var(--chip); color: var(--ink-mute); }
+.ddx .dd-go { flex: none; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+  background: #111; color: #fff; transition: transform .15s; border: none; cursor: pointer; }
+.ddx .dd-go:hover { transform: translateX(2px); }
+.ddx .dd-go svg { width: 15px; height: 15px; }
+.ddx .dd-step.is-active .dd-head { cursor: pointer; }
+
+/* =====================================================================
+   SAĞ KENAR NAV (scroll-spy) — <1080px gizli
+   ===================================================================== */
+.ddx .railnav { position: absolute; right: clamp(8px, 1.4vw, 16px); top: 50%; transform: translateY(-50%);
+  z-index: 55; display: flex; flex-direction: column; gap: 3px; align-items: flex-end; }
+.ddx .rn-item { display: flex; align-items: center; gap: 10px; justify-content: flex-end; padding: 5px 2px;
+  cursor: pointer; border: none; background: none; }
+.ddx .rn-label { font-family: var(--font-ui); font-size: 11.5px; font-weight: 600; color: var(--ink-soft);
+  opacity: 0; transform: translateX(6px); transition: .25s; max-width: 0; white-space: nowrap; overflow: hidden; }
+.ddx .rn-tick { width: 20px; height: 2px; border-radius: 2px; background: var(--ink-faint); opacity: .6;
+  transition: .25s; flex: none; }
+.ddx .railnav:hover .rn-label { opacity: 1; transform: none; max-width: 200px; }
+.ddx .rn-item:hover .rn-tick { background: var(--ink); opacity: 1; }
+.ddx .rn-item.active .rn-tick { width: 32px; background: var(--ink); opacity: 1; }
+.ddx .rn-item.active .rn-label { color: var(--ink); }
+@media (max-width: 1080px) { .ddx .railnav { display: none; } }
+
+/* boş/yükleniyor durumu */
+.ddx .dd-loading { padding: 60px 40px; text-align: center; color: var(--ink-mute);
+  font-family: var(--font-ui); font-size: 14px; }
+
+/* kitle modu görünürlüğü — .ddx[data-mode] altında kapsüllü */
+.ddx[data-mode="danisan"] .terapist-only { display: none !important; }
+.ddx .danisan-only { display: none; }
+.ddx[data-mode="danisan"] .danisan-only { display: initial; }
+
+/* =====================================================================
+   BLOK — DANIŞAN VERİSİ (yan sekme içeriği bu ekranda + eksik işaretleri)
+   ===================================================================== */
+.ddx .dd-data-tray {
+  position: relative; overflow: hidden;
+  border-radius: var(--r-tray); padding: 24px 26px 26px;
+  background: radial-gradient(135% 110% at 22% -10%,
+    #e3ecec 0%, #d6e1e1 30%, #b9cdce 62%, #a4babb 100%);
+  box-shadow:
+    inset 0 2px 1px rgba(255, 255, 255, .85),
+    inset 0 -26px 52px -20px rgba(20, 30, 32, .16),
+    inset 0 1px 0 rgba(255, 255, 255, .95),
+    0 28px 50px -28px rgba(30, 45, 48, .40),
+    0 2px 6px rgba(30, 45, 48, .10);
+}
+.ddx .dd-data-tray::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 42%;
+  background: linear-gradient(180deg,
+    rgba(255, 255, 255, .78) 0%, rgba(255, 255, 255, .26) 42%, rgba(255, 255, 255, 0) 100%);
+  pointer-events: none; z-index: 0;
+}
+.ddx .dd-data-tray > * { position: relative; z-index: 1; }
+.ddx .dd-data-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.ddx .dd-data-tray .dd-tray-label { color: var(--ink); font-size: 17px; font-weight: 700; letter-spacing: -.01em; }
+.ddx .dd-data-fill { font-family: var(--font-mono); font-size: 11.5px; color: rgba(20, 33, 35, .6); white-space: nowrap; }
+.ddx .dd-data-fill b { color: #16201f; }
+.ddx .dd-data-fill i { font-style: normal; color: #8a6d10; }
+
+/* sekme seçici — alternatif görünüm */
+.ddx .dd-tabs { display: flex; gap: 7px; flex-wrap: wrap; margin: 16px 0; }
+.ddx .dd-tab {
+  display: inline-flex; align-items: center; gap: 7px; font-family: var(--font-ui); font-size: 12.5px;
+  font-weight: 600; color: var(--ink-soft); background: rgba(255, 255, 255, .6); border: 1px solid rgba(255, 255, 255, .7);
+  border-radius: var(--r-pill); padding: 8px 15px; cursor: pointer; transition: .15s;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .8), 0 2px 5px -3px rgba(20, 30, 32, .4);
+}
+.ddx .dd-tab:hover { color: var(--ink); }
+.ddx .dd-tab.on { background: #151515; color: #F2F1ED; border-color: #0a0a0a;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2), 0 4px 10px -5px rgba(0, 0, 0, .6); }
+.ddx .dd-tab-miss {
+  font-family: var(--font-mono); font-size: 10px; font-weight: 700; min-width: 16px; height: 16px; padding: 0 5px;
+  border-radius: 999px; display: grid; place-items: center; background: var(--wait-bg); color: var(--wait);
+}
+.ddx .dd-tab.on .dd-tab-miss { background: rgba(255, 255, 255, .22); color: #fff; }
+
+/* grup kartları — masonry akış (değişken yükseklik) */
+.ddx .dd-data-body { column-count: 2; column-gap: 12px; }
+@media (max-width: 720px) { .ddx .dd-data-body { column-count: 1; } }
+.ddx .dd-grp {
+  break-inside: avoid; margin-bottom: 12px; background: var(--card); border-radius: var(--r-card); padding: 15px 17px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 1), 0 2px 6px -3px rgba(20, 30, 32, .18);
+}
+.ddx .dd-grp-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.ddx .dd-grp-title { font-family: var(--font-ui); font-size: 13.5px; font-weight: 700; color: var(--ink); letter-spacing: -.01em; }
+.ddx .dd-grp-count { font-family: var(--font-mono); font-size: 10.5px; font-weight: 700; padding: 2px 8px;
+  border-radius: var(--r-badge); white-space: nowrap; }
+.ddx .dd-grp-count.full { color: var(--ok); background: var(--ok-bg); }
+.ddx .dd-grp-count.has-miss { color: var(--wait); background: var(--wait-bg); }
+.ddx .dd-rows { display: flex; flex-direction: column; }
+.ddx .dd-drow { display: grid; grid-template-columns: 112px 1fr; gap: 12px; padding: 7px 0;
+  border-top: 1px solid var(--line); font-family: var(--font-ui); font-size: 12.5px; }
+.ddx .dd-drow:first-child { border-top: none; padding-top: 2px; }
+.ddx .dd-drow-k { color: var(--ink-mute); font-weight: 600; line-height: 1.4; }
+.ddx .dd-drow-v { color: var(--ink); font-weight: 500; line-height: 1.45; word-break: break-word; }
+.ddx .dd-drow.empty .dd-drow-k { color: var(--ink-faint); }
+.ddx .dd-miss { font-style: normal; font-family: var(--font-mono); font-size: 9.5px; font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--wait); background: var(--wait-bg); padding: 2px 8px; border-radius: var(--r-badge); }
+.ddx .dd-grp-cta { margin-top: 13px; display: inline-flex; align-items: center; gap: 7px; font-family: var(--font-ui);
+  font-size: 11.5px; font-weight: 700; color: var(--ink); background: transparent; border: 1px solid var(--line-2);
+  border-radius: var(--r-pill); padding: 7px 13px; cursor: pointer; transition: .15s; }
+.ddx .dd-grp-cta:hover { background: #111; color: #fff; border-color: #111; }
+.ddx .dd-grp-cta svg { width: 13px; height: 13px; }
+@media (max-width: 720px) { .ddx .dd-drow { grid-template-columns: 1fr; gap: 2px; } }

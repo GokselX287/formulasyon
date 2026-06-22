@@ -19,11 +19,11 @@ const ph = (text: string) => (
 );
 
 const SigBlock = ({ fields }: { fields: [string, string][] }) => (
-  <div className="bg-gray-50 rounded-2xl p-5 mt-4 grid grid-cols-2 gap-6 text-sm text-gray-500">
+  <div className="bg-[#FAF8F5] rounded-2xl p-5 mt-4 grid grid-cols-2 gap-6 text-sm text-[#6B7280]">
     {fields.map(([label]) => (
       <div key={label}>
-        <div className="font-semibold text-gray-700 mb-1">{label}</div>
-        <div className="border-t border-gray-300 mt-10 pt-2">Ad Soyad / İmza / Tarih</div>
+        <div className="font-semibold text-[#3A3C42] mb-1">{label}</div>
+        <div className="border-t border-[#D8D5CE] mt-10 pt-2">Ad Soyad / İmza / Tarih</div>
       </div>
     ))}
   </div>
@@ -35,21 +35,21 @@ export default function OnamMetinleri({ initialActive = 'aydinlatma' }: { initia
   return (
     <div className="flex gap-0 min-h-[70vh]">
       {/* Sidebar nav */}
-      <aside className="w-52 flex-shrink-0 border-r border-gray-100 pr-2 sticky top-24 self-start">
-        <p className="text-[10px] uppercase tracking-widest text-gray-400 font-semibold mb-3">Belgeler</p>
+      <aside className="w-52 flex-shrink-0 border-r border-[#E7E5E0] pr-2 sticky top-24 self-start">
+        <p className="text-[10px] uppercase tracking-widest text-[#9CA3AF] font-semibold mb-3">Belgeler</p>
         <ul className="space-y-0.5">
           {DOCS.map(d => (
             <li key={d.id}>
               <button
                 onClick={() => setActive(d.id)}
-                className={`w-full text-left px-3 py-2 rounded-xl text-xs transition border-l-2 ${active === d.id ? 'border-[#0E0F12] bg-gray-50 font-semibold text-[#0E0F12]' : 'border-transparent text-gray-500 hover:text-[#0E0F12] hover:bg-gray-50'}`}
+                className={`w-full text-left px-3 py-2 rounded-xl text-xs transition border-l-2 ${active === d.id ? 'border-[#0E0F12] bg-[#FAF8F5] font-semibold text-[#0E0F12]' : 'border-transparent text-[#6B7280] hover:text-[#0E0F12] hover:bg-[#FAF8F5]'}`}
               >
                 {d.title}
               </button>
             </li>
           ))}
         </ul>
-        <button onClick={() => window.print()} className="mt-6 w-full flex items-center justify-center gap-1.5 text-xs px-3 py-2 rounded-xl border border-gray-200 hover:bg-gray-50 transition text-gray-600">
+        <button onClick={() => window.print()} className="mt-6 w-full flex items-center justify-center gap-1.5 text-xs px-3 py-2 rounded-xl border border-[#E7E5E0] hover:bg-[#FAF8F5] transition text-[#5a5a5a]">
           <Printer className="w-3.5 h-3.5" /> Yazdır / PDF
         </button>
       </aside>
@@ -64,14 +64,14 @@ export default function OnamMetinleri({ initialActive = 'aydinlatma' }: { initia
 
         {active === 'aydinlatma' && (
           <div className="space-y-5">
-            <div><h2 className="text-xl font-semibold text-[#0E0F12]">1. Aydınlatma Metni</h2><p className="text-xs text-gray-400 mt-1">KVKK m.10 · Sürüm 1.0 · {ph('[Yayım tarihi]')}</p></div>
+            <div><h2 className="text-[22px] font-semibold text-[#0E0F12]" style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}>1. Aydınlatma Metni</h2><p className="text-xs text-[#9CA3AF] mt-1">KVKK m.10 · Sürüm 1.0 · {ph('[Yayım tarihi]')}</p></div>
             <div>
               <h3 className="text-sm font-semibold text-[#0E0F12] mb-2">Veri Sorumlusu</h3>
-              <p className="text-sm text-gray-600 leading-relaxed">Bu metin, 6698 sayılı KVKK uyarınca, veri sorumlusu sıfatıyla {ph('[Terapist Ad Soyad / unvan / VKN-TCKN / iletişim adresi]')} tarafından hazırlanmıştır.</p>
+              <p className="text-sm text-[#5a5a5a] leading-relaxed">Bu metin, 6698 sayılı KVKK uyarınca, veri sorumlusu sıfatıyla {ph('[Terapist Ad Soyad / unvan / VKN-TCKN / iletişim adresi]')} tarafından hazırlanmıştır.</p>
             </div>
             <div>
               <h3 className="text-sm font-semibold text-[#0E0F12] mb-2">İşlenen Veri Kategorileri</h3>
-              <ul className="text-sm text-gray-600 space-y-1 list-disc pl-4">
+              <ul className="text-sm text-[#5a5a5a] space-y-1 list-disc pl-4">
                 <li>Kimlik (ad, soyad, doğum tarihi)</li>
                 <li>İletişim (telefon, e-posta, adres)</li>
                 <li>Sağlık verisi (özel nitelikli): klinik öykü, tanı izlenimleri, seans notları, formülasyonlar, ölçek puanları</li>
@@ -80,26 +80,26 @@ export default function OnamMetinleri({ initialActive = 'aydinlatma' }: { initia
             </div>
             <div>
               <h3 className="text-sm font-semibold text-[#0E0F12] mb-2">Toplama Yöntemi & Hukuki Sebep</h3>
-              <p className="text-sm text-gray-600 leading-relaxed">Veriler doğrudan danışandan, sözlü, yazılı veya elektronik ortamda toplanır. Hukuki sebepler: KVKK m.5/2-c (sözleşmenin kurulması/ifası), m.6/3 (sağlık verisinin <em>açık rıza</em> ile işlenmesi).</p>
+              <p className="text-sm text-[#5a5a5a] leading-relaxed">Veriler doğrudan danışandan, sözlü, yazılı veya elektronik ortamda toplanır. Hukuki sebepler: KVKK m.5/2-c (sözleşmenin kurulması/ifası), m.6/3 (sağlık verisinin <em>açık rıza</em> ile işlenmesi).</p>
             </div>
             <div>
               <h3 className="text-sm font-semibold text-[#0E0F12] mb-2">Saklama Süresi</h3>
-              <p className="text-sm text-gray-600 leading-relaxed">Klinik kayıtlar mesleki etik gereği <strong>en az 5 yıl</strong>, vaka karmaşıklığına göre <strong>10 yıla kadar</strong> saklanır.</p>
+              <p className="text-sm text-[#5a5a5a] leading-relaxed">Klinik kayıtlar mesleki etik gereği <strong>en az 5 yıl</strong>, vaka karmaşıklığına göre <strong>10 yıla kadar</strong> saklanır.</p>
             </div>
             <div>
               <h3 className="text-sm font-semibold text-[#0E0F12] mb-2">İlgili Kişi Hakları (KVKK m.11)</h3>
-              <p className="text-sm text-gray-600 leading-relaxed">Verisinin işlenip işlenmediğini öğrenme, bilgi talep etme, düzeltme/silinme isteme, itiraz hakkı. Talepler {ph('[başvuru e-posta]')} adresine yazılı iletilir; en geç <strong>30 gün</strong> içinde yanıtlanır.</p>
+              <p className="text-sm text-[#5a5a5a] leading-relaxed">Verisinin işlenip işlenmediğini öğrenme, bilgi talep etme, düzeltme/silinme isteme, itiraz hakkı. Talepler {ph('[başvuru e-posta]')} adresine yazılı iletilir; en geç <strong>30 gün</strong> içinde yanıtlanır.</p>
             </div>
           </div>
         )}
 
         {active === 'acik-riza' && (
           <div className="space-y-5">
-            <div><h2 className="text-xl font-semibold text-[#0E0F12]">2. Açık Rıza Beyanı</h2><p className="text-xs text-gray-400 mt-1">KVKK m.6/3 · Sağlık verisi için</p></div>
-            <p className="text-sm text-gray-600 leading-relaxed">Yukarıdaki Aydınlatma Metnini okuduğumu, anladığımı; özel nitelikli kişisel verilerimin işlenmesine ve kimliksizleştirilmiş biçimde süpervizyon amacıyla paylaşılmasına;</p>
-            <div className="bg-gray-50 rounded-2xl p-4 space-y-3">
+            <div><h2 className="text-[22px] font-semibold text-[#0E0F12]" style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}>2. Açık Rıza Beyanı</h2><p className="text-xs text-[#9CA3AF] mt-1">KVKK m.6/3 · Sağlık verisi için</p></div>
+            <p className="text-sm text-[#5a5a5a] leading-relaxed">Yukarıdaki Aydınlatma Metnini okuduğumu, anladığımı; özel nitelikli kişisel verilerimin işlenmesine ve kimliksizleştirilmiş biçimde süpervizyon amacıyla paylaşılmasına;</p>
+            <div className="bg-[#FAF8F5] rounded-2xl p-4 space-y-3">
               {['Açık rıza veriyorum.', 'Süpervizyonda kimliksizleştirilmiş paylaşıma açık rıza veriyorum.', 'Hatırlatma mesajlarının seçtiğim kanallardan gönderilmesine açık rıza veriyorum.'].map(t => (
-                <label key={t} className="flex items-start gap-3 text-sm text-gray-700 cursor-pointer">
+                <label key={t} className="flex items-start gap-3 text-sm text-[#3A3C42] cursor-pointer">
                   <input type="checkbox" className="mt-0.5 accent-[#0E0F12]" /> {t}
                 </label>
               ))}
@@ -110,48 +110,48 @@ export default function OnamMetinleri({ initialActive = 'aydinlatma' }: { initia
 
         {active === 'hizmet-sozlesmesi' && (
           <div className="space-y-5">
-            <div><h2 className="text-xl font-semibold text-[#0E0F12]">3. Terapi Hizmet Sözleşmesi</h2></div>
+            <div><h2 className="text-[22px] font-semibold text-[#0E0F12]" style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}>3. Terapi Hizmet Sözleşmesi</h2></div>
             <div><h3 className="text-sm font-semibold text-[#0E0F12] mb-2">Taraflar</h3>
-              <p className="text-sm text-gray-600"><strong>Terapist:</strong> {ph('[Ad Soyad, unvan, oda üyelik no]')}<br /><strong>Danışan:</strong> {ph('[Ad Soyad]')}</p></div>
+              <p className="text-sm text-[#5a5a5a]"><strong>Terapist:</strong> {ph('[Ad Soyad, unvan, oda üyelik no]')}<br /><strong>Danışan:</strong> {ph('[Ad Soyad]')}</p></div>
             <div><h3 className="text-sm font-semibold text-[#0E0F12] mb-2">Süre, Sıklık, Ücret</h3>
-              <ul className="text-sm text-gray-600 list-disc pl-4 space-y-1">
+              <ul className="text-sm text-[#5a5a5a] list-disc pl-4 space-y-1">
                 <li>Seans süresi: {ph('[50 dk]')}</li>
                 <li>Sıklık: haftalık (klinik gerekçeyle değişebilir)</li>
                 <li>Ücret: {ph('[… TL]')} — ödeme: {ph('[banka/IBAN]')}; kart bilgileri saklanmaz</li>
               </ul></div>
             <div><h3 className="text-sm font-semibold text-[#0E0F12] mb-2">İptal & Geç Kalma</h3>
-              <p className="text-sm text-gray-600 leading-relaxed"><strong>24 saatten az</strong> kala iptal edilen seans ücretinin tamamı, 24–48 saat arasında ise yarısı talep edilir. 15 dakikadan fazla geç kalınan seans, kalan sürede yapılır.</p></div>
+              <p className="text-sm text-[#5a5a5a] leading-relaxed"><strong>24 saatten az</strong> kala iptal edilen seans ücretinin tamamı, 24–48 saat arasında ise yarısı talep edilir. 15 dakikadan fazla geç kalınan seans, kalan sürede yapılır.</p></div>
             <div><h3 className="text-sm font-semibold text-[#0E0F12] mb-2">Gizlilik</h3>
-              <p className="text-sm text-gray-600 leading-relaxed">Tüm seans içeriği gizlidir. İstisnalar: (a) yaşamsal tehlike, (b) çocuk/savunmasız bireye istismar bildirimi, (c) yetkili mahkeme kararı.</p></div>
+              <p className="text-sm text-[#5a5a5a] leading-relaxed">Tüm seans içeriği gizlidir. İstisnalar: (a) yaşamsal tehlike, (b) çocuk/savunmasız bireye istismar bildirimi, (c) yetkili mahkeme kararı.</p></div>
           </div>
         )}
 
         {active === 'online' && (
           <div className="space-y-5">
-            <div><h2 className="text-xl font-semibold text-[#0E0F12]">4. Online Görüşme Ek Protokolü</h2></div>
-            <p className="text-sm text-gray-600 leading-relaxed">Online görüşme; uçtan uca şifreli platform üzerinden yürütülür ({ph('[platform adı]')}). Danışan;</p>
-            <ul className="text-sm text-gray-600 list-disc pl-4 space-y-1">
+            <div><h2 className="text-[22px] font-semibold text-[#0E0F12]" style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}>4. Online Görüşme Ek Protokolü</h2></div>
+            <p className="text-sm text-[#5a5a5a] leading-relaxed">Online görüşme; uçtan uca şifreli platform üzerinden yürütülür ({ph('[platform adı]')}). Danışan;</p>
+            <ul className="text-sm text-[#5a5a5a] list-disc pl-4 space-y-1">
               <li>Kapalı, sessiz, başkalarınca duyulmayacak bir mekânda bulunmayı,</li>
               <li>Görüşmeyi <strong>kaydetmemeyi</strong> ve ekran görüntüsü almamayı,</li>
               <li>Bağlantı kesilirse {ph('[yedek kanal]')} ile derhal yeniden bağlanmayı kabul eder.</li>
             </ul>
-            <div className="bg-gray-50 rounded-2xl p-4">
-              <label className="flex items-start gap-3 text-sm text-gray-700 cursor-pointer"><input type="checkbox" className="mt-0.5 accent-[#0E0F12]" /> Online görüşme koşullarını kabul ediyorum.</label>
+            <div className="bg-[#FAF8F5] rounded-2xl p-4">
+              <label className="flex items-start gap-3 text-sm text-[#3A3C42] cursor-pointer"><input type="checkbox" className="mt-0.5 accent-[#0E0F12]" /> Online görüşme koşullarını kabul ediyorum.</label>
             </div>
           </div>
         )}
 
         {active === 'kayit' && (
           <div className="space-y-5">
-            <div><h2 className="text-xl font-semibold text-[#0E0F12]">5. Ses/Görüntü Kaydı Onamı</h2></div>
-            <p className="text-sm text-gray-600 leading-relaxed">Seansların kaydı <strong>varsayılan olarak yapılmaz</strong>. Yalnızca aşağıdaki amaçlarla, açık rıza ile yapılabilir:</p>
-            <ul className="text-sm text-gray-600 list-disc pl-4 space-y-1">
+            <div><h2 className="text-[22px] font-semibold text-[#0E0F12]" style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}>5. Ses/Görüntü Kaydı Onamı</h2></div>
+            <p className="text-sm text-[#5a5a5a] leading-relaxed">Seansların kaydı <strong>varsayılan olarak yapılmaz</strong>. Yalnızca aşağıdaki amaçlarla, açık rıza ile yapılabilir:</p>
+            <ul className="text-sm text-[#5a5a5a] list-disc pl-4 space-y-1">
               <li>Süpervizyon (kayıtlar 30 gün içinde silinir)</li>
               <li>Eğitim/araştırma (anonimleştirilmiş, ek özel onam ile)</li>
             </ul>
-            <div className="bg-gray-50 rounded-2xl p-4 space-y-3">
+            <div className="bg-[#FAF8F5] rounded-2xl p-4 space-y-3">
               {['Süpervizyon amacıyla kayıt alınmasına onay veriyorum.', 'Eğitim/araştırma amacıyla anonimleştirilmiş kullanıma onay veriyorum.', 'Hiçbir kayıt alınmasını istemiyorum.'].map(t => (
-                <label key={t} className="flex items-start gap-3 text-sm text-gray-700 cursor-pointer"><input type="checkbox" className="mt-0.5 accent-[#0E0F12]" /> {t}</label>
+                <label key={t} className="flex items-start gap-3 text-sm text-[#3A3C42] cursor-pointer"><input type="checkbox" className="mt-0.5 accent-[#0E0F12]" /> {t}</label>
               ))}
             </div>
           </div>
@@ -159,9 +159,9 @@ export default function OnamMetinleri({ initialActive = 'aydinlatma' }: { initia
 
         {active === 'cocuk' && (
           <div className="space-y-5">
-            <div><h2 className="text-xl font-semibold text-[#0E0F12]">6. Çocuk & Ergen Onam Formu</h2></div>
-            <p className="text-sm text-gray-600 leading-relaxed">18 yaş altı danışanlar için tedavi, vasi(ler)in açık onayını gerektirir. 12 yaş ve üzeri ergenlerin <em>onayı (assent)</em> da ayrıca alınır.</p>
-            <ul className="text-sm text-gray-600 list-disc pl-4 space-y-1">
+            <div><h2 className="text-[22px] font-semibold text-[#0E0F12]" style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}>6. Çocuk & Ergen Onam Formu</h2></div>
+            <p className="text-sm text-[#5a5a5a] leading-relaxed">18 yaş altı danışanlar için tedavi, vasi(ler)in açık onayını gerektirir. 12 yaş ve üzeri ergenlerin <em>onayı (assent)</em> da ayrıca alınır.</p>
+            <ul className="text-sm text-[#5a5a5a] list-disc pl-4 space-y-1">
               <li>Vasi olarak hizmet kapsamını okudum, anladım.</li>
               <li>Çocuğumun seans içeriğinin gizli olduğunu, yalnızca yaşamsal risk ve yasal zorunluluk hâllerinde paylaşılacağını kabul ediyorum.</li>
             </ul>
@@ -171,9 +171,9 @@ export default function OnamMetinleri({ initialActive = 'aydinlatma' }: { initia
 
         {active === 'acil' && (
           <div className="space-y-5">
-            <div><h2 className="text-xl font-semibold text-[#0E0F12]">7. Acil Durum Protokolü</h2></div>
-            <p className="text-sm text-gray-600 leading-relaxed">Aşağıdaki durumlardan biri yaşanırsa lütfen <strong>seansı beklemeden</strong> ilgili acil hatları arayın:</p>
-            <ul className="text-sm text-gray-600 list-disc pl-4 space-y-1">
+            <div><h2 className="text-[22px] font-semibold text-[#0E0F12]" style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}>7. Acil Durum Protokolü</h2></div>
+            <p className="text-sm text-[#5a5a5a] leading-relaxed">Aşağıdaki durumlardan biri yaşanırsa lütfen <strong>seansı beklemeden</strong> ilgili acil hatları arayın:</p>
+            <ul className="text-sm text-[#5a5a5a] list-disc pl-4 space-y-1">
               <li>Kendinize veya bir başkasına zarar verme düşünceniz yoğunlaşıyorsa,</li>
               <li>Akut psikotik belirtiler, ağır intoksikasyon, ciddi fiziksel rahatsızlık varsa.</li>
             </ul>
@@ -190,8 +190,8 @@ export default function OnamMetinleri({ initialActive = 'aydinlatma' }: { initia
 
         {active === 'sonlandirma' && (
           <div className="space-y-5">
-            <div><h2 className="text-xl font-semibold text-[#0E0F12]">8. Sonlandırma & Çekilme Politikası</h2></div>
-            <ul className="text-sm text-gray-600 list-disc pl-4 space-y-2">
+            <div><h2 className="text-[22px] font-semibold text-[#0E0F12]" style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}>8. Sonlandırma & Çekilme Politikası</h2></div>
+            <ul className="text-sm text-[#5a5a5a] list-disc pl-4 space-y-2">
               <li>Danışan istediği zaman, gerekçe sunmaksızın hizmeti sonlandırabilir.</li>
               <li>Terapist; klinik uyumsuzluk veya etik ihlal durumunda sonlandırabilir; bu durumda en az <strong>1 sonuç seansı</strong> ve uygun yönlendirme sağlanır.</li>
               <li>Sonlandırma sonrası kayıtlar etik gereği belirlenen süre boyunca saklanır.</li>
@@ -202,9 +202,9 @@ export default function OnamMetinleri({ initialActive = 'aydinlatma' }: { initia
 
         {active === 'cerez' && (
           <div className="space-y-5">
-            <div><h2 className="text-xl font-semibold text-[#0E0F12]">9. Çerez & Web Sitesi Politikası</h2></div>
-            <p className="text-sm text-gray-600 leading-relaxed">Bu site, çalışması için zorunlu olan teknik çerezler dışında <strong>üçüncü taraf izleme çerezi kullanmaz</strong>.</p>
-            <ul className="text-sm text-gray-600 list-disc pl-4 space-y-1">
+            <div><h2 className="text-[22px] font-semibold text-[#0E0F12]" style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}>9. Çerez & Web Sitesi Politikası</h2></div>
+            <p className="text-sm text-[#5a5a5a] leading-relaxed">Bu site, çalışması için zorunlu olan teknik çerezler dışında <strong>üçüncü taraf izleme çerezi kullanmaz</strong>.</p>
+            <ul className="text-sm text-[#5a5a5a] list-disc pl-4 space-y-1">
               <li>Zorunlu çerezler: oturum yönetimi, güvenlik (her zaman aktif).</li>
               <li>Tercih çerezleri: dil, tema (kullanıcı tercihi).</li>
               <li>Analitik çerezler: yalnızca açık rıza ile aktif edilir.</li>

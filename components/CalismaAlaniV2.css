@@ -10,7 +10,7 @@
 .ca2{
   --font-display:'Plus Jakarta Sans','Helvetica Neue',Arial,sans-serif;
   --font-ui:'Plus Jakarta Sans','Helvetica Neue',Arial,sans-serif;
-  --font-mono:'Space Mono',ui-monospace,'SFMono-Regular',monospace;
+  --font-mono:'Plus Jakarta Sans','Helvetica Neue',Arial,sans-serif;
 
   --ink:#2A2926; --ink-soft:#57554F; --ink-mute:#8C8A84; --ink-faint:#B6B4AD;
   --on-dark:#F2F1ED; --on-dark-mute:rgba(242,241,237,.66);
@@ -96,7 +96,7 @@
   box-shadow:var(--shadow-card);transition:transform .18s,box-shadow .18s;overflow:hidden;}
 .ca2 .hcard:hover{transform:translateY(-3px);box-shadow:var(--shadow-pop);}
 .ca2 .hcard::before{content:"";position:absolute;left:0;top:26px;bottom:26px;width:4px;border-radius:0 4px 4px 0;background:var(--clay);opacity:.16;}
-.ca2 .hcard.c1::before{background:var(--clay);} .ca2 .hcard.c2::before{background:var(--sage);} .ca2 .hcard.c3::before{background:var(--now);} .ca2 .hcard.c4::before{background:#4C5078;}
+.ca2 .hcard.c1::before{background:var(--clay);} .ca2 .hcard.c2::before{background:var(--sage);} .ca2 .hcard.c3::before{background:var(--now);} .ca2 .hcard.c4::before{background:#4C5078;} .ca2 .hcard.c5::before{background:#604B75;} .ca2 .hcard.c6::before{background:#3E7C74;}
 .ca2 .hc-no{font-family:var(--font-mono);font-size:12px;font-weight:700;letter-spacing:.1em;color:var(--accent-gray);}
 .ca2 .hc-icon{width:48px;height:48px;border-radius:var(--r-md);display:grid;place-items:center;margin:16px 0 0;
   background:var(--paper-2);box-shadow:var(--shadow-sm);}
@@ -133,6 +133,13 @@
 .ca2 .rcard .who{min-width:0;}
 .ca2 .rcard .who b{display:block;font-size:14px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .ca2 .rcard .who span{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.03em;text-transform:uppercase;color:var(--ink-mute);margin-top:3px;display:block;}
+/* tamamlanmamış dosya kartı */
+.ca2 .rcard{position:relative;width:100%;text-align:left;}
+.ca2 .rcard.incomplete{border-left:3px solid #C0392B;}
+.ca2 .rcard .who{flex:1;}
+.ca2 .miss-tag{flex:none;display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:9.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#C0392B;background:rgba(192,57,43,.1);border-radius:999px;padding:5px 9px;}
+.ca2 .miss-tag .md{width:6px;height:6px;border-radius:50%;background:#C0392B;flex:none;}
+.ca2 .recent-empty{font-size:13.5px;color:var(--ink-soft);margin:0;padding:6px 2px;}
 
 /* ---------- Dock ---------- */
 .ca2 .dock{position:relative;align-self:center;flex:none;z-index:60;margin:12px auto 16px;display:flex;align-items:center;gap:4px;
