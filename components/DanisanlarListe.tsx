@@ -185,9 +185,9 @@ export default function DanisanlarListe(props: DanisanlarListeProps) {
                   <p className="lead">Tüm danışanlarını tek bakışta gör; duruma, etikete ya da sıradaki seansa göre süz. Süreklilik ve risk göstergeleri her kartta.</p>
                 </div>
                 <div className="stats">
-                  <div className="stat is-aktif"><div className="sv num">{stats.active}</div><div className="sl">Aktif</div><div className="ss">takip ediliyor</div></div>
-                  <div className="stat is-riskli"><div className="sv num">{stats.risk}</div><div className="sl">Riskli</div><div className="ss">öncelikli</div></div>
-                  <div className="stat is-gorulmus"><div className="sv num">{stats.total}</div><div className="sl">Bugüne kadar görülen</div><div className="ss">farklı danışan</div></div>
+                  <div className="stat active"><div className="stat-num">{stats.active}</div><div><div className="stat-lab">Aktif</div><div className="stat-sub">takip ediliyor</div></div></div>
+                  <div className="stat risk"><div className="stat-num">{stats.risk}</div><div><div className="stat-lab">Riskli</div><div className="stat-sub">öncelikli</div></div></div>
+                  <div className="stat dark"><div className="stat-num">{stats.total}</div><div><div className="stat-lab">Bugüne kadar görülen</div><div className="stat-sub">farklı danışan</div></div></div>
                 </div>
               </section>
 
