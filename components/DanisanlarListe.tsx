@@ -1,12 +1,12 @@
 'use client';
 
 /* =====================================================================
-   DanisanlarListe.tsx — "Klinik Premium / Plastik" danışan dizini
-   Kök element <div className="dlst"> (CSS .dlst altında kapsüllü).
-   Görsel kaynak: "Danışanlar Listesi (yeni).html" (Cv görsel-32).
+   DanisanlarListe.tsx — "Danışanlar (landing uyumlu)" danışan dizini.
+   Kök <div className="dlst"> (CSS .dlst altında kapsüllü). Görsel kaynak:
+   REFERANS_birebir.html (Cv görsel-38) — Ana Sayfa landing diliyle aynı kabuk.
    Veri uygulamanın gerçek Client modelinden gelir; uydurma yok.
    ===================================================================== */
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './DanisanlarListe.css';
 import {
   Client, Status, statusLabel, mapStatus, category, detectKeys, tagText, noteText,
@@ -16,7 +16,7 @@ import {
 export type DanisanlarListeProps = {
   clients: Client[];
   onBack?(): void;
-  onNav?(target: string): void;            // 'home' | 'profil' | 'ayarlar'
+  onNav?(target: string): void;            // 'home' | 'calendar' | 'profil' | 'ayarlar'
   onNewClient?(): void;
   onOpenClient?(id: string): void;         // → /danisan/[id]
   onPrefetchClient?(id: string): void;
@@ -24,27 +24,37 @@ export type DanisanlarListeProps = {
   onSms?(id: string): void;
 };
 
-type View = 'rows' | 'grid';
+type View = 'list' | 'grid';
 type StatusFilter = 'all' | Status;
 type CatFilter = 'all' | 'ergen' | 'yetiskin' | 'cocuk';
 type Sort = 'next' | 'recent' | 'name' | 'progress';
 
-/* ─── İkonlar ─────────────────────────────────────────────────────────── */
-const Ico = {
-  search: <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" strokeLinecap="round" /></svg>,
-  rows: <svg viewBox="0 0 24 24" strokeLinecap="round"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01" /></svg>,
-  grid: <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></svg>,
-  plus: <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>,
-  mail: <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M4 7l8 6 8-6" /></svg>,
-  sms: <svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.5 9 9 0 0 1-3.5-.7L3 21l1.7-5A8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5z" /></svg>,
-};
+const FONTS = 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&display=swap';
 
-const DOCK = [
-  { key: 'home', label: 'Ana Sayfa' },
-  { key: 'calisma', label: 'Çalışma Alanı', active: true },
-  { key: 'profil', label: 'Profil' },
-  { key: 'ayarlar', label: 'Ayarlar' },
+// Etiket renk noktaları (yeni palet) — danisanlarListe.helpers detectKeys anahtarlarıyla eşli
+const TAG_HEX: Record<string, string> = {
+  anksiyete: '#6E9E7E', depresyon: '#5E8E9E', okb: '#9A7FC0', travma: '#CC6E5C',
+  iliski: '#D08FB0', panik: '#C2A45E', yas: '#8A8FA8', mukemmel: '#C97B5A',
+};
+const tagHex = (k: string) => TAG_HEX[k] || '#9FA89A';
+
+const THEMES = [
+  { id: 'sage', dot: '#8FB58C' }, { id: 'ocean', dot: '#5FA9C0' }, { id: 'dusk', dot: '#9A7FD0' },
+  { id: 'clay', dot: '#D78C66' }, { id: 'rose', dot: '#C97FA0' },
 ];
+
+const lsGet = (k: string): string | null => { try { return typeof window !== 'undefined' ? localStorage.getItem(k) : null; } catch { return null; } };
+const lsSet = (k: string, v: string) => { try { localStorage.setItem(k, v); } catch { /* yoksay */ } };
+const clientNo = (c: Client) => { const n = Number(c.id); return Number.isFinite(n) ? `V-${1000 + n}` : String(c.id); };
+
+/* ─── İkonlar ─────────────────────────────────────────────────────────── */
+const IcoSearch = () => <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" strokeLinecap="round" /></svg>;
+const IcoList = () => <svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01" strokeLinecap="round" /></svg>;
+const IcoGrid = () => <svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5" /><rect x="13.5" y="3.5" width="7" height="7" rx="1.5" /><rect x="3.5" y="13.5" width="7" height="7" rx="1.5" /><rect x="13.5" y="13.5" width="7" height="7" rx="1.5" /></svg>;
+const IcoMail = () => <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5" /><path d="M4 7l8 6 8-6" strokeLinecap="round" /></svg>;
+const IcoSms = () => <svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-12 7.6L3 21l1.9-6A8.4 8.4 0 1 1 21 11.5z" strokeLinejoin="round" /></svg>;
+
+type Toast = { id: number; msg: string; warn?: boolean };
 
 export default function DanisanlarListe(props: DanisanlarListeProps) {
   const { clients } = props;
@@ -53,16 +63,21 @@ export default function DanisanlarListe(props: DanisanlarListeProps) {
   const [cat, setCat] = useState<CatFilter>('all');
   const [tag, setTag] = useState<string | null>(null);
   const [sort, setSort] = useState<Sort>('next');
-  const [view, setView] = useState<View>(() => {
-    try { const v = localStorage.getItem('dlst_view'); return v === 'grid' || v === 'rows' ? (v as View) : 'rows'; } catch { return 'rows'; }
-  });
+  const [view, setView] = useState<View>(() => { const v = lsGet('dlst_view'); return v === 'grid' || v === 'list' ? (v as View) : 'list'; });
   const [loading, setLoading] = useState(true);
-  const [toast, setToast] = useState<{ msg: string; warn?: boolean } | null>(null);
+  const [toasts, setToasts] = useState<Toast[]>([]);
   const [sms, setSms] = useState<Client | null>(null);
+  const [theme, setTheme] = useState('sage');
+  const [mobileMenu, setMobileMenu] = useState(false);
 
   const today = useMemo(() => new Date(), []);
+  const toastId = useRef(0);
 
   useEffect(() => { const t = setTimeout(() => setLoading(false), 420); return () => clearTimeout(t); }, []);
+  useEffect(() => { const saved = lsGet('calmie-theme'); if (saved && THEMES.some((t) => t.id === saved)) setTheme(saved); }, []);
+
+  const applyTheme = (id: string) => { setTheme(id); lsSet('calmie-theme', id); };
+  const setViewPersist = (v: View) => { setView(v); lsSet('dlst_view', v); };
 
   const stats = useMemo(() => computeStats(clients), [clients]);
 
@@ -73,7 +88,7 @@ export default function DanisanlarListe(props: DanisanlarListeProps) {
     return [...seen];
   }, [clients]);
 
-  const filtered = !!(q || tag || status !== 'all' || cat !== 'all');
+  const hasFilter = !!(q || tag || status !== 'all' || cat !== 'all');
 
   const visible = useMemo(() => {
     let rows = clients.slice();
@@ -103,234 +118,253 @@ export default function DanisanlarListe(props: DanisanlarListeProps) {
   }, [clients, q, status, cat, tag, sort]);
 
   /* ─── Toast ───────────────────────────────────────────────────────── */
-  const toastTimer = useRef<number | undefined>(undefined);
   function showToast(msg: string, warn?: boolean) {
-    setToast({ msg, warn });
-    window.clearTimeout(toastTimer.current);
-    toastTimer.current = window.setTimeout(() => setToast(null), 3000);
+    const id = ++toastId.current;
+    setToasts((prev) => [...prev, { id, msg, warn }]);
+    window.setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3200);
   }
 
   /* ─── Aksiyonlar ──────────────────────────────────────────────────── */
   const open = (id: string) => props.onOpenClient?.(id);
-  const prefetch = (id: string) => props.onPrefetchClient?.(id);
   function doMail(e: React.MouseEvent, c: Client) {
     e.stopPropagation();
     if (props.onMail) return props.onMail(c.id);
     if (c.email?.trim()) { window.location.href = 'mailto:' + c.email.trim(); }
-    else showToast('Bu danışanın e-postası kayıtlı değil — danışan kaydına (anamnez) ekleyebilirsin.', true);
+    else showToast('Bu danışan için kayıtlı e-posta yok.', true);
   }
   function doSms(e: React.MouseEvent, c: Client) {
     e.stopPropagation();
     if (props.onSms) return props.onSms(c.id);
     if (c.telefon?.trim()) setSms(c);
-    else showToast('Bu danışanın telefonu kayıtlı değil — danışan kaydına (anamnez) ekleyebilirsin.', true);
+    else showToast('Bu danışan için kayıtlı telefon yok.', true);
   }
-  function resetFilters() { setQ(''); setStatus('all'); setCat('all'); setTag(null); }
-  function setViewPersist(v: View) { setView(v); try { localStorage.setItem('dlst_view', v); } catch { /* yok */ } }
+  function clearFilters() { setQ(''); setStatus('all'); setCat('all'); setTag(null); }
 
-  /* ─── Dock glider ─────────────────────────────────────────────────── */
-  const dockRef = useRef<HTMLElement>(null);
-  const itemRefs = useRef<(HTMLAnchorElement | null)[]>([]);
-  const [glider, setGlider] = useState({ left: 0, top: 0, width: 0, height: 0 });
-  const [lit, setLit] = useState(DOCK.findIndex((d) => d.active));
-  const moveGlider = (el: HTMLAnchorElement) => setGlider({ left: el.offsetLeft, top: el.offsetTop, width: el.offsetWidth, height: el.offsetHeight });
-  const settle = () => { const el = itemRefs.current[DOCK.findIndex((d) => d.active)]; if (el) { moveGlider(el); setLit(DOCK.findIndex((d) => d.active)); } };
-  useLayoutEffect(() => {
-    settle();
-    window.addEventListener('resize', settle);
-    (document as any).fonts?.ready?.then(settle);
-    return () => window.removeEventListener('resize', settle);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const AGE_SEG: { v: CatFilter; label: string }[] = [
+    { v: 'all', label: 'Tümü' }, { v: 'ergen', label: 'Ergen' }, { v: 'yetiskin', label: 'Yetişkin' }, { v: 'cocuk', label: 'Çocuk' },
+  ];
+  const STATUS_SEG: { v: StatusFilter; label: string }[] = [
+    { v: 'all', label: 'Tümü' }, { v: 'active', label: 'Aktif' }, { v: 'passive', label: 'Pasif' }, { v: 'risk', label: 'Riskli' },
+  ];
+
+  const skelCount = view === 'grid' ? 6 : 7;
 
   return (
     <>
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600&display=swap" rel="stylesheet" />
+      <link href={FONTS} rel="stylesheet" />
 
-      <div className="dlst">
-        <div className="shell" data-screen-label="Danışanlar Listesi">
+      <div className="dlst" data-theme={theme === 'sage' ? undefined : theme} data-screen-label="Danışanlar — Calmie (liste)">
+        <div className="scene" aria-hidden="true" />
+        <div className="grain" aria-hidden="true" />
 
-          {/* ÜST BAR */}
-          <div className="topbar">
-            <div className="brand"><span className="logo"><b>Calmie</b><i>.</i></span></div>
-            <nav className="dock" ref={dockRef} aria-label="Bölümler" onMouseLeave={settle}>
-              <span className="glider" style={{ left: glider.left, top: glider.top, width: glider.width, height: glider.height }} />
-              {DOCK.map((d, i) => (
-                <a key={d.key} href="#" ref={(el) => { itemRefs.current[i] = el; }}
-                  className={i === lit ? 'lit' : undefined}
-                  onMouseEnter={(e) => { moveGlider(e.currentTarget); setLit(i); }}
-                  onClick={(e) => { e.preventDefault(); if (d.active) props.onBack?.(); else props.onNav?.(d.key); }}>
-                  {d.label}
-                </a>
-              ))}
-            </nav>
-            <div className="topbar-right">
-              <button className="tb-new" type="button" onClick={() => props.onNewClient?.()}>{Ico.plus}Yeni danışan</button>
-              <div className="tb-prof" title="Göksel Akkaya">GA</div>
+        {/* ───────── NAV ───────── */}
+        <div className="navwrap">
+          <nav className="nav" aria-label="Birincil">
+            <a className="logo" onClick={() => props.onNav?.('home')}>Calmie<i>.</i></a>
+            <div className="nav-links">
+              <a onClick={() => props.onNav?.('home')}>Ana Sayfa</a>
+              <a onClick={() => props.onNav?.('calendar')}>Takvim</a>
+              <a className="active" onClick={() => props.onBack?.()}>Çalışma Alanı</a>
+              <a onClick={() => props.onNav?.('profil')}>Profil</a>
             </div>
+            <div className="nav-actions">
+              <button className="nav-new" type="button" onClick={() => props.onNewClient?.()}>
+                <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg><span>Yeni danışan</span>
+              </button>
+              <a className="nav-av" onClick={() => props.onNav?.('profil')}>GA</a>
+            </div>
+            <button className="menu-btn" aria-label="Menü" onClick={() => setMobileMenu((v) => !v)}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
+            </button>
+          </nav>
+          <div className={'mobile-menu' + (mobileMenu ? ' open' : '')}>
+            <a onClick={() => { setMobileMenu(false); props.onNav?.('home'); }}>Ana Sayfa</a>
+            <a onClick={() => { setMobileMenu(false); props.onNav?.('calendar'); }}>Takvim &amp; Randevular</a>
+            <a onClick={() => { setMobileMenu(false); props.onBack?.(); }}>Çalışma Alanı</a>
+            <a onClick={() => { setMobileMenu(false); props.onNav?.('profil'); }}>Profil</a>
           </div>
+        </div>
 
-          <div className="modal-body">
-            <div className="wrap">
+        <main className="page">
+          <div className="wrap">
 
-              {/* BAŞLIK + İSTATİSTİK */}
-              <section className="intro">
-                <div>
-                  <a className="back" href="#" onClick={(e) => { e.preventDefault(); props.onBack?.(); }}>
-                    <span className="chev">‹</span><span>Çalışma Alanı</span>
-                  </a>
-                  <h1 className="page-title">Danışanlar <span>({clients.length})</span></h1>
-                  <p className="lead">Tüm danışanlarını tek bakışta gör; duruma, etikete ya da sıradaki seansa göre süz. Süreklilik ve risk göstergeleri her kartta.</p>
-                </div>
-                <div className="stats">
-                  <div className="stat active"><div className="stat-num">{stats.active}</div><div><div className="stat-lab">Aktif</div><div className="stat-sub">takip ediliyor</div></div></div>
-                  <div className="stat risk"><div className="stat-num">{stats.risk}</div><div><div className="stat-lab">Riskli</div><div className="stat-sub">öncelikli</div></div></div>
-                  <div className="stat dark"><div className="stat-num">{stats.total}</div><div><div className="stat-lab">Bugüne kadar görülen</div><div className="stat-sub">farklı danışan</div></div></div>
-                </div>
-              </section>
+            {/* ───────── HEAD ───────── */}
+            <div className="head">
+              <div className="head-l">
+                <a className="back" onClick={() => props.onBack?.()}><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6" /></svg>Çalışma Alanı</a>
+                <h1 className="head-title"><b>Danışanlar</b> <em>({clients.length})</em></h1>
+                <p className="head-lead">Tüm danışanlarını tek bakışta gör; duruma, etikete ya da sıradaki seansa göre süz. Süreklilik ve risk göstergeleri her kartta.</p>
+              </div>
+              <div className="stats">
+                <div className="stat active"><div className="stat-num">{stats.active}</div><div><div className="stat-lab">Aktif</div><div className="stat-sub">takip ediliyor</div></div></div>
+                <div className="stat risk"><div className="stat-num">{stats.risk}</div><div><div className="stat-lab">Riskli</div><div className="stat-sub">öncelikli</div></div></div>
+                <div className="stat dark"><div className="stat-num">{stats.total}</div><div><div className="stat-lab">Bugüne kadar görülen</div><div className="stat-sub">farklı danışan</div></div></div>
+              </div>
+            </div>
 
-              {/* ARAÇ ÇUBUĞU */}
-              <div className="toolbar">
-                <div className="tb-row">
-                  <label className="search">{Ico.search}
-                    <input type="search" placeholder="İsim, etiket veya not ara…" autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} />
-                  </label>
+            {/* ───────── TOOLBAR ───────── */}
+            <div className="toolbar">
+              <div className="tb-row">
+                <label className="search">
+                  <IcoSearch />
+                  <input type="text" placeholder="İsim, etiket veya not ara…" autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} />
+                </label>
+                <div className="sortwrap">
                   <select className="sort" aria-label="Sıralama" value={sort} onChange={(e) => setSort(e.target.value as Sort)}>
                     <option value="next">Sıradaki seansa göre</option>
                     <option value="recent">Son seansa göre</option>
                     <option value="name">İsme göre (A–Z)</option>
                     <option value="progress">Süreç haritalandırması</option>
                   </select>
-                  <div className="view-toggle" role="group" aria-label="Görünüm">
-                    <button type="button" aria-pressed={view === 'rows'} title="Liste görünümü" aria-label="Liste görünümü" onClick={() => setViewPersist('rows')}>{Ico.rows}</button>
-                    <button type="button" aria-pressed={view === 'grid'} title="Kart görünümü" aria-label="Kart görünümü" onClick={() => setViewPersist('grid')}>{Ico.grid}</button>
-                  </div>
+                  <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" /></svg>
                 </div>
-                <div className="tb-row">
-                  <div className="seg" role="group" aria-label="Yaş grubu filtresi">
-                    <span className="sl">Yaş</span>
-                    {(['all', 'ergen', 'yetiskin', 'cocuk'] as CatFilter[]).map((k) => (
-                      <button type="button" key={k} aria-pressed={cat === k} onClick={() => setCat(k)}>{{ all: 'Tümü', ergen: 'Ergen', yetiskin: 'Yetişkin', cocuk: 'Çocuk' }[k]}</button>
-                    ))}
-                  </div>
-                  <div className="seg" role="group" aria-label="Durum filtresi">
-                    <span className="sl">Durum</span>
-                    {(['all', 'active', 'passive', 'risk'] as StatusFilter[]).map((k) => (
-                      <button type="button" key={k} aria-pressed={status === k} onClick={() => setStatus(k)}>{{ all: 'Tümü', active: 'Aktif', passive: 'Pasif', risk: 'Riskli' }[k]}</button>
-                    ))}
-                  </div>
-                  {tagOptions.length > 0 && (
-                    <div className="tagbar" aria-label="Etikete göre filtrele">
-                      <span className="tb-lbl">Etiket</span>
-                      {tagOptions.map(([key, label]) => (
-                        <button type="button" key={key} className="chip" aria-pressed={tag === key} onClick={() => setTag(tag === key ? null : key)}>
-                          <span className="dot" style={{ background: `var(--tag-${key})` }} />{label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                <div className="viewtog" role="group" aria-label="Görünüm">
+                  <button type="button" className={view === 'list' ? 'on' : ''} aria-label="Liste görünümü" onClick={() => setViewPersist('list')}><IcoList /></button>
+                  <button type="button" className={view === 'grid' ? 'on' : ''} aria-label="Kart görünümü" onClick={() => setViewPersist('grid')}><IcoGrid /></button>
                 </div>
               </div>
-
-              <p className="count-line">{loading ? 'Yükleniyor…' : `${visible.length} danışan${filtered ? ' · filtreli' : ''}`}</p>
-
-              {loading ? (
-                <div className={`list ${view === 'rows' ? 'is-rows' : 'is-grid'} skeleton`}>
-                  {Array.from({ length: view === 'rows' ? 7 : 6 }).map((_, i) => <SkeletonCard key={i} />)}
+              <div className="tb-filters">
+                <div className="fgroup">
+                  <span className="flab">Yaş</span>
+                  <div className="seg">
+                    {AGE_SEG.map((s) => <button key={s.v} type="button" className={cat === s.v ? 'on' : ''} onClick={() => setCat(s.v)}>{s.label}</button>)}
+                  </div>
                 </div>
-              ) : visible.length === 0 ? (
-                <div className="empty">
-                  <div className="ic">{Ico.search}</div>
-                  <h3>{filtered ? 'Sonuç bulunamadı' : 'Henüz danışan yok'}</h3>
-                  <p>{filtered ? 'Arama veya filtreleri değiştirmeyi dene.' : 'İlk danışanını ekleyerek başla.'}</p>
-                  <button type="button" className="empty-btn" onClick={() => (filtered ? resetFilters() : props.onNewClient?.())}>
-                    {filtered ? 'Filtreleri temizle' : 'Yeni danışan'}
-                  </button>
+                <div className="fgroup">
+                  <span className="flab">Durum</span>
+                  <div className="seg">
+                    {STATUS_SEG.map((s) => <button key={s.v} type="button" className={status === s.v ? 'on' : ''} onClick={() => setStatus(s.v)}>{s.label}</button>)}
+                  </div>
                 </div>
-              ) : (
-                <div className={`list ${view === 'rows' ? 'is-rows' : 'is-grid'}`} aria-live="polite">
-                  {visible.map((c) => (
-                    <CardRow key={c.id} c={c} today={today} onOpen={open} onPrefetch={prefetch} onMail={doMail} onSms={doSms} />
-                  ))}
-                </div>
-              )}
+                {tagOptions.length > 0 && (
+                  <div className="chips">
+                    {tagOptions.map(([key, label]) => (
+                      <button key={key} type="button" className={'chip' + (tag === key ? ' on' : '')} onClick={() => setTag(tag === key ? null : key)}>
+                        <i style={{ background: tagHex(key) }} />{label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
+
+            {/* ───────── COUNT ───────── */}
+            <div className="countline">
+              {loading ? 'Yükleniyor…'
+                : clients.length === 0 ? '0 danışan'
+                : visible.length === 0 ? '0 sonuç · filtreli'
+                : <>{visible.length} danışan{hasFilter && <> · filtreli<span className="clear" onClick={clearFilters}>temizle</span></>}</>}
+            </div>
+
+            {/* ───────── LIST / SKELETON / EMPTY ───────── */}
+            {loading ? (
+              <div className={'skel show' + (view === 'grid' ? ' grid' : '')}>
+                {Array.from({ length: skelCount }).map((_, i) => <div key={i} className="skrow" style={view === 'grid' ? { height: 220 } : undefined} />)}
+              </div>
+            ) : clients.length === 0 ? (
+              <div className="empty show">
+                <div className="empty-ic"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" strokeLinecap="round" /><circle cx="9" cy="7" r="4" /><path d="M19 8v6M22 11h-6" strokeLinecap="round" /></svg></div>
+                <h2 className="empty-t">Henüz danışan yok</h2>
+                <p className="empty-d">İlk danışanını ekleyerek başla.</p>
+                <button className="btn btn-primary" onClick={() => props.onNewClient?.()}>Yeni danışan</button>
+              </div>
+            ) : visible.length === 0 ? (
+              <div className="empty show">
+                <div className="empty-ic"><IcoSearch /></div>
+                <h2 className="empty-t">Sonuç bulunamadı</h2>
+                <p className="empty-d">Arama veya filtreleri değiştirmeyi dene.</p>
+                <button className="btn btn-ghost" onClick={clearFilters}>Filtreleri temizle</button>
+              </div>
+            ) : (
+              <div className={'list' + (view === 'grid' ? ' grid' : '')} aria-live="polite">
+                {visible.map((c) => (
+                  <ClientCard key={c.id} c={c} today={today} onOpen={open} onPrefetch={props.onPrefetchClient} onMail={doMail} onSms={doSms} />
+                ))}
+              </div>
+            )}
           </div>
+        </main>
 
-          {/* SMS MODAL */}
-          {sms && (
-            <SmsModal
-              client={sms}
-              onClose={() => setSms(null)}
-              onSent={(n) => { showToast('SMS gönderildi → ' + n); setSms(null); }}
-              onError={(m) => showToast(m, true)}
-            />
-          )}
+        {/* ───────── TEMA DOCK ───────── */}
+        <div className="dock" aria-label="Renk teması">
+          {THEMES.map((t) => (
+            <button key={t.id} type="button" className={'dock-dot' + (theme === t.id ? ' on' : '')} style={{ background: t.dot }} aria-label={`${t.id} tema`} onClick={() => applyTheme(t.id)} />
+          ))}
+        </div>
 
-          {/* TOAST */}
-          {toast && (
-            <div className={`toast show${toast.warn ? ' warn' : ''}`}><span className="tdot" /><span>{toast.msg}</span></div>
-          )}
+        {/* ───────── SMS MODAL ───────── */}
+        {sms && <SmsModal client={sms} onClose={() => setSms(null)}
+          onSent={(n) => { showToast(n.split(' ')[0] + ' kişisine SMS gönderildi.'); setSms(null); }}
+          onError={(m) => showToast(m, true)} />}
+
+        {/* ───────── TOAST ───────── */}
+        <div className="toast-wrap">
+          {toasts.map((t) => (
+            <div key={t.id} className={'toast show' + (t.warn ? ' warn' : '')}>
+              {t.warn
+                ? <svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                : <svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+              <span>{t.msg}</span>
+            </div>
+          ))}
         </div>
       </div>
     </>
   );
 }
 
-/* ─── Kart / satır ────────────────────────────────────────────────────── */
-function CardRow({ c, today, onOpen, onPrefetch, onMail, onSms }: {
-  c: Client; today: Date; onOpen: (id: string) => void; onPrefetch: (id: string) => void;
+/* ─── Danışan kartı / satırı ──────────────────────────────────────────── */
+function ClientCard({ c, today, onOpen, onPrefetch, onMail, onSms }: {
+  c: Client; today: Date; onOpen: (id: string) => void; onPrefetch?: (id: string) => void;
   onMail: (e: React.MouseEvent, c: Client) => void; onSms: (e: React.MouseEvent, c: Client) => void;
 }) {
   const st = mapStatus(c);
-  const nx = relNext(c.nextAppointment, today);
   const keys = detectKeys(c);
-  const dotVar = keys.length ? `var(--tag-${keys[0]})` : 'var(--tag-default)';
+  const rn = relNext(c.nextAppointment, today);
+  const rnCls = !rn.up ? 'muted' : (/^(Bugün|Yarın)/.test(rn.text) ? 'next' : '');
   const prog = Math.max(0, Math.min(100, Math.round(c.continuityPct || 0)));
   const hasMail = !!c.email?.trim();
-  const hasPhone = !!c.telefon?.trim();
-  const badge = <span className={`status status--${st}`}><span className="dot" />{statusLabel[st]}</span>;
-  return (
-    <article className="card" tabIndex={0} role="button" aria-label={`${c.name} dosyasını aç`}
-      onClick={(e) => { if ((e.target as HTMLElement).closest('[data-stop]')) return; onOpen(c.id); }}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(c.id); } }}
-      onMouseEnter={() => onPrefetch(c.id)}>
-      <div className="c-head">
-        <div className="c-id">
-          <div className="c-name">{c.name}</div>
-          <div className="c-meta">V-{1000 + Number(c.id) || c.id}</div>
-        </div>
-        {badge}
-      </div>
-      <div className="c-tags" title={tagText(c)}><span className="tg-dot" style={{ background: dotVar }} /><span className="tg-txt">{tagText(c)}</span></div>
-      <div className="c-sessions">
-        <div><span className="lbl">Son görüşme</span><span className="val">{fmt(c.lastSession)}</span></div>
-        <div><span className="lbl">Sıradaki</span><span className={`val ${nx.up ? '' : 'muted'}`}>{nx.text}</span></div>
-      </div>
-      <div className="c-progress">
-        <div className="row"><span className="pl">Süreç haritalandırması</span><span className="pv num">%{prog}</span></div>
-        <div className="bar"><i style={{ width: `${prog}%` }} /></div>
-      </div>
-      <div className="c-status-cell">{badge}</div>
-      <div className="c-foot">
-        <button type="button" className={`act ${hasMail ? '' : 'off'}`} data-stop title={hasMail ? 'E-posta gönder' : 'E-posta kayıtlı değil'} onClick={(e) => onMail(e, c)}>{Ico.mail}<span className="act-label">E-posta</span></button>
-        <button type="button" className={`act primary ${hasPhone ? '' : 'off'}`} data-stop title={hasPhone ? 'SMS gönder' : 'Telefon kayıtlı değil'} onClick={(e) => onSms(e, c)}>{Ico.sms}<span className="act-label">SMS</span></button>
-      </div>
-    </article>
+  const hasTel = !!c.telefon?.trim();
+  const StatusBadge = ({ extra }: { extra: string }) => (
+    <span className={`cli-status ${st} ${extra}`}><i />{statusLabel[st]}</span>
   );
-}
-
-function SkeletonCard() {
   return (
-    <article className="card">
-      <div className="c-head"><div style={{ flex: 1 }}><div className="sk line" style={{ width: '55%' }} /><div className="sk line" style={{ width: '32%', marginTop: 9, height: 9 }} /></div>
-        <div className="sk line" style={{ width: 64, height: 22, borderRadius: 999 }} /></div>
-      <div className="sk line" style={{ width: '60%' }} />
-      <div className="sk line" style={{ width: '48%' }} />
-      <div className="sk line" style={{ width: '100%', height: 6 }} />
-      <div className="sk line" style={{ width: '100%', height: 34, borderRadius: 12 }} />
+    <article className="cli" role="button" tabIndex={0} aria-label={`${c.name} dosyasını aç`}
+      onClick={(e) => { if ((e.target as HTMLElement).closest('.act')) return; onOpen(c.id); }}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(c.id); } }}
+      onMouseEnter={() => onPrefetch?.(c.id)}>
+      <div className="cli-head">
+        <div className="cli-id">
+          <span className="cli-name">{c.name} <span className="cli-no">{clientNo(c)}</span></span>
+          <span className="cli-tags">
+            {keys.length
+              ? keys.map((k) => <span key={k} className="cli-tag"><i style={{ background: tagHex(k) }} />{CANON_LABEL[k] || k}</span>)
+              : <span className="cli-issue">{tagText(c)}</span>}
+          </span>
+        </div>
+        <StatusBadge extra="cli-grid-only" />
+      </div>
+
+      <div className="cli-dates">
+        <div className="cli-date"><span className="k">Son görüşme</span><span className={'v ' + (c.lastSession ? '' : 'muted')}>{fmt(c.lastSession)}</span></div>
+        <div className="cli-date"><span className="k">Sıradaki</span><span className={'v ' + rnCls}>{rn.text}</span></div>
+      </div>
+
+      <div className="cli-prog">
+        <div className="cli-prog-top"><span className="cli-prog-k">Süreç haritalandırması</span><span className="cli-prog-pct">%{prog}</span></div>
+        <div className="cli-prog-track"><div className="cli-prog-fill" style={{ width: `${prog}%` }} /></div>
+      </div>
+
+      <StatusBadge extra="cli-list-only" />
+
+      <div className="cli-foot">
+        <div className="cli-acts">
+          <button type="button" className={'act mail' + (hasMail ? '' : ' disabled')} aria-label="E-posta" title={hasMail ? 'E-posta gönder' : 'E-posta kayıtlı değil'} onClick={(e) => onMail(e, c)}><IcoMail /></button>
+          <button type="button" className={'act sms' + (hasTel ? '' : ' disabled')} aria-label="SMS" title={hasTel ? 'SMS gönder' : 'Telefon kayıtlı değil'} onClick={(e) => onSms(e, c)}><IcoSms /></button>
+        </div>
+      </div>
     </article>
   );
 }
@@ -342,7 +376,7 @@ function SmsModal({ client, onClose, onSent, onError }: {
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const taRef = useRef<HTMLTextAreaElement>(null);
-  useEffect(() => { taRef.current?.focus(); }, []);
+  useEffect(() => { const t = setTimeout(() => taRef.current?.focus(), 60); return () => clearTimeout(t); }, []);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', onKey); return () => document.removeEventListener('keydown', onKey);
@@ -361,18 +395,21 @@ function SmsModal({ client, onClose, onSent, onError }: {
     } catch (e: any) { setSending(false); onError(e?.message ?? 'Ağ hatası.'); }
   }
   return (
-    <div className="scrim" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="sms-modal" role="dialog" aria-modal="true" aria-labelledby="smsName">
-        <button type="button" className="sms-x" aria-label="Kapat" onClick={onClose}>×</button>
-        <div className="sms-head">
-          <span className="eyebrow">SMS gönder</span>
-          <h3 id="smsName">{client.name}</h3>
-          <span className="ph mono">{client.telefon}</span>
+    <div className="modal-back show" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="modal" role="dialog" aria-modal="true" aria-labelledby="smsName">
+        <div className="modal-top">
+          <div>
+            <div className="modal-eye">SMS gönder</div>
+            <div className="modal-name" id="smsName">{client.name}</div>
+            <div className="modal-tel">{client.telefon}</div>
+          </div>
+          <button type="button" className="modal-x" aria-label="Kapat" onClick={onClose}><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" /></svg></button>
         </div>
-        <textarea ref={taRef} maxLength={400} placeholder="Mesajını yaz…" value={text} onChange={(e) => setText(e.target.value)} />
-        <div className="sms-foot">
-          <span className="counter mono">{text.length}/400</span>
-          <button type="button" className="sms-send" disabled={text.trim().length === 0 || sending} onClick={send}>{sending ? 'Gönderiliyor…' : 'SMS gönder'}</button>
+        <textarea ref={taRef} className="modal-ta" maxLength={400} placeholder="Mesajını yaz…" value={text} onChange={(e) => setText(e.target.value)} />
+        <div className="modal-count"><span>{text.length}</span> / 400</div>
+        <div className="modal-acts">
+          <button type="button" className="btn btn-ghost" onClick={onClose}>Vazgeç</button>
+          <button type="button" className="btn btn-primary" disabled={text.trim().length === 0 || sending} onClick={send}>{sending ? 'Gönderiliyor…' : 'SMS gönder'}</button>
         </div>
       </div>
     </div>

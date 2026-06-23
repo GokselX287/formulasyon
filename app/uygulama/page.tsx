@@ -4222,7 +4222,7 @@ export default function HomePage() {
             <DanisanlarListe
               clients={panelClients}
               onBack={() => setCalismaSubTab('hub')}
-              onNav={(t) => { if (t === 'profil') setTab('terapist'); else if (t === 'home') setTab('home'); else if (t === 'ayarlar') setTab('ayarlar'); else setTab(t as Tab); }}
+              onNav={(t) => { if (t === 'profil') setTab('terapist'); else if (t === 'home') setTab('home'); else if (t === 'calendar') goToTakvim(); else if (t === 'ayarlar') setTab('ayarlar'); else setTab(t as Tab); }}
               onNewClient={() => setNewClientOpen(true)}
               onPrefetchClient={(id) => router.prefetch(`/danisan/${id}`)}
               onOpenClient={(id) => router.push(`/danisan/${id}`)}
