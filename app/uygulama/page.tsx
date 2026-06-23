@@ -42,7 +42,7 @@ import YolHaritasiV2 from "@/components/YolHaritasiV2";
 import FormulasyonV2 from "@/components/FormulasyonV2";
 import OrtakCalisma from "@/components/OrtakCalisma";
 import ACTGelistirmeV2 from "@/components/ACTGelistirmeV2";
-import AnaSayfaV3 from "@/components/AnaSayfaV3";
+import AnaSayfaLanding from "@/components/AnaSayfaLanding";
 import AyarlarPanel from "@/components/AyarlarPanel";
 import BuHaftaPanel from "@/components/BuHaftaPanel";
 import CalismaAlaniShell from "@/components/CalismaAlaniShell";
@@ -3726,7 +3726,7 @@ export default function HomePage() {
     <div className="min-h-screen bg-[#F4F5F8] text-[#0E0F12]">
       {/* In-app V2 ekranları kendi .dock'unu render ediyor; alttaki global ana menü (fixed NAV)
           zaten var → in-app dock'ları gizle (terapist .tp2 hariç — kullanıcı: dokunma). */}
-      <style>{`.siyi-inapp .dock{display:none!important}.siyi-inapp .tp2 .dock{display:flex!important}.siyi-inapp .asv3 .dock{display:flex!important}.siyi-inapp .tkv .dock{display:flex!important}.siyi-inapp .cav3 .dock{display:flex!important}.siyi-inapp .dlst .dock{display:flex!important}`}</style>
+      <style>{`.siyi-inapp .dock{display:none!important}.siyi-inapp .tp2 .dock{display:flex!important}.siyi-inapp .asv3 .dock{display:flex!important}.siyi-inapp .aslx .dock{display:flex!important}.siyi-inapp .tkv .dock{display:flex!important}.siyi-inapp .cav3 .dock{display:flex!important}.siyi-inapp .dlst .dock{display:flex!important}`}</style>
 
       <main className={cx(
         "siyi-inapp",
@@ -4040,18 +4040,55 @@ export default function HomePage() {
               }
               return { date: r.created_at ? new Date(r.created_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }) : '', fark, klinik };
             };
+
+            // ── Landing ana sayfa için ek veri (stats · takvim · risk listesi · görülenler · ruh hali) ──
+            const curMonthPrefix = `${curY}-${pad2(curM + 1)}-`;
+            // Takvim: bu ay gün → seans sayısı
+            const calCounts: Record<number, number> = {};
+            for (const k in dayCount) { if (k.startsWith(curMonthPrefix)) calCounts[parseInt(k.slice(8), 10)] = dayCount[k]; }
+            // Bu ay görülen farklı danışanlar (visitMap'ten); kayıt yoksa tüm danışanlara düş
+            const seenMonthIds = Object.entries(visitMap).filter(([, set]) => [...set].some((d) => d.startsWith(curMonthPrefix))).map(([id]) => id);
+            let seenDistinct = seenMonthIds.length;
+            const toSeen = (c: any) => ({ name: c.name, problem: (c.issue && c.issue !== '—') ? String(c.issue).trim() : '', file: String(c.id) });
+            let seenList = seenMonthIds.map((id) => panelClients.find((c: any) => String(c.id) === String(id))).filter(Boolean).map(toSeen)
+              .sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+            if (seenDistinct === 0) { seenList = panelClients.map(toSeen).sort((a, b) => a.name.localeCompare(b.name, 'tr')); seenDistinct = panelClients.length; }
+            const seenWith = seenList.filter((p) => p.problem).length;
+            // Risk: iletişimi kesilenler (dropClients → "N gündür sessiz" + dosya)
+            const dropList = dropClients
+              .map((cl: any) => {
+                const days = cl.lastSession ? Math.floor((Date.now() - new Date(cl.lastSession).getTime()) / 86400000) : null;
+                return { name: cl.name, risk: cl.dropRisk === 'high' ? 'yüksek risk' : 'orta risk', level: (cl.dropRisk === 'high' ? 'high' : 'mid') as 'high' | 'mid', meta: days != null ? `${days} gündür sessiz` : 'uzun süredir sessiz', file: String(cl.id), _d: days ?? 0 };
+              })
+              .sort((a: any, b: any) => b._d - a._d).slice(0, 6).map(({ _d, ...r }: any) => r);
+            // Ruh hali trendi (check-in reflections score'larından, eskiden yeniye son 7)
+            const moodTrend = (reflectionsState ?? [])
+              .filter((r: any) => r.type === 'check-in' && r.score != null)
+              .sort((a: any, b: any) => String(a.created_at).localeCompare(String(b.created_at)))
+              .slice(-7).map((r: any) => Number(r.score) || 3);
+            const moodNote = sessionsList.length >= 3
+              ? 'Bugün yoğun bir gün görünüyor. Aralarda kendine de bir nefes alanı bırak.'
+              : sessionsList.length === 0
+              ? 'Bugün planlı seansın yok — kendine alan açmak için iyi bir gün.'
+              : 'Günü dengede geçir; küçük molalar büyük fark yaratır.';
+            const activeCount = panelClients.filter((c: any) => c.status === 'active' || c.status === 'follow').length;
+
             const v3Data = {
-              dateTop: `${_now.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })} ${_now.toLocaleDateString('tr-TR', { weekday: 'long' })}`.toUpperCase(),
+              dateTop: `${_now.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })} · ${_now.toLocaleDateString('tr-TR', { weekday: 'long' })}`,
               dateFull: _dateFull,
               therapist: { name: (state.settings.therapistName ?? 'Terapist').split(' ')[0], full: state.settings.therapistName ?? 'Terapist' },
+              stats: { total: panelClients.length, active: activeCount, seen: seenDistinct },
               weekly: { sessionsThisWeek: weekSeries.reduce((s: number, b: any) => s + (b.sessions || 0), 0) },
+              mood: { trend: moodTrend, note: moodNote },
+              calendar: { monthName: `${AYLAR[curM]} ${curY}`, year: curY, month: curM + 1, today: nowD.getDate(), counts: calCounts },
+              seen: { distinct: seenDistinct, withProblem: seenWith, without: Math.max(0, seenDistinct - seenWith), list: seenList },
               sessions: sessionsList.map((s: any) => ({
                 who: s.clientName, file: String(s.clientId ?? ''), mod: [s.modality].filter(Boolean),
                 topic: s.topic ?? '—', no: s.sessionNo, sev: s.sev ?? 3, time: s.time,
                 status: s.status, dateISO: s.dateISO, mark: markOf(s.durum),
               })),
               intensity: { active: 'week' as const, week: mapRange(weekSeries, 'week'), month: mapRange(monthSeries, 'month'), year: mapRange(yearSeries, 'year') },
-              drop: { count: dropRiskCard.count },
+              drop: { count: dropRiskCard.count, list: dropList },
               continuity: continuityCard ? {
                 total: continuityCard.totalClients, avg: String(continuityCard.avgSessions).replace('.', ','),
                 median: continuityCard.medianSessions, longest: continuityCard.maxSessions,
@@ -4065,37 +4102,13 @@ export default function HomePage() {
             };
 
             return (
-              <AnaSayfaV3
+              <AnaSayfaLanding
                 data={v3Data}
-                staleClients={staleClients}
-                onSetClientStatus={async (id, status) => {
-                  const dbStatus = status === 'passive' ? 'archived' : 'active';
-                  dispatch({ type: 'PATIENT_UPDATE', id: String(id), patch: { status: dbStatus } as any });
-                  await fetch(`/api/clients/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: dbStatus }) }).catch(() => {});
-                }}
                 onNav={(t) => { if (t === 'calisma-alani') { setCalismaSubTab('hub'); setTab('calisma-alani'); } else if (t === 'calendar') goToTakvim(); else setTab(t as any); }}
                 onOpenProfile={() => setTab('terapist')}
                 onOpenFile={(file, name) => openOrCreateFile(file, name)}
-                onMarkSession={async (file, mode, s: any) => {
-                  if (!mode) return; // işaret kaldırma → kalıcı yazma yok
-                  const durum = mode === 'done' ? 'katildi' : mode === 'late' ? 'ertelendi' : 'iptal';
-                  const dateISO = s?.dateISO; const pid = String(file || '');
-                  if (!pid) { alert('Bu randevu kayıtlı bir danışan dosyasıyla eşleşmediği için işaretlenemedi.'); return; }
-                  const existing = (state.seanslar as any[]).find((x) => String(x.patientId) === pid && (x.tarih ?? '').slice(0, 10) === dateISO);
-                  if (existing) {
-                    dispatch({ type: 'SEANS_UPDATE', id: existing.id, patch: { durum } as any });
-                    await fetch(`/api/seanslar/${existing.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ durum }) }).catch(() => {});
-                  } else {
-                    const res = await fetch('/api/seanslar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ patientId: pid, tarih: dateISO, tip: 'seans', durum }) }).catch(() => null);
-                    const created = res && res.ok ? await res.json().catch(() => null) : null;
-                    dispatch({ type: 'SEANS_ADD', s: { id: created?.id ?? `seans_${Date.now()}`, patientId: pid, tarih: dateISO, durum } as any });
-                  }
-                }}
                 onSaveWellbeing={async (score, note) => {
                   await fetch('/api/reflections', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'check-in', score, text: note, meta: 'iyilik hali' }) }).catch(() => {});
-                }}
-                onSaveReflection={async (fark, klinik) => {
-                  await fetch('/api/reflections', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'daily', fark_notu: fark, klinik_notu: klinik, meta: 'yansıma notu' }) }).catch(() => {});
                   refreshReflections();
                 }}
               />
