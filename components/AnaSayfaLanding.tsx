@@ -75,7 +75,6 @@ const SECTIONS = [
   { id: 'secContinuity', lab: 'Süreklilik' },
   { id: 'secCalendar', lab: 'Takvim' },
   { id: 'secRisk', lab: 'Risk' },
-  { id: 'secSeen', lab: 'Danışanlar' },
 ];
 
 const AYLAR = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
@@ -540,31 +539,6 @@ export default function AnaSayfaLanding({ data, onOpenFile, onNav, onOpenProfile
                       <span className="risk-av">{initials(d.name)}</span>
                       <span className="risk-mid"><span className="risk-nm">{d.name}</span><span className="risk-meta">{d.meta}</span></span>
                       <span className={'risk-tag ' + d.level}>{d.risk}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </section>
-
-            {/* ───────── §6 GÖRÜLEN DANIŞANLAR ───────── */}
-            <section className="sec" id="secSeen">
-              <div className="sec-head reveal">
-                <div className="l"><span className="eyebrow">bu ay görülenler</span>
-                  <h2 className="sec-title">Üzerinde <span className="ser">çalıştığın</span> danışanlar</h2></div>
-                <p className="sec-aside">Bu ay {D.seen.distinct} farklı danışanla görüştün — {D.seen.withProblem}'inde tanımlı bir çalışma odağı var.</p>
-              </div>
-              <div className="panel reveal">
-                <div className="seen-head">
-                  <div className="cm"><b>{D.seen.distinct}</b><span>Farklı danışan</span></div>
-                  <div className="cm"><b>{D.seen.withProblem}</b><span>Çalışma odağı tanımlı</span></div>
-                  <div className="cm"><b>{D.seen.without}</b><span>Henüz formülasyonsuz</span></div>
-                </div>
-                <div className="seen-list">
-                  {D.seen.list.map((p, i) => (
-                    <div key={i} className="seen-li" role="button" tabIndex={0} onClick={() => openFile(p)}
-                      onKeyDown={(e) => { if (e.key === 'Enter') openFile(p); }}>
-                      <span className="seen-av">{initials(p.name)}</span>
-                      <span className="seen-tx"><span className="seen-nm">{p.name}</span><span className="seen-pr">{p.problem}</span></span>
                     </div>
                   ))}
                 </div>
