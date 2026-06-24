@@ -1,255 +1,424 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import './CocukDegerlendirmeV2.css';
 import type { CocukData } from './CocukPanel';
 
 // ──────────────────────────────────────────────────────────────────────────
-// Çocuk Değerlendirme — "Klinik Editöryel Dosya" · Çocuk Değerlendirme v2.html.
-// Anamnez ile aynı form şasisi/motoru. 11 bölüm · gerçek CocukData (JSON).
-// demografik adSoyad/yas/cinsiyet gerçek anahtar; diğerleri section.id + slug
-// (self-tutarlı, JSON'da kalıcı, round-trip). Uydurma yok → boş başlar.
+// Çocuk / ergen ilk değerlendirme editörü — landing uyumlu ("mesh + opal cam").
+// Cv görsel-43 / design_handoff_cocuk_degerlendirme portu. AnamnezV2 (.anx) ile
+// kardeş/ortak şasi. SCHEMA statik (form tanımı), DATA props'tan gelir; her
+// düzenleme onChange(section, value) ile parent'a yazılır (parent /api/cocuk'a
+// autosave eder). 11 bölüm · text/num/textarea/select/radio/chips/scale ·
+// tamamlanma halkası · sol ray scroll-spy · 5 temalı dock. ZORUNLU ALAN YOK.
+// Saklama: cocuk_json (tek alan); chips ", " ile birleşik string; scale number.
 // ──────────────────────────────────────────────────────────────────────────
-
-type SecKey = string;
-type FieldType = 'text' | 'num' | 'textarea' | 'select' | 'radio' | 'chips' | 'scale';
-type Field = { label: string; type: FieldType; sec: SecKey | '__top'; key: string; sub?: string; opt?: string[]; half?: boolean; max?: number; bands?: string };
-type Section = { id: string; t: string; risk?: boolean; fields: Field[] };
-
-const SECTIONS: Section[] = [
-  { id: 'demografik', t: 'Demografik', fields: [
-    { label: 'Ad Soyad', type: 'text', sec: 'demografik', key: 'adSoyad', half: true },
-    { label: 'Yaş', type: 'num', sec: 'demografik', key: 'yas', half: true },
-    { label: 'Cinsiyet', type: 'select', sec: 'demografik', key: 'cinsiyet', opt: ['', 'Kız', 'Erkek', 'Diğer'], half: true },
-    { label: 'Sınıf / okul', type: 'text', sec: 'demografik', key: 'sinif', half: true },
-    { label: 'Birlikte yaşadığı kişiler', type: 'text', sec: 'demografik', key: 'birlikteYasayan' },
-    { label: 'Başvuran', type: 'select', sec: 'demografik', key: 'basvuran', opt: ['', 'Anne', 'Baba', 'Her iki ebeveyn', 'Okul yönlendirmesi'], half: true },
-  ] },
-  { id: 'yakinma', t: 'Mevcut Yakınma', fields: [
-    { label: 'Başvuru nedeni (ebeveyn ifadesi)', type: 'textarea', sec: 'yakinma', key: 'metin' },
-    { label: 'Ana yakınma', type: 'text', sec: 'yakinma', key: 'anaYakinma' },
-    { label: 'Başlangıç / süre', type: 'text', sec: 'yakinma', key: 'baslangic', half: true },
-    { label: 'Şiddet (ebeveyn)', type: 'select', sec: 'yakinma', key: 'siddet', opt: ['', 'Hafif', 'Orta', 'İleri'], half: true },
-  ] },
-  { id: 'aile', t: 'Aile Sistemi', fields: [
-    { label: 'Anne — yaş / meslek', type: 'text', sec: 'aile', key: 'anneNot', half: true },
-    { label: 'Baba — yaş / meslek', type: 'text', sec: 'aile', key: 'babaNot', half: true },
-    { label: 'Ebeveyn birlikteliği', type: 'select', sec: 'aile', key: 'birliktelik', opt: ['', 'Evli', 'Ayrı', 'Boşanmış', 'Diğer'], half: true },
-    { label: 'Kardeş sayısı / sıra', type: 'text', sec: 'aile', key: 'kardesNot', half: true },
-    { label: 'Aile içi ilişki / dinamik', type: 'textarea', sec: 'aile', key: 'genogram' },
-    { label: 'Ailede psikiyatrik öykü', type: 'radio', sec: 'aile', key: 'psikiyatrikOyku', opt: ['Var', 'Yok', 'Bilinmiyor'] },
-  ] },
-  { id: 'gelisim', t: 'Gelişim Öyküsü', fields: [
-    { label: 'Gebelik & doğum', type: 'textarea', sec: 'gelisim', key: 'gebelik' },
-    { label: 'Gelişimsel kilometre taşları', type: 'text', sec: 'gelisim', key: 'motor', half: true },
-    { label: 'Gelişimsel gecikme', type: 'radio', sec: 'gelisim', key: 'gecikme', opt: ['Var', 'Yok'], half: true },
-    { label: 'Tuvalet / uyku / beslenme', type: 'text', sec: 'gelisim', key: 'tuvaletUykuBesi' },
-    { label: 'Önemli tıbbi öykü', type: 'textarea', sec: 'gelisim', key: 'tibbiOyku' },
-  ] },
-  { id: 'okul', t: 'Okul & Akademik', fields: [
-    { label: 'Akademik başarı', type: 'select', sec: 'okul', key: 'akademik', opt: ['', 'İyi', 'Orta', 'Düşük'], half: true },
-    { label: 'Öğretmen şikayeti', type: 'radio', sec: 'okul', key: 'ogretmenSikayet', opt: ['Var', 'Yok'], half: true },
-    { label: 'Okul içi gözlem', type: 'chips', sec: 'okul', key: 'gozlem', opt: ['Çekingen', 'Dikkat dağınık', 'Hareketli', 'Yalnız kalıyor', 'Uyumlu'] },
-    { label: 'Akran ilişkileri', type: 'textarea', sec: 'okul', key: 'akranNot' },
-  ] },
-  { id: 'cocukbdt', t: 'Çocuk BDT Formu', fields: [
-    { label: 'Tetikleyen durum', type: 'text', sec: 'cocukbdt', key: 'tetikleyen' },
-    { label: 'Otomatik düşünce (çocuk)', type: 'textarea', sec: 'cocukbdt', key: 'otomatikDusunce' },
-    { label: 'Duygu', type: 'text', sec: 'cocukbdt', key: 'duygu', half: true },
-    { label: 'Duygu şiddeti (termometre)', type: 'scale', sec: 'cocukbdt', key: 'duyguSiddeti', max: 10, bands: '0–10', half: true },
-    { label: 'Davranış', type: 'text', sec: 'cocukbdt', key: 'davranis' },
-    { label: 'Alternatif / baş etme', type: 'textarea', sec: 'cocukbdt', key: 'alternatif' },
-  ] },
-  { id: 'oyun', t: 'Oyun Terapisi', fields: [
-    { label: 'Tercih edilen materyal', type: 'chips', sec: 'oyun', key: 'materyal', opt: ['Kum tepsisi', 'Kukla', 'Çizim', 'Blok', 'Rol oyunu'] },
-    { label: 'Oyun temaları / gözlem', type: 'textarea', sec: 'oyun', key: 'temalar' },
-    { label: 'İlişki kurma / sınır', type: 'textarea', sec: 'oyun', key: 'iliskiSinir' },
-  ] },
-  { id: 'ebeveyn', t: 'Ebeveyn Tarzı', fields: [
-    { label: 'Baskın ebeveyn tutumu', type: 'select', sec: 'ebeveyn', key: 'tutum', opt: ['', 'Demokratik', 'Koruyucu', 'Otoriter', 'İzin verici', 'Tutarsız'] },
-    { label: 'Disiplin yöntemi', type: 'textarea', sec: 'ebeveyn', key: 'disiplin' },
-    { label: 'Ebeveynler arası tutarlılık', type: 'radio', sec: 'ebeveyn', key: 'tutarlilik', opt: ['Tutarlı', 'Kısmen', 'Tutarsız'] },
-  ] },
-  { id: 'risk', t: 'Risk & Koruma', risk: true, fields: [
-    { label: 'İhmal / istismar şüphesi', type: 'radio', sec: 'risk', key: 'abuse', opt: ['Var', 'Yok', 'Şüphe'] },
-    { label: 'Kendine zarar / riskli davranış', type: 'radio', sec: 'risk', key: 'kendineZararVar', opt: ['Var', 'Yok'] },
-    { label: 'Genel risk düzeyi', type: 'select', sec: 'risk', key: 'seviyeLabel', opt: ['', 'Düşük', 'Orta', 'Yüksek'] },
-    { label: 'Koruma notu / yönlendirme', type: 'textarea', sec: 'risk', key: 'korumaNotu' },
-  ] },
-  { id: 'hedefler', t: 'Hedefler', fields: [
-    { label: 'Terapi hedefleri', type: 'textarea', sec: 'hedefler', key: 'hedefler' },
-    { label: 'Ebeveyn beklentisi', type: 'text', sec: 'hedefler', key: 'beklenti' },
-  ] },
-  { id: 'not', t: 'Klinisyen Notu', fields: [
-    { label: 'Formülasyon ön-notu', type: 'textarea', sec: '__top', key: 'klinikNotu' },
-  ] },
-];
-
-function readField(data: any, f: Field): any {
-  if (f.sec === '__top') return data[f.key] ?? '';
-  const secObj = data[f.sec] ?? {};
-  const raw = f.sub ? secObj[f.key]?.[f.sub] : secObj[f.key];
-  if (f.type === 'chips') return Array.isArray(raw) ? raw : (typeof raw === 'string' && raw ? raw.split(', ') : []);
-  return raw ?? '';
-}
-function writeField(data: any, f: Field, uiVal: any): { sec: string; value: any } {
-  let stored = uiVal;
-  if (f.type === 'num' || f.type === 'scale') stored = uiVal === '' ? undefined : Number(uiVal);
-  if (f.type === 'chips') stored = Array.isArray(uiVal) ? uiVal.join(', ') : uiVal;
-  if (f.sec === '__top') return { sec: '__top', value: stored };
-  const secObj = { ...(data[f.sec] ?? {}) };
-  if (f.sub) secObj[f.key] = { ...(secObj[f.key] ?? {}), [f.sub]: stored };
-  else secObj[f.key] = stored;
-  return { sec: f.sec, value: secObj };
-}
-const isFilled = (data: any, f: Field): boolean => {
-  const v = readField(data, f);
-  if (f.type === 'chips') return Array.isArray(v) && v.length > 0;
-  if (f.type === 'scale' || f.type === 'num') return v !== '' && v != null;
-  return String(v ?? '').trim() !== '';
-};
 
 export type CocukDegerlendirmeV2Props = {
   data: CocukData;
   clientName?: string;
   clientNo?: string;
-  hasPreForm?: boolean;
   onChange(section: string, value: any): void;
   onBack?(): void;
   onNav?(target: string): void;
   onAiFill?(): void;
-  onImportPreForm?(): void;
   onSave?(): void;
+  onFormul?(): void;
 };
 
-const DOCK = [
+type FieldType = 'text' | 'num' | 'textarea' | 'select' | 'radio' | 'chips' | 'scale';
+type Field = { l: string; p: string; t: FieldType; o?: string[]; full?: boolean; ph?: string };
+type Section = { id: string; no: string; title: string; eye?: string; danger?: boolean; fields: Field[] };
+
+const NAV: { label: string; target: string }[] = [
   { label: 'Ana Sayfa', target: 'home' },
-  { label: 'Çalışma Alanı', target: 'calisma-alani', active: true },
+  { label: 'Takvim', target: 'calendar' },
+  { label: 'Çalışma Alanı', target: 'calisma-alani' },
   { label: 'Profil', target: 'terapist' },
-  { label: 'Yol Haritası', target: 'tasarim-arsivi' },
-  { label: 'ACT Geliştirme', target: 'act-gelistirme' },
+];
+const THEMES: [string, string][] = [['rose', '#E59FB6'], ['sage', '#9FBE96'], ['ocean', '#9DC4D6'], ['dusk', '#AEB2CC'], ['clay', '#E3A982']];
+
+const SCHEMA: Section[] = [
+  { id: 'demografik', no: '01', title: 'Demografik', eye: 'kimlik', fields: [
+    { l: 'Ad Soyad', p: 'demografik.adSoyad', t: 'text', full: true },
+    { l: 'Yaş', p: 'demografik.yas', t: 'num' },
+    { l: 'Cinsiyet', p: 'demografik.cinsiyet', t: 'select', o: ['Kız', 'Erkek', 'Diğer'] },
+    { l: 'Sınıf / okul', p: 'demografik.sinif', t: 'text' },
+    { l: 'Birlikte yaşadığı kişiler', p: 'demografik.birlikteYasayan', t: 'text', full: true },
+    { l: 'Başvuran', p: 'demografik.basvuran', t: 'select', o: ['Anne', 'Baba', 'Her iki ebeveyn', 'Okul yönlendirmesi'] },
+  ] },
+  { id: 'yakinma', no: '02', title: 'Mevcut yakınma', eye: 'giriş', fields: [
+    { l: 'Başvuru nedeni (ebeveyn ifadesi)', p: 'yakinma.metin', t: 'textarea', full: true },
+    { l: 'Ana yakınma', p: 'yakinma.anaYakinma', t: 'text', full: true },
+    { l: 'Başlangıç / süre', p: 'yakinma.baslangic', t: 'text' },
+    { l: 'Şiddet (ebeveyn)', p: 'yakinma.siddet', t: 'select', o: ['Hafif', 'Orta', 'İleri'] },
+  ] },
+  { id: 'aile', no: '03', title: 'Aile sistemi', eye: 'köken', fields: [
+    { l: 'Anne — yaş / meslek', p: 'aile.anneNot', t: 'text' },
+    { l: 'Baba — yaş / meslek', p: 'aile.babaNot', t: 'text' },
+    { l: 'Ebeveyn birlikteliği', p: 'aile.birliktelik', t: 'select', o: ['Evli', 'Ayrı', 'Boşanmış', 'Diğer'] },
+    { l: 'Kardeş sayısı / sıra', p: 'aile.kardesNot', t: 'text' },
+    { l: 'Aile içi ilişki / dinamik', p: 'aile.genogram', t: 'textarea', full: true },
+    { l: 'Ailede psikiyatrik öykü', p: 'aile.psikiyatrikOyku', t: 'radio', o: ['Var', 'Yok', 'Bilinmiyor'] },
+  ] },
+  { id: 'gelisim', no: '04', title: 'Gelişim öyküsü', eye: 'gelişim', fields: [
+    { l: 'Gebelik & doğum', p: 'gelisim.gebelik', t: 'textarea', full: true },
+    { l: 'Gelişimsel kilometre taşları', p: 'gelisim.motor', t: 'text' },
+    { l: 'Gelişimsel gecikme', p: 'gelisim.gecikme', t: 'radio', o: ['Var', 'Yok'] },
+    { l: 'Tuvalet / uyku / beslenme', p: 'gelisim.tuvaletUykuBesi', t: 'text', full: true },
+    { l: 'Önemli tıbbi öykü', p: 'gelisim.tibbiOyku', t: 'textarea', full: true },
+  ] },
+  { id: 'okul', no: '05', title: 'Okul & akademik', eye: 'okul', fields: [
+    { l: 'Akademik başarı', p: 'okul.akademik', t: 'select', o: ['İyi', 'Orta', 'Düşük'] },
+    { l: 'Öğretmen şikâyeti', p: 'okul.ogretmenSikayet', t: 'radio', o: ['Var', 'Yok'] },
+    { l: 'Okul içi gözlem', p: 'okul.gozlem', t: 'chips', o: ['Çekingen', 'Dikkat dağınık', 'Hareketli', 'Yalnız kalıyor', 'Uyumlu'], full: true },
+    { l: 'Akran ilişkileri', p: 'okul.akranNot', t: 'textarea', full: true },
+  ] },
+  { id: 'cocukbdt', no: '06', title: 'Çocuk BDT formu', eye: 'bilişsel', fields: [
+    { l: 'Tetikleyen durum', p: 'cocukbdt.tetikleyen', t: 'text' },
+    { l: 'Duygu', p: 'cocukbdt.duygu', t: 'text' },
+    { l: 'Otomatik düşünce (çocuk)', p: 'cocukbdt.otomatikDusunce', t: 'textarea', full: true },
+    { l: 'Duygu şiddeti (termometre)', p: 'cocukbdt.duyguSiddeti', t: 'scale', full: true },
+    { l: 'Davranış', p: 'cocukbdt.davranis', t: 'text' },
+    { l: 'Alternatif', p: 'cocukbdt.alternatif', t: 'textarea', full: true },
+  ] },
+  { id: 'oyun', no: '07', title: 'Oyun terapisi', eye: 'süreç', fields: [
+    { l: 'Kullanılan materyal', p: 'oyun.materyal', t: 'chips', o: ['Kum tepsisi', 'Kuklalar', 'Boyalar', 'Bloklar', 'Oyun hamuru', 'Kart oyunları', 'Figürler'], full: true },
+    { l: 'Tekrarlayan temalar', p: 'oyun.temalar', t: 'textarea', full: true },
+    { l: 'İlişki / sınır gözlemi', p: 'oyun.iliskiSinir', t: 'textarea', full: true },
+  ] },
+  { id: 'ebeveyn', no: '08', title: 'Ebeveyn tarzı', eye: 'tutum', fields: [
+    { l: 'Tutum', p: 'ebeveyn.tutum', t: 'select', o: ['Demokratik', 'Koruyucu', 'Otoriter', 'İzin verici', 'Tutarsız'] },
+    { l: 'Tutarlılık', p: 'ebeveyn.tutarlilik', t: 'radio', o: ['Tutarlı', 'Kısmen', 'Tutarsız'] },
+    { l: 'Disiplin yaklaşımı', p: 'ebeveyn.disiplin', t: 'textarea', full: true },
+  ] },
+  { id: 'risk', no: '09', title: 'Risk & koruma', eye: 'güvenlik', danger: true, fields: [
+    { l: 'İhmal / istismar', p: 'risk.abuse', t: 'radio', o: ['Var', 'Yok', 'Şüphe'] },
+    { l: 'Kendine zarar', p: 'risk.kendineZararVar', t: 'radio', o: ['Var', 'Yok'] },
+    { l: 'Risk düzeyi', p: 'risk.seviyeLabel', t: 'select', o: ['Düşük', 'Orta', 'Yüksek'] },
+    { l: 'Koruma / yönlendirme notu', p: 'risk.korumaNotu', t: 'textarea', full: true },
+  ] },
+  { id: 'hedefler', no: '10', title: 'Hedefler', eye: 'yön', fields: [
+    { l: 'Terapi hedefleri', p: 'hedefler.hedefler', t: 'textarea', full: true },
+    { l: 'Ebeveyn beklentisi', p: 'hedefler.beklenti', t: 'text', full: true },
+  ] },
+  { id: 'klinisyen', no: '11', title: 'Klinisyen notu', eye: 'sentez', fields: [
+    { l: 'Formülasyon ön-notu', p: 'klinikNotu', t: 'textarea', full: true,
+      ph: 'Okul reddinin işlevini netleştir\nEbeveyn rehberliği planı\nKaygı için maruz bırakma basamakları' },
+  ] },
 ];
 
+const lcTr = (s: string) => s.toLocaleLowerCase('tr-TR');
+
+function getV(data: any, p: string): any { return p.split('.').reduce((o, k) => (o == null ? undefined : o[k]), data); }
+function setIn(obj: any, keys: string[], val: any): any {
+  if (keys.length === 0) return val;
+  const [k, ...rest] = keys;
+  const base = obj && typeof obj === 'object' ? obj : {};
+  return { ...base, [k]: setIn(base[k], rest, val) };
+}
+function filled(v: any): boolean {
+  if (v == null) return false;
+  if (Array.isArray(v)) return v.length > 0;
+  if (typeof v === 'string') return v.trim() !== '';
+  if (typeof v === 'number') return true;
+  return !!v;
+}
+/* chips string → dizi (", " ile ayrılmış) */
+function chipsArr(v: any): string[] { return (typeof v === 'string' ? v : '').split(',').map((s) => s.trim()).filter(Boolean); }
+
+/* auto-grow textarea */
+function AutoTextarea({ value, placeholder, onChange }: { value: string; placeholder?: string; onChange(v: string): void }) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  const grow = () => { const el = ref.current; if (el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; } };
+  useEffect(grow, [value]);
+  return <textarea ref={ref} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />;
+}
+
 export default function CocukDegerlendirmeV2(props: CocukDegerlendirmeV2Props) {
-  const { data, clientName, clientNo, hasPreForm, onChange, onBack, onNav, onAiFill, onImportPreForm, onSave } = props;
+  const { data, clientName, clientNo, onChange, onBack, onNav, onAiFill, onSave, onFormul } = props;
+
+  const [theme, setTheme] = useState('rose');
   const [active, setActive] = useState('demografik');
-  const [saved, setSaved] = useState(false);
-  const formColRef = useRef<HTMLDivElement>(null);
-  const secRefs = useRef<Record<string, HTMLElement | null>>({});
-
-  const set = (f: Field, uiVal: any) => { const { sec, value } = writeField(data, f, uiVal); onChange(sec, value); };
-
-  const { pct, secState } = useMemo(() => {
-    const all = SECTIONS.flatMap((s) => s.fields);
-    const n = all.filter((f) => isFilled(data, f)).length;
-    const secState: Record<string, '' | 'part' | 'done'> = {};
-    SECTIONS.forEach((s) => { const c = s.fields.filter((f) => isFilled(data, f)).length; secState[s.id] = c === 0 ? '' : c === s.fields.length ? 'done' : 'part'; });
-    return { pct: Math.round((n / all.length) * 100), secState };
-  }, [data]);
+  const [mobileMenu, setMobileMenu] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [savedAt, setSavedAt] = useState<string | null>(null);
+  const saveT = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    const root = formColRef.current; if (!root) return;
-    const secs = Object.values(secRefs.current).filter(Boolean) as HTMLElement[];
-    const io = new IntersectionObserver((ents) => ents.forEach((e) => { if (e.isIntersecting) setActive((e.target as HTMLElement).dataset.sid!); }), { root, rootMargin: '-8% 0px -80% 0px', threshold: 0 });
-    secs.forEach((s) => io.observe(s));
-    return () => io.disconnect();
+    try { const t = localStorage.getItem('calmie-theme'); if (t && THEMES.some(([x]) => x === t)) setTheme(t); } catch {}
   }, []);
+  const applyTheme = (t: string) => { setTheme(t); try { localStorage.setItem('calmie-theme', t); } catch {} };
 
-  const scrollTo = (id: string) => { const el = secRefs.current[id]; const fc = formColRef.current; if (el && fc) fc.scrollTo({ top: el.offsetTop - 12, behavior: 'smooth' }); };
-  const doSave = () => { onSave?.(); setSaved(true); setTimeout(() => setSaved(false), 2000); };
+  /* veri yazımı — bölüm-bazlı onChange + autosave göstergesi (1500ms) */
+  const markSaving = () => {
+    setSaving(true);
+    if (saveT.current) clearTimeout(saveT.current);
+    saveT.current = setTimeout(() => {
+      setSaving(false);
+      setSavedAt(new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }));
+    }, 1500);
+  };
+  const setV = (p: string, val: any) => {
+    const keys = p.split('.');
+    const topKey = keys[0];
+    const newTop = keys.length === 1 ? val : setIn((data as any)[topKey] ?? {}, keys.slice(1), val);
+    onChange(topKey, newTop);
+    markSaving();
+  };
 
-  const renderControl = (f: Field, si: number, fi: number) => {
-    const v = readField(data, f);
-    const id = `cf-${si}-${fi}`;
-    switch (f.type) {
-      case 'text': case 'num':
-        return <input className="inp" id={id} value={v} placeholder="—" inputMode={f.type === 'num' ? 'numeric' : undefined} onChange={(e) => set(f, e.target.value)} />;
+  /* tamamlanma */
+  const secStatus = (s: Section): '' | 'part' | 'done' => {
+    const total = s.fields.length;
+    let n = 0; s.fields.forEach((f) => { if (filled(getV(data, f.p))) n++; });
+    return n === 0 ? '' : n >= total ? 'done' : 'part';
+  };
+  const doneCount = SCHEMA.filter((s) => secStatus(s) === 'done').length;
+  const pct = Math.round((doneCount / SCHEMA.length) * 100);
+  const C = 2 * Math.PI * 31;
+
+  /* scroll-spy + ray navigasyon (window scroll, 92px ofset) */
+  useEffect(() => {
+    const onScroll = () => {
+      const mid = window.innerHeight * 0.34;
+      let cur = SCHEMA[0].id;
+      for (const s of SCHEMA) {
+        const el = document.getElementById('cdx-sec-' + s.id);
+        if (el && el.getBoundingClientRect().top <= mid) cur = s.id;
+      }
+      setActive(cur);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+  const goTo = (id: string) => {
+    const el = document.getElementById('cdx-sec-' + id);
+    if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 92, behavior: 'smooth' });
+  };
+
+  const name = (clientName ?? '').trim() || 'Danışan';
+  const initials = name.split(/\s+/).filter(Boolean).map((w) => w[0]).slice(0, 2).join('').toLocaleUpperCase('tr-TR') || 'DA';
+
+  /* chips toggle yardımcısı — seçili etiketler ", " ile birleşik string */
+  const chipToggle = (p: string, opt: string) => {
+    const arr = chipsArr(getV(data, p));
+    const has = arr.some((x) => lcTr(x) === lcTr(opt));
+    const next = has ? arr.filter((x) => lcTr(x) !== lcTr(opt)) : [...arr, opt];
+    setV(p, next.join(', '));
+  };
+
+  /* ── alan render ── */
+  const renderCtrl = (f: Field) => {
+    const v = getV(data, f.p);
+    switch (f.t) {
+      case 'text':
+        return <input className="inp" type="text" value={v ?? ''} placeholder="Yaz…" onChange={(e) => setV(f.p, e.target.value)} />;
+      case 'num':
+        return <input className="inp" type="number" value={v ?? ''} placeholder="—" onChange={(e) => setV(f.p, e.target.value === '' ? null : +e.target.value)} />;
       case 'textarea':
-        return <textarea className="ta" id={id} value={v} placeholder="—" onChange={(e) => set(f, e.target.value)} />;
+        return <AutoTextarea value={v ?? ''} placeholder={f.ph || 'Yaz…'} onChange={(val) => setV(f.p, val)} />;
       case 'select':
-        return <select className="sel" id={id} value={v} onChange={(e) => set(f, e.target.value)}>{f.opt!.map((o) => <option key={o} value={o}>{o}</option>)}</select>;
+        return (
+          <div className="sel-wrap">
+            <select className="sel" value={filled(v) ? v : ''} onChange={(e) => setV(f.p, e.target.value)}>
+              <option value="">Seç…</option>
+              {f.o!.map((o) => <option key={o} value={o}>{o}</option>)}
+            </select>
+            <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" /></svg>
+          </div>
+        );
       case 'radio':
-        return <div className="radio">{f.opt!.map((o) => <button key={o} type="button" className={o === v ? 'on' : ''} onClick={() => set(f, o)}>{o}</button>)}</div>;
-      case 'chips':
-        return <div className="chips-in">{f.opt!.map((o) => { const on = Array.isArray(v) && v.includes(o); return <button key={o} type="button" className={on ? 'on' : ''} onClick={() => set(f, on ? v.filter((x: string) => x !== o) : [...v, o])}>{o}</button>; })}</div>;
+        return (
+          <div className="segd">
+            {f.o!.map((o) => <button key={o} type="button" className={v === o ? 'on' : ''} onClick={() => setV(f.p, o)}>{o}</button>)}
+          </div>
+        );
+      case 'chips': {
+        const sel = chipsArr(v);
+        return (
+          <div className="chipset">
+            {f.o!.map((o) => {
+              const on = sel.some((x) => lcTr(x) === lcTr(o));
+              return (
+                <button key={o} type="button" className={'chipt' + (on ? ' on' : '')} onClick={() => chipToggle(f.p, o)}>
+                  <span className="tick">✓</span>{o}
+                </button>
+              );
+            })}
+          </div>
+        );
+      }
       case 'scale': {
-        const cur = v === '' ? -1 : Number(v);
+        const val = filled(v) ? +v : 0;
         return (
           <div className="scale">
-            <div className="sh"><b>{f.label}</b><span className="sc">{v === '' ? '–' : v}<em>/{f.max}</em></span></div>
-            <div className="seg">{Array.from({ length: 11 }, (_, i) => i).map((i) => <button key={i} type="button" className={i === cur ? 'on' : ''} onClick={() => set(f, i)}>{i}</button>)}</div>
+            <div className="scale-track">
+              {Array.from({ length: 10 }, (_, idx) => idx + 1).map((i) => (
+                <div key={i} className={'scale-seg' + (i <= val ? ' fill' : '') + (i === val ? ' cur' : '')} onClick={() => setV(f.p, i)}>{i}</div>
+              ))}
+            </div>
+            <div className="scale-cap"><span>Düşük</span><span>{val ? <>Seçili: <b>{val}/10</b></> : 'Henüz seçilmedi'}</span><span>Yüksek</span></div>
           </div>
         );
       }
     }
+    return null;
   };
 
+  const renderField = (f: Field) => (
+    <div key={f.p} className={'fld' + (f.full ? ' full' : '')}>
+      <label className="fld-lab">{f.l}</label>
+      <div className="fld-ctrl">{renderCtrl(f)}</div>
+    </div>
+  );
+
   return (
-    <>
+    <div className="cdx" data-theme={theme}>
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,300;1,400;1,500;1,600&display=swap" rel="stylesheet" />
+      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600&display=swap" rel="stylesheet" />
 
-      <div className="cd2">
-        <div className="shell">
-          <div className="topbar">
-            <div className="tb-left">
-              <button className="back" type="button" onClick={() => onBack?.()}><span className="chev">‹</span>Dosya</button>
-              <div className="tb-title"><span className="e">Çocuk / ergen · ilk değerlendirme</span><b>{clientName || '—'}{clientNo ? ` · ${clientNo}` : ''}</b></div>
-            </div>
-            <div className="tb-right">
-              <button className="tb-act ai" type="button" onClick={() => onAiFill?.()}><svg viewBox="0 0 24 24"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8" /></svg>AI ile doldur</button>
-              <button className="tb-act" type="button" disabled={!hasPreForm} onClick={() => onImportPreForm?.()}><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5" /><path d="M5 21h14" /></svg>Ön-form içe aktar</button>
-              <button className={`tb-save${saved ? ' done' : ''}`} type="button" onClick={doSave}>
-                {saved ? <><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M20 6 9 17l-5-5" /></svg>Kaydedildi</> : <><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><path d="M17 21v-8H7v8M7 3v5h8" /></svg>Kaydet</>}
-              </button>
-            </div>
+      <div className="scene" aria-hidden="true" />
+      <div className="grain" aria-hidden="true" />
+
+      {/* NAV */}
+      <div className="navwrap">
+        <nav className="nav" aria-label="Birincil">
+          <a className="logo" onClick={() => onNav?.('home')}>Calmie<i>.</i></a>
+          <div className="nav-links">
+            {NAV.map((n) => <a key={n.target} className={n.target === 'calisma-alani' ? 'active' : ''} onClick={() => onNav?.(n.target)}>{n.label}</a>)}
           </div>
-
-          <div className="layout">
-            <aside className="navcol">
-              <div className="prog">
-                <div className="pt"><span className="e">Tamamlanma</span><span className="pc num">{pct}%</span></div>
-                <div className="track"><span className="fill" style={{ width: `${pct}%` }} /></div>
-              </div>
-              <nav className="navlist">
-                {SECTIONS.map((s, si) => (
-                  <a key={s.id} className={`navitem${s.risk ? ' risk' : ''}${active === s.id ? ' active' : ''}`} href={`#sec-${s.id}`} onClick={(e) => { e.preventDefault(); scrollTo(s.id); }}>
-                    <span className="no">{String(si + 1).padStart(2, '0')}</span><span className="nm">{s.t}</span><span className={`st ${secState[s.id]}`} />
-                  </a>
-                ))}
-              </nav>
-            </aside>
-
-            <div className="formcol" ref={formColRef}>
-              <div className="form-inner">
-                <div className="banner">
-                  <span className="ic"><svg viewBox="0 0 24 24"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8" /></svg></span>
-                  <span className="bt"><b>AI ile hızlı doldur.</b> Serbest intake metnini yapıştır; AI alanları çıkarsın, sen <a href="#" onClick={(e) => { e.preventDefault(); onAiFill?.(); }}>incele &amp; onayla</a>. Yalnız onayladığın alanlar forma yazılır — uydurma yok.</span>
-                </div>
-                <form onSubmit={(e) => e.preventDefault()}>
-                  {SECTIONS.map((s, si) => (
-                    <section key={s.id} className={`fsec${s.risk ? ' risk' : ''}`} id={`sec-${s.id}`} data-sid={s.id} ref={(el) => { secRefs.current[s.id] = el; }}>
-                      <div className="fsec-head"><span className="no">{String(si + 1).padStart(2, '0')}</span><h2>{s.t}</h2>{s.risk && <span className="risk-flag">risk</span>}</div>
-                      {s.fields.map((f, fi) => (
-                        f.type === 'scale'
-                          ? <div className={`field${f.half ? ' half' : ''}`} key={fi}>{renderControl(f, si, fi)}</div>
-                          : <div className={`field${f.half ? ' half' : ''}`} key={fi}><label htmlFor={`cf-${si}-${fi}`}>{f.label}</label>{renderControl(f, si, fi)}</div>
-                      ))}
-                    </section>
-                  ))}
-                </form>
-              </div>
+          <a className="nav-prof" onClick={() => onNav?.('terapist')}>
+            <div className="np-col">
+              <span className="pro-badge"><svg viewBox="0 0 24 24"><path d="M12 2l2.6 6.3L21 9l-4.8 4.3L17.6 22 12 18.4 6.4 22l1.4-8.7L3 9l6.4-.7z" /></svg>PRO</span>
+              <span className="np-name">Profil</span>
             </div>
-          </div>
-
-          <nav className="dock" aria-label="Bölümler">
-            {DOCK.map((d) => (
-              <a key={d.target} href="#" className={d.active ? 'active' : ''} onClick={(e) => { e.preventDefault(); if (!d.active) onNav?.(d.target); }}>{d.label}</a>
-            ))}
-          </nav>
+            <span className="np-av">{initials}</span>
+          </a>
+          <button className="menu-btn" aria-label="Menü" onClick={() => setMobileMenu((v) => !v)}><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16" /></svg></button>
+        </nav>
+        <div className={'mobile-menu' + (mobileMenu ? ' open' : '')}>
+          {NAV.map((n) => <a key={n.target} onClick={() => { setMobileMenu(false); onNav?.(n.target); }}>{n.label}</a>)}
         </div>
       </div>
-    </>
+
+      {/* TOPBAR */}
+      <section className="topbar">
+        <div className="wrap">
+          <nav className="crumb" aria-label="Konum">
+            <a onClick={() => onBack?.()}><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6" /></svg>Profil</a>
+            <span>/</span><a onClick={() => onBack?.()}>Dosya</a><span>/</span><b>Çocuk Değerlendirme</b>
+          </nav>
+          <div className="top-row">
+            <div className="top-id">
+              <div className="top-av">{initials}</div>
+              <div className="top-meta">
+                <div className="top-eye">İlk değerlendirme · Çocuk / ergen</div>
+                <h1 className="top-name">{name}<span>{clientNo || ''}</span></h1>
+                <div className="top-sub">Bölümleri serbestçe doldur — kayıt otomatik, zorunlu alan yok.</div>
+              </div>
+            </div>
+            <div className="top-right">
+              <div className="compl">
+                <div className="compl-ring">
+                  <svg width="74" height="74" viewBox="0 0 74 74">
+                    <circle cx="37" cy="37" r="31" fill="none" stroke="rgba(35,34,42,.10)" strokeWidth="7" />
+                    <circle cx="37" cy="37" r="31" fill="none" stroke="url(#cdxcg)" strokeWidth="7" strokeLinecap="round"
+                      strokeDasharray={C.toFixed(1)} strokeDashoffset={(C * (1 - doneCount / SCHEMA.length)).toFixed(1)} style={{ transition: 'stroke-dashoffset .5s' }} />
+                    <defs><linearGradient id="cdxcg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="var(--viz-a)" /><stop offset="1" stopColor="var(--viz-b)" /></linearGradient></defs>
+                  </svg>
+                  <div className="pct">{pct}%</div>
+                </div>
+                <div className="compl-txt">
+                  <b>{doneCount}/{SCHEMA.length} bölüm</b>
+                  <span>tamamlandı</span>
+                  <span className={'compl-save' + (saving ? ' saving' : '')}><span className="dot" />{saving ? 'Kaydediliyor…' : savedAt ? `Kaydedildi · ${savedAt}` : 'Kaydedildi'}</span>
+                </div>
+              </div>
+              <div className="top-actions">
+                <button className="btn btn-ghost" type="button" onClick={() => onAiFill?.()}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v3M12 18v3M5 12H2M22 12h-3M6 6l-2-2M20 20l-2-2M18 6l2-2M4 20l2-2" /><circle cx="12" cy="12" r="4" /></svg>AI ile doldur</button>
+                <button className="btn btn-primary" type="button" onClick={() => onSave?.()}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7" /></svg>Kaydet</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ANA */}
+      <section className="ana">
+        <div className="wrap">
+          <aside className="srail" aria-label="Bölümler">
+            <div className="srail-h">Bölümler</div>
+            {SCHEMA.map((s) => {
+              const st = secStatus(s);
+              return (
+                <div key={s.id} className={'sr-item' + (s.danger ? ' danger' : '') + (active === s.id ? ' active' : '')} onClick={() => goTo(s.id)}>
+                  <span className="sr-no">{s.no}</span>
+                  <span className={'sr-dot' + (st ? ' ' + st : '')} />
+                  <span className="sr-lab">{s.title}</span>
+                </div>
+              );
+            })}
+          </aside>
+          <div className="secstack">
+            {SCHEMA.map((s) => (
+              <section key={s.id} className={'acard' + (s.danger ? ' danger' : '')} id={'cdx-sec-' + s.id}>
+                <div className="ac-head">
+                  <span className="ac-no">{s.no}</span>
+                  <h2 className="ac-title">{s.title}</h2>
+                  {s.danger
+                    ? <span className="ac-danger-note"><svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" /></svg>Güvenlik bölümü</span>
+                    : <span className="ac-eye">{s.eye}</span>}
+                </div>
+                <div className="fgrid">{s.fields.map(renderField)}</div>
+              </section>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* END CTA */}
+      <section className="endcta">
+        <div className="wrap">
+          <div className="endcta-l">
+            <div className="endcta-eye">Sonraki adım</div>
+            <h2 className="endcta-t">Değerlendirme tamam mı? <span className="ser">Klinik formülasyona</span> geç.</h2>
+            <p className="endcta-p">Toplanan veriden çocuğun sürdürücü döngülerini ve müdahale planını birlikte oluştur.</p>
+          </div>
+          <button className="btn btn-primary" type="button" onClick={() => onFormul?.()}>Klinik Formülasyon<svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" /></svg></button>
+        </div>
+      </section>
+
+      {/* FOOTER */}
+      <div className="footwrap">
+        <footer>
+          <div className="foot-grid">
+            <div className="foot-brand">
+              <span className="logo" style={{ fontSize: 21, fontWeight: 600, color: '#fff' }}>Calmie<i style={{ fontStyle: 'italic', color: 'var(--txt-accent)' }}>.</i></span>
+              <p>İşini profesyonel boyutta yapmak isteyen herkes için dijital klinik asistanı — sade, güvenli, bütüncül.</p>
+            </div>
+            <div className="foot-col">
+              <h4>Panel</h4>
+              <a onClick={() => onNav?.('home')}>Ana Sayfa</a>
+              <a onClick={() => onNav?.('calendar')}>Takvim &amp; Randevular</a>
+              <a onClick={() => onNav?.('calisma-alani')}>Çalışma Alanı</a>
+            </div>
+            <div className="foot-col">
+              <h4>Hesap</h4>
+              <a onClick={() => onNav?.('terapist')}>Profil</a>
+              <a onClick={() => onBack?.()}>Dosya</a>
+              <a onClick={() => onFormul?.()}>Klinik Formülasyon</a>
+            </div>
+          </div>
+          <div className="foot-bottom"><small>© 2026 Calmie</small><div className="foot-legal"><a>{name}{clientNo ? ` · ${clientNo}` : ''}</a></div></div>
+        </footer>
+      </div>
+
+      {/* DOCK */}
+      <div className="dock" aria-label="Renk teması">
+        {THEMES.map(([t, c]) => <button key={t} type="button" className={'dock-dot' + (theme === t ? ' on' : '')} style={{ background: c }} title={t} aria-label={`${t} tema`} onClick={() => applyTheme(t)} />)}
+      </div>
+    </div>
   );
 }

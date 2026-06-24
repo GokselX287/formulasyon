@@ -338,6 +338,25 @@
 .aslx .tl-check svg{width:14px;height:14px;fill:none;stroke:var(--viz-a);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
 .aslx .tl-empty{font-size:13.5px;color:var(--ink-mute);padding:22px 4px;text-align:center}
 
+/* seansa hazırlık (anasayfa secTodo — sıradaki seans kartı + diğerleri) */
+.aslx .prep-next{position:relative;overflow:hidden;isolation:isolate;border-radius:var(--r-card);padding:24px;cursor:pointer;margin-bottom:22px;
+  background:var(--glass-3);border:1px solid var(--glass-brd);box-shadow:var(--sh-soft);transition:transform .2s,box-shadow .25s}
+.aslx .prep-next:hover{transform:translateY(-2px);box-shadow:var(--sh-card)}
+.aslx .prep-next .card-tint{position:absolute;inset:0;z-index:0;opacity:.6;
+  background:radial-gradient(80% 80% at 85% 0%,color-mix(in srgb,var(--viz-a) 22%,transparent),transparent 60%),radial-gradient(70% 70% at 4% 100%,color-mix(in srgb,var(--violet) 18%,transparent),transparent 60%)}
+.aslx .prep-z{position:relative;z-index:1}
+.aslx .prep-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.aslx .prep-badge{display:inline-flex;align-items:center;gap:7px;font-family:var(--font-mono);font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft)}
+.aslx .prep-badge .dot{width:7px;height:7px;border-radius:50%;background:var(--viz-a);box-shadow:0 0 0 4px color-mix(in srgb,var(--viz-a) 26%,transparent)}
+.aslx .prep-when{font-size:18px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.02em;color:var(--ink-strong)}
+.aslx .prep-name{font-size:24px;font-weight:600;letter-spacing:-.02em;margin:0;color:var(--ink-strong)}
+.aslx .prep-topic{font-size:13.5px;line-height:1.5;color:var(--ink-soft);margin:8px 0 18px}
+.aslx .prep-go{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;letter-spacing:-.01em;color:#F4F3EF;background:var(--ink-strong);border-radius:var(--r-pill);padding:11px 20px;box-shadow:0 12px 26px -12px rgba(20,17,23,.6);transition:transform .2s}
+.aslx .prep-next:hover .prep-go{transform:translateX(2px)}
+.aslx .prep-go svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.aslx .prep-others{display:flex;flex-direction:column;gap:12px}
+.aslx .prep-others>.eyebrow{margin-bottom:2px}
+
 .aslx .mood{display:flex;flex-direction:column}
 .aslx .mood .card-tint{opacity:.5;background:radial-gradient(80% 70% at 80% 0%,rgba(246,215,200,.6),transparent 60%),radial-gradient(70% 70% at 10% 100%,rgba(216,204,236,.5),transparent 60%)}
 .aslx .mood-z{position:relative;z-index:1;display:flex;flex-direction:column;height:100%}

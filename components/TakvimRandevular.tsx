@@ -87,7 +87,7 @@ const HSTART = 9 * 60, HEND = 22 * 60, HPX = 45;
 const DROP_FROM = 20 * 60; // 20:00 sonrası = iptal / erteleme alanı
 
 export default function TakvimRandevular(props: TakvimRandevularProps) {
-  const { events, resolveClient, missingFeeCount = 0, availability, onAddBlock, onBack, onNav, onOpenClient, onPrepareSession, onNewAppointment, onManualSync, onOpenInterventionSuggest, onEditMissingFees, onCancelSession, onUpdateEvent, onDeleteEvent } = props;
+  const { events, resolveClient, missingFeeCount = 0, availability, onAddBlock, onBack, onNav, onOpenClient, onNewAppointment, onManualSync, onEditMissingFees, onCancelSession, onUpdateEvent, onDeleteEvent } = props;
 
   const BLOCK_TYPES: { key: string; label: string }[] = [
     { key: 'kapali', label: 'Kapalı' }, { key: 'yemek', label: 'Yemek' },
@@ -109,6 +109,7 @@ export default function TakvimRandevular(props: TakvimRandevularProps) {
   const [monthOff, setMonthOff] = useState(0);
   const [statPeriod, setStatPeriod] = useState<StatPeriod>('hafta');
   const [earnPeriod, setEarnPeriod] = useState<StatPeriod>('hafta');
+  const [cancelRange, setCancelRange] = useState<{ from: number; to: number }>({ from: 20 * 60, to: HEND });
   const [histQuery, setHistQuery] = useState('');
   const [syncing, setSyncing] = useState(false);
   const [syncTxt, setSyncTxt] = useState('güncel');
@@ -119,6 +120,10 @@ export default function TakvimRandevular(props: TakvimRandevularProps) {
   const [theme, setTheme] = useState('sage');
   useEffect(() => { const s = lsGet('calmie-theme'); if (s && DOCK_THEMES.some((t) => t.id === s)) setTheme(s); }, []);
   const applyTheme = (id: string) => { setTheme(id); try { localStorage.setItem('calmie-theme', id); } catch { /* yoksay */ } };
+
+  // ── İptal/erteleme bölgesi saat aralığı (terapist belirler; yerel) ──
+  useEffect(() => { try { const r = lsGet('tkv-cancel-range'); if (r) { const o = JSON.parse(r); if (typeof o?.from === 'number' && typeof o?.to === 'number' && o.from < o.to) setCancelRange({ from: o.from, to: o.to }); } } catch { /* yoksay */ } }, []);
+  const saveCancelRange = (next: { from: number; to: number }) => { setCancelRange(next); try { localStorage.setItem('tkv-cancel-range', JSON.stringify(next)); } catch { /* yoksay */ } };
 
   // ── Toast ──
   const showToast = (m: string) => { setToast(m); window.clearTimeout((showToast as any)._t); (showToast as any)._t = window.setTimeout(() => setToast(null), 2200); };
@@ -400,7 +405,6 @@ export default function TakvimRandevular(props: TakvimRandevularProps) {
 
   const TABS: { key: SubTab; label: string; cnt?: number }[] = [
     { key: 'takvim', label: 'Takvim', cnt: todayAppts.length },
-    { key: 'hazirlik', label: 'Seansa Hazırlık', cnt: todayAppts.length },
     { key: 'musaitlik', label: 'Müsaitlik' },
     { key: 'gecmis', label: 'Geçmiş' },
     { key: 'takip', label: 'Takip' },
@@ -421,16 +425,16 @@ export default function TakvimRandevular(props: TakvimRandevularProps) {
         onPointerMove={evMove}
         onPointerUp={(e) => evUp(a, e)}>
         <div className="ev-n">{a.name}</div>
-        <div className="ev-t">{hhmm(a.start)}–{hhmm(a.end)}</div>
         {h > 54 ? tag : null}
       </div>
     );
   };
 
   const hoursAxis: number[] = []; for (let m = HSTART; m <= HEND; m += 60) hoursAxis.push(m);
+  const cancelSlots: number[] = []; for (let m = HSTART; m <= HEND; m += 30) cancelSlots.push(m);
   const bodyH = (HEND - HSTART) / 60 * HPX;
   const nowTop = (nowMinutes - HSTART) / 60 * HPX;
-  const dzTop = (DROP_FROM - HSTART) / 60 * HPX, dzH = (HEND - DROP_FROM) / 60 * HPX;
+  const dzTop = (cancelRange.from - HSTART) / 60 * HPX, dzH = Math.max(18, (cancelRange.to - cancelRange.from) / 60 * HPX);
 
   const WeekView = () => (
     <div className="wk" onWheel={gridWheel}>
@@ -452,7 +456,7 @@ export default function TakvimRandevular(props: TakvimRandevularProps) {
           </div>
         ))}
         <div ref={cancelZoneRef} className={`drop-zone${dragging ? ' hot' : ''}`} style={{ top: dzTop, height: dzH }}>
-          <div className="dz-in">İptal / erteleme alanı · 20:00 sonrası<br />seansı buraya bırak</div>
+          <div className="dz-in">İptal / erteleme alanı · {hhmm(cancelRange.from)}–{hhmm(cancelRange.to)}<br />seansı buraya bırak</div>
         </div>
         {weekOff === 0 && mounted && nowMinutes >= HSTART && nowMinutes <= HEND && (
           <div className="now-line" style={{ top: nowTop }}><span className="lbl">{hhmm(nowMinutes)}</span></div>
@@ -578,6 +582,23 @@ export default function TakvimRandevular(props: TakvimRandevularProps) {
           );
         })()}
       </div>
+      <div className="card card-pad cancel-cfg">
+        <span className="card-eye">iptal / erteleme alanı</span>
+        <p className="cc-lead">Takvimde bu saat aralığı “seansı bırak” bölgesidir. Sürüklenen seans burada iptal/ertelenir — aralığı sen belirle.</p>
+        <div className="cc-row">
+          <label>Başlangıç
+            <select value={cancelRange.from} onChange={(e) => { const f = +e.target.value; saveCancelRange({ from: f, to: Math.max(f + 30, cancelRange.to) }); }}>
+              {cancelSlots.filter((m) => m < HEND).map((m) => <option key={m} value={m}>{hhmm(m)}</option>)}
+            </select>
+          </label>
+          <span className="cc-dash">–</span>
+          <label>Bitiş
+            <select value={cancelRange.to} onChange={(e) => { const t = +e.target.value; saveCancelRange({ from: Math.min(cancelRange.from, t - 30), to: t }); }}>
+              {cancelSlots.filter((m) => m > cancelRange.from).map((m) => <option key={m} value={m}>{hhmm(m)}</option>)}
+            </select>
+          </label>
+        </div>
+      </div>
     </div>
   );
 
@@ -680,9 +701,11 @@ export default function TakvimRandevular(props: TakvimRandevularProps) {
                   </div>
                   <div className="wknav">
                     <button type="button" onClick={() => navTo(-1)} aria-label="Önceki"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6" /></svg></button>
-                    <button type="button" className="today-btn" onClick={() => navTo(0)}>Bugün</button>
-                    <button type="button" onClick={() => navTo(1)} aria-label="Sonraki"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" /></svg></button>
                     <span className="wk-range">{rangeLabel}</span>
+                    <button type="button" onClick={() => navTo(1)} aria-label="Sonraki"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" /></svg></button>
+                    {(calView === 'ay' ? monthOff !== 0 : calView === 'gun' ? dayOff !== 0 : weekOff !== 0) && (
+                      <button type="button" className="today-btn" onClick={() => navTo(0)}>Bugün</button>
+                    )}
                   </div>
                 </div>
                 <div className={calView !== 'ay' ? 'grid-2' : ''}>
@@ -692,69 +715,7 @@ export default function TakvimRandevular(props: TakvimRandevularProps) {
               </section>
             )}
 
-            {/* ───────── 2 · SEANSA HAZIRLIK ───────── */}
-            {subTab === 'hazirlik' && (
-              todayAppts.length === 0 ? (
-                <section className="pane">
-                  <div className="pane-head"><span className="eyebrow">hazırlık</span><h2>Seansa Hazırlık</h2><p>Bugünün seanslarına hazırlan.</p></div>
-                  <div className="empty">
-                    <div className="empty-ic"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2.5" /><path d="M16 3v4M8 3v4M3 10h18" strokeLinecap="round" /></svg></div>
-                    <h2 className="empty-t">Bugün için randevu yok</h2><p className="empty-d">Hazırlanacak seans bulunmuyor.</p>
-                  </div>
-                </section>
-              ) : (() => {
-                const n = nextAppt || todayAppts[0];
-                const eta = Math.max(0, n.start - nowMinutes);
-                const others = todayAppts.filter((a) => a.id !== n.id);
-                return (
-                  <section className="pane">
-                    <div className="pane-head"><span className="eyebrow">hazırlık</span><h2>Seansa Hazırlık</h2><p>Bugün <b>{todayAppts.length}</b> seans · sıradaki <b>{n.name}</b>.</p></div>
-                    <div className="prep-grid">
-                      <div className="card prep-next" style={toneVars(n.name)}>
-                        <div className="prep-top">
-                          <span className="badge-now"><span className="dot" />{eta > 0 ? 'Sıradaki' : 'Şimdi'}</span>
-                          <span className="prep-when">{hhmm(n.start)} – {hhmm(n.end)}{eta > 0 ? ` · ${eta} dk sonra` : ''}</span>
-                        </div>
-                        <h2 className="prep-name">{n.name}</h2>
-                        <div className="prep-meta">
-                          <span className="chip">{hhmm(n.start)}</span>
-                          <span className="chip">{n.end - n.start} dk</span>
-                          {n.matched ? <span className="chip ok">dosya eşleşti</span> : <span className="chip no">eşleşme yok</span>}
-                          {n.matched && n.reviewed && <span className="chip ok">incelendi</span>}
-                        </div>
-                        <div className={`topic-box${n.matched ? '' : ' nomatch'}`}>
-                          <span className="tb-eye">{n.matched ? 'Sunum sorunu' : 'Bilgi'}</span>
-                          <p>{n.matched ? (n.topic || 'Tanım girilmemiş.') : 'Bu isim danışan kaydıyla eşleşmiyor — yalnızca takvim adı ve saati biliniyor.'}</p>
-                        </div>
-                        <div className="prep-cta">
-                          {n.matched ? <button className="btn btn-primary" onClick={() => onPrepareSession?.(n.name)}>Hazırlığa geç →</button> : <button className="btn btn-primary" onClick={() => open(n)}>Danışan eşleştir</button>}
-                          <button className="btn btn-ghost" onClick={() => onOpenInterventionSuggest?.()}>Müdahale öner</button>
-                          {n.matched && <button className="btn btn-ghost" onClick={() => open(n)}>Dosyayı aç</button>}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="pool-head"><span className="eyebrow">bugünün diğer seansları</span><span className="eyebrow">{others.length} seans</span></div>
-                        <div className="prep-others">
-                          {others.length === 0 && <div className="empty-d" style={{ padding: '8px 2px' }}>Başka seans yok.</div>}
-                          {others.map((a) => {
-                            const past = a.end <= nowMinutes;
-                            return (
-                              <div key={a.id} className={`po${past ? ' past' : ''}`} style={toneVars(a.name)} onClick={() => open(a)}>
-                                <div className="pt">{hhmm(a.start)}</div>
-                                <div><div className="pn">{a.name}</div><div className="ptopic">{a.matched ? (a.topic || 'Eşleşti') : <span className="nomatch">eşleşme yok</span>}{past ? ' · tamamlandı' : ''}</div></div>
-                                <div className="pgo">{a.matched ? 'Dosya →' : 'Liste →'}</div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  </section>
-                );
-              })()
-            )}
-
-            {/* ───────── 3 · MÜSAİTLİK ───────── */}
+            {/* ───────── 2 · MÜSAİTLİK ───────── */}
             {subTab === 'musaitlik' && (() => {
               const hm = (s: string) => (Number(s?.slice(0, 2)) || 0) * 60 + (Number(s?.slice(3, 5)) || 0);
               const fullCount = ALL.filter((a) => week.some((d) => d.date === a.date)).length;

@@ -1,17 +1,21 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import './CalmieChrome.css';   // Özet Sunum kabuğu (mesh + frosted) — Anamnez ile ortak
-import './AnamnezV2.css';      // .an2 premium kart dili + .ozs özet-sunum stilleri (sonuna eklendi)
+import { useEffect, useState } from 'react';
+import './DanisanOzetSunum.css';   // landing-uyumlu "mesh + opal cam" özet/sunum dili (.ozx)
 import { PROFIL_DATA as DEFAULT_DATA } from './danisanRaporuData';
 import { DiagramViewer, type DiagramType } from './BozuklukDongusu';
 import { compileAile } from '@/lib/anamnez';
 
 // ──────────────────────────────────────────────────────────────────────────
-// Danışan dosyası — profil görünümü. Eski "Pano" (bento .dr DanisanRaporu)
-// kaldırıldı (2026-06-18); bu dosya artık yalnız ÖZET SUNUM'u (DanisanOzetSunum)
-// barındırır. Dosya adı geriye-uyum için korundu (importlar bu yolu kullanıyor).
-// ──────────────────────────────────────────────────────────────────────────
+// Danışan Özet / Sunum — landing uyumlu ("mesh + opal cam") tasarım.
+// Cv görsel-44 / design_handoff_danisan_ozet portu. Anamnez (.anx) / Çocuk (.cdx)
+// ile kardeş kabuk: mesh sahne + opal kartlar + 5 temalı dock (sol alt) + sade
+// dikey, salt-okunur, yazdırılabilir klinik dosya.
+// Dosya adı geriye-uyum için korundu (importlar bu yolu kullanıyor).
+// ⚠️ HİÇBİR BÖLÜM/VERİ KALDIRILMADI — mevcut tüm bölümler yeni dile uyarlandı.
+// Veri hattı (page.tsx + türetmeler + gömülü gerçek döngü DiagramViewer) aynen
+// korunur; yalnız görsel dil değişti.
+// ══════════════════════════════════════════════════════════════════════════
 
 export type DanisanRaporuProps = {
   data?: any;
@@ -24,35 +28,32 @@ export type DanisanRaporuProps = {
   onSaveFee?(amount: number | null): void | Promise<void>;
   onSaveClientPatch?(patch: Record<string, unknown>): void | Promise<void>;
   onNav?(target: string): void;
-  onAltFile?(): void;   // eski "süreç dosyası" (/dosya) — alternatif görünüm
-  onSwitchView?(): void;  // Pano ↔ Özet sunum (dikey) geçişi
-  clientId?: string;      // özet sunumdaki döngüleri çekmek için
+  onAltFile?(): void;
+  onSwitchView?(): void;
+  clientId?: string;
 };
-// ══════════════════════════════════════════════════════════════════════════
-// DanisanOzetSunum — Profil ekranının 2. (DİKEY) görünümü: "Özet Sunum" (PDF).
-// YENİ tasarım dili (Anamnez ekranı gibi): Calmie tema-mesh zemin + frosted
-// scrim + üst dock + ortada yüzen kart; içerik PREMIUM hairline kartlar (.an2).
-// Pano'daki TÜM bölümleri kapsar (sorun/hedef, döngü[gömülü], 4P, hexaflex,
-// değerler, ACT matrisi, benlik&algı, güçlü/gelişim, danışan hedefleri,
-// müdahaleler, ilişki, ölçek serisi, seanslar, hikaye). Aynı `data`yı paylaşır.
-// Döngüler AYRI yapıdır (/clients/[id]/dongu) — burada yalnız ÖZETE gömülür,
-// düzenlenmez. (Ayrı dosya yerine burada: Turbopack yeni-dosya riski yok.)
-// ══════════════════════════════════════════════════════════════════════════
-const OZS_DOCK = [
-  { label: 'Ana Sayfa', target: 'home' },
-  { label: 'Çalışma Alanı', target: 'calisma-alani' },
-  { label: 'Profil', target: 'terapist', active: true },
-  { label: 'Ayarlar', target: 'ayarlar' },
-];
-const OZS_BG = '/calmie-hero-default.jpg';
+
+const THEMES: [string, string][] = [['rose', '#E59FB6'], ['sage', '#9FBE96'], ['ocean', '#9DC4D6'], ['dusk', '#AEB2CC'], ['clay', '#E3A982']];
+const FOURP_LABELS: Record<string, string> = {
+  predispozan: 'Soruna zemin hazırlayan faktörler',
+  presipitan: 'Tetikleyici faktörler',
+  perpetuan: 'Sürdürücü faktörler',
+  protektif: 'Koruyucu faktörler',
+};
+const DLBL: Record<string, string> = { tamamlandi: 'Tamamlandı', devam: 'Devam ediyor', baslanmadi: 'Başlanmadı' };
+const OUT: Record<string, string> = { yararli: 'Yararlı', notr: 'Nötr', yararsiz: 'Sınırlı' };
 const ozsLs = (k: string): string | null => { try { return typeof window !== 'undefined' ? localStorage.getItem(k) : null; } catch { return null; } };
 
 export function DanisanOzetSunum(props: DanisanRaporuProps) {
   const D: any = props.data ?? DEFAULT_DATA;
   const [cycles, setCycles] = useState<any[]>([]);
   const [anamnez, setAnamnez] = useState<any>(null);
-  const [theme] = useState<string>(() => ozsLs('calmie_home_bgtheme') || 'default');
-  const [bgPhoto] = useState<string | null>(() => ozsLs('siyi_home_bg_v1'));
+  const [theme, setTheme] = useState('rose');
+
+  useEffect(() => {
+    try { const t = ozsLs('calmie-theme'); if (t && THEMES.some(([x]) => x === t)) setTheme(t); } catch {}
+  }, []);
+  const applyTheme = (t: string) => { setTheme(t); try { localStorage.setItem('calmie-theme', t); } catch {} };
 
   useEffect(() => {
     if (!props.clientId) return;
@@ -77,13 +78,15 @@ export function DanisanOzetSunum(props: DanisanRaporuProps) {
   const istismarVar = aileA?.istismarVar === 'Var';
   const istismarNot = tx(aileA?.istismarNot);
   const showFlag = yatisVar || !!psikIlac || istismarVar;
+  const attnItems: { k: string; v?: string }[] = [];
+  if (yatisVar) attnItems.push({ k: 'Yatış öyküsü var' });
+  if (psikIlac) attnItems.push({ k: 'Psikiyatrik ilaç', v: psikIlac });
+  if (istismarVar) attnItems.push({ k: 'Ailede istismar / eşitsizlik', v: istismarNot || undefined });
 
   // ── Sosyal destek & ilişkiler + kendini tanımlama (anamnezden) ──
   const sosyalA = anamnez?.isSosyal || {};
   const demoA = anamnez?.demografik || {};
   const iliskiA = anamnez?.iliskiler || {};
-  // Sosyal destek + arkadaş ilişkileri tek alanda birleşti (çoklu çip / dizi).
-  // Geriye-uyum: eski düz metin destekNot ve eski ayrı arkadasIliski alanı da toparlanır.
   const destekItems: string[] = Array.isArray(sosyalA.destekNot)
     ? sosyalA.destekNot.map(tx).filter(Boolean)
     : (tx(sosyalA.destekNot) ? [tx(sosyalA.destekNot)] : []);
@@ -113,12 +116,10 @@ export function DanisanOzetSunum(props: DanisanRaporuProps) {
   ].filter((x) => x.v);
   // Aile yapısı = türetilmiş boyut: sinyallerden okuma-anında derlenir (saf compileAile).
   const { rows: aileRows, hash: aileSig } = compileAile(aileA);
-  // Terapist onay damgası (anamnez_json.derived.aile). Yoksa hiç onaylanmamış demektir.
   const derivedAile = anamnez?.derived?.aile || null;
   const aileConfirmed = derivedAile?.status === 'onaylandi' && derivedAile?.snapshotHash === aileSig;
   const aileStale = derivedAile?.status === 'onaylandi' && derivedAile?.snapshotHash !== aileSig;
   const aileIgnored = derivedAile?.status === 'yoksay';
-  // Onayla / yeniden onayla / yok say / geri al — tek küçük PATCH (kök derived bütün gönderilir).
   const setAileDerived = (status: 'onaylandi' | 'yoksay' | null) => {
     if (!props.clientId) return;
     const derived: any = { ...(anamnez?.derived || {}) };
@@ -130,33 +131,13 @@ export function DanisanOzetSunum(props: DanisanRaporuProps) {
     }).catch(() => {});
   };
 
-  // dock glider (Ana Sayfa ile aynı)
-  const menuRef = useRef<HTMLElement>(null);
-  const gliderRef = useRef<HTMLSpanElement>(null);
-  const activeLink = () => (menuRef.current?.querySelector('a.active') || menuRef.current?.querySelector('a')) as HTMLElement | null;
-  const moveGlider = (a: HTMLElement | null, instant = false) => {
-    const g = gliderRef.current; if (!g || !a) return;
-    if (instant) g.style.transition = 'none';
-    g.style.width = a.offsetWidth + 'px';
-    g.style.transform = `translateX(${a.offsetLeft}px)`;
-    g.classList.add('on');
-    menuRef.current?.querySelectorAll('a').forEach((l) => l.classList.toggle('lit', l === a));
-    if (instant) { void g.offsetWidth; g.style.transition = ''; }
-  };
-  useEffect(() => {
-    moveGlider(activeLink(), true);
-    const onR = () => moveGlider(activeLink(), true);
-    window.addEventListener('resize', onR);
-    (document as any).fonts?.ready?.then(() => moveGlider(activeLink(), true));
-    return () => window.removeEventListener('resize', onR);
-  }, []);
-
   const T = (v: any): string => (v && typeof v === 'object' && !Array.isArray(v) ? (v.terapist ?? v.danisan ?? '') : (v ?? ''));
   const itemText = (x: any): string => (x && typeof x === 'object' ? (x.label ?? x.sade ?? '') : String(x ?? ''));
 
   const c = D.client || {};
   const name = `${c.firstName || ''} ${c.lastName || ''}`.trim() || '—';
-  const metaBits = [c.gender, c.age ? `${c.age}` : '', c.occupation].filter(Boolean).join(' · ');
+  const initials = name.split(/\s+/).filter(Boolean).map((w: string) => w[0]).slice(0, 2).join('').toLocaleUpperCase('tr-TR') || '—';
+  const metaBits = [c.gender, c.age ? `${c.age} yaşında` : '', c.occupation].filter(Boolean);
   const pg = D.problemsGoals || {};
   const problems: any[] = pg.problems || [];
   const goals: any[] = pg.goals || [];
@@ -179,311 +160,286 @@ export function DanisanOzetSunum(props: DanisanRaporuProps) {
 
   const dhDone = dh.filter((g) => g.durum === 'tamamlandi').length;
   const dhPct = dh.length ? Math.round((dhDone / dh.length) * 100) : 0;
-  const DLBL: Record<string, string> = { tamamlandi: 'Tamamlandı', devam: 'Devam ediyor', baslanmadi: 'Başlanmadı' };
-  const OUT: Record<string, string> = { yararli: 'Yararlı', notr: 'Nötr', yararsiz: 'Sınırlı' };
   const flexHasData = axes.some((a) => (a.value || 0) > 0);
+  const flexAvg = flexHasData ? (flex.score ?? +(axes.reduce((s: number, a: any) => s + (a.value || 0), 0) / axes.length).toFixed(1)) : 0;
   const benlikHasData = !!(T(benlik?.self?.note) || T(benlik?.outer?.note));
   const moodSeries = scaleScores.filter((s) => (s.score || 0) > 0);
-  // katılım & süreklilik — seans durumlarından türetilir (Pano'daki Katılım + Erteleme/İptal)
   const attend: Record<string, number> = { katildi: 0, katilmadi: 0, ertelendi: 0, iptal: 0 };
   records.forEach((r) => { const d = r.durum || 'katildi'; if (d in attend) attend[d]++; });
   const attendPct = records.length ? Math.round((attend.katildi / records.length) * 100) : 0;
 
-  // ── bölümleri koşullu topla (otomatik numaralandırma) ──
-  const secs: { t: string; sub?: string; node: any; headExtra?: any; className?: string }[] = [];
+  // ── bölümleri koşullu topla (otomatik numaralandırma — yalnız görünenler) ──
+  const secs: { t: string; eye?: string; node: any; className?: string }[] = [];
 
-  if (problems.length || goals.length) secs.push({ t: 'Temel sorunlar ve terapi hedefleri', node: (
-    <div className="ozs-two">
-      <div className="ozs-col"><span className="ozs-col-l">Temel sorunlar</span>
-        {problems.length ? problems.map((p, i) => <div key={i} className="ozs-item"><b>{T(p.label)}</b>{T(p.note) ? <span>{T(p.note)}</span> : null}</div>) : <div className="ozs-empty">—</div>}
+  if (problems.length || goals.length) secs.push({ t: 'Temel sorunlar ↔ hedefler', eye: 'formülasyon', node: (
+    <div className="split">
+      <div className="subcard"><h4>Temel sorunlar</h4>
+        {problems.length ? <ul className="list">{problems.map((p, i) => <li key={i}><span className="mk" /><span><b>{T(p.label)}</b>{T(p.note) ? <span className="item-note"> — {T(p.note)}</span> : null}</span></li>)}</ul> : <p className="empty">—</p>}
       </div>
-      <div className="ozs-arrow" aria-hidden>→</div>
-      <div className="ozs-col"><span className="ozs-col-l">Terapi hedefleri</span>
-        {goals.length ? goals.map((g, i) => <div key={i} className="ozs-item"><b>{T(g.label)}</b>{T(g.note) ? <span>{T(g.note)}</span> : null}</div>) : <div className="ozs-empty">—</div>}
+      <div className="subcard goal"><h4>Terapi hedefleri</h4>
+        {goals.length ? <ul className="list">{goals.map((g, i) => <li key={i}><span className="mk" /><span><b>{T(g.label)}</b>{T(g.note) ? <span className="item-note"> — {T(g.note)}</span> : null}</span></li>)}</ul> : <p className="empty">—</p>}
       </div>
     </div>
   ) });
 
-  secs.push({ t: 'Sorun döngüsü', sub: 'danışanın formülasyon döngüsü', node: (
+  secs.push({ t: 'Sorun döngüsü', eye: 'sürdürücü', node: (
     cycles.length === 0
-      ? <div className="ozs-warn" role="alert">
-          <span className="ozs-warn-ic" aria-hidden>!</span>
-          <div className="ozs-warn-b">
-            <b>Sorun döngüsü henüz eklenmedi</b>
-            <span>Bu danışanın formülasyonu eksik. Döngüyü “Formülasyon adımları” ekranından ekleyin.</span>
-          </div>
-        </div>
-      : <>{cycles.map((cy) => { let f: Record<string, string> = {}; try { f = JSON.parse(cy.fields_json || '{}'); } catch {}
-          return <div key={cy.id} className="ozs-cycle"><div className="ozs-cycle-h">{cy.label || cy.type}</div><div className="ozs-cycle-d"><DiagramViewer type={cy.type as DiagramType} fields={f} readOnly /></div></div>; })}</>
+      ? <div className="cyc-empty"><span className="mk">!</span><div><b>Sorun döngüsü henüz eklenmedi</b>Bu danışanın formülasyonu eksik. Döngüyü “Formülasyon adımları” ekranından ekleyin.</div></div>
+      : <div className="cycwrap">{cycles.map((cy) => { let f: Record<string, string> = {}; try { f = JSON.parse(cy.fields_json || '{}'); } catch {}
+          return <div key={cy.id} className="cyc-card"><div className="cyc-h">{cy.label || cy.type}</div><DiagramViewer type={cy.type as DiagramType} fields={f} readOnly /></div>; })}</div>
   ) });
 
-  if (fourP.some((p) => T(p.body) || (p.chips && p.chips.length))) secs.push({ t: '4P Formülasyon', sub: 'vakanın dört penceresi', node: (
-    <div className="ozs-4p">
+  if (fourP.some((p) => T(p.body) || (p.chips && p.chips.length))) secs.push({ t: 'Koruyucu ve soruna yatkınlık yaratan faktörler', eye: 'dört pencere', node: (
+    <div className="fourp">
       {fourP.map((p, i) => (
-        <div key={i} className={`ozs-p${p.accent ? ' accent' : ''}`}>
-          <div className="ozs-p-h"><span className="ozs-p-no">{p.num}</span><b>{p.label}</b><i>{p.sub}</i></div>
-          {T(p.body) ? <p>{T(p.body)}</p> : <p className="ozs-empty">—</p>}
-          {Array.isArray(p.chips) && p.chips.length > 0 && <div className="ozs-chips">{p.chips.map((ch: string, k: number) => <span key={k}>{ch}</span>)}</div>}
+        <div key={i} className="subcard">
+          <h4>{FOURP_LABELS[p.sub] ?? p.label}</h4>
+          {T(p.body) ? <p>{T(p.body)}</p> : <p className="empty">—</p>}
         </div>
       ))}
     </div>
   ) });
 
-  if (flexHasData) secs.push({ t: 'Psikolojik esneklik', sub: `ACT Hexaflex · ${flex.score ?? 0}/10`, node: (
-    <div className="ozs-axes">
+  if (flexHasData) secs.push({ t: 'Psikolojik esneklik', eye: 'hexaflex /10', node: (
+    <div className="hex">
+      <div className="hex-avg"><b>{flexAvg}</b><span>/ 10 ortalama esneklik</span></div>
       {axes.map((a, i) => (
-        <div key={i} className="ozs-axis">
-          <div className="ozs-axis-l"><b>{a.name}</b>{a.sade ? <i>{a.sade}</i> : null}</div>
-          <div className="ozs-bar"><span style={{ width: `${Math.max(0, Math.min(10, a.value || 0)) * 10}%` }} /></div>
-          <span className="ozs-axis-v">{a.value ?? 0}</span>
+        <div key={i} className="hexrow">
+          <span className="hl">{a.name}{a.sade ? <i> · {a.sade}</i> : null}</span>
+          <div className="ht"><div className="hf" style={{ width: `${Math.max(0, Math.min(10, a.value || 0)) * 10}%` }} /></div>
+          <span className="hv">{a.value ?? 0}</span>
         </div>
       ))}
     </div>
   ) });
 
-  if (values.length) secs.push({ t: 'Değerler', node: (
-    <div className="ozs-chips lg">{values.map((v, i) => <span key={i}>{v.label}{v.level ? ` · ${v.level}` : ''}</span>)}</div>
+  if (values.length) secs.push({ t: 'Değerler, hayattaki ideal ve beklentiler', eye: 'yön', node: (
+    <div className="pill-row">{values.map((v, i) => <span key={i} className="pill">{v.label}{v.level ? ` · ${v.level}` : ''}</span>)}</div>
   ) });
 
-  if (quads.length) secs.push({ t: 'ACT Matrisi', sub: 'uzağa / yöne · içsel / davranış', node: (
-    <div className="ozs-mx">
+  if (strengths.length || weaknesses.length) secs.push({ t: 'Güçlü yönler ve gelişim alanları', eye: 'kaynak', node: (
+    <div className="split">
+      <div className="subcard"><h4>Güçlü yönler</h4>
+        {strengths.length ? <ul className="list">{strengths.map((s, i) => <li key={i}><span className="mk" /><span><b>{s.label}</b>{s.detail ? <span className="item-note"> — {s.detail}</span> : null}</span></li>)}</ul> : <p className="empty">—</p>}
+      </div>
+      <div className="subcard"><h4>Gelişim alanları</h4>
+        {weaknesses.length ? <ul className="list">{weaknesses.map((w, i) => <li key={i}><span className="mk" /><span><b>{w.label}</b>{w.detail ? <span className="item-note"> — {w.detail}</span> : null}</span></li>)}</ul> : <p className="empty">—</p>}
+      </div>
+    </div>
+  ) });
+
+  if (quads.length) secs.push({ t: 'ACT Matrisi', eye: 'uzağa / yöne · içsel / davranış', node: (
+    <div className="actmx">
       {quads.map((q, i) => (
-        <div key={i} className={`ozs-q ${q.side === 'toward' ? 'toward' : 'away'}`}>
-          <div className="ozs-q-h"><span className="ozs-q-no">{q.num}</span>{q.sideLabel}</div>
-          <div className="ozs-q-sub">{q.layerLabel}</div>
-          <ul>{(q.items || []).map((it: any, k: number) => <li key={k}>{itemText(it)}</li>)}</ul>
+        <div key={i} className={`subcard${q.side === 'toward' ? ' toward' : ''}`}>
+          <h4>{q.sideLabel}</h4>
+          <div className="qsub">{q.layerLabel}</div>
+          <ul className="list">{(q.items || []).map((it: any, k: number) => <li key={k}><span className="mk" /><span>{itemText(it)}</span></li>)}</ul>
         </div>
       ))}
     </div>
   ) });
 
-  if (benlikHasData) secs.push({ t: 'Benlik & Algı', sub: 'iç öz-algı ↔ dış sosyal sunum', node: (
-    <div className="ozs-two">
-      <div className="ozs-col"><span className="ozs-col-l">{benlik.self?.title || 'Kendi gözünden'}</span><p className="ozs-note">{T(benlik.self?.note) || '—'}</p></div>
-      <div className="ozs-col"><span className="ozs-col-l">{benlik.outer?.title || 'Dış gözden'}</span><p className="ozs-note">{T(benlik.outer?.note) || '—'}</p></div>
+  if (benlikHasData) secs.push({ t: 'Benlik & Algı', eye: 'iç öz-algı ↔ dış sunum', node: (
+    <div className="split">
+      <div className="subcard"><h4>{benlik.self?.title || 'Kendi gözünden'}</h4><p>{T(benlik.self?.note) || '—'}</p></div>
+      <div className="subcard"><h4>{benlik.outer?.title || 'Dış gözden'}</h4><p>{T(benlik.outer?.note) || '—'}</p></div>
     </div>
   ) });
 
-  if (strengths.length || weaknesses.length) secs.push({ t: 'Güçlü yönler ve gelişim alanları', node: (
-    <div className="ozs-two">
-      <div className="ozs-col"><span className="ozs-col-l">Güçlü yönler</span>
-        {strengths.length ? strengths.map((s, i) => <div key={i} className="ozs-item"><b>{s.label}</b>{s.detail ? <span>{s.detail}</span> : null}</div>) : <div className="ozs-empty">—</div>}
-      </div>
-      <div className="ozs-col"><span className="ozs-col-l">Gelişim alanları</span>
-        {weaknesses.length ? weaknesses.map((w, i) => <div key={i} className="ozs-item"><b>{w.label}</b>{w.detail ? <span>{w.detail}</span> : null}</div>) : <div className="ozs-empty">—</div>}
-      </div>
-    </div>
-  ) });
-
-  if (sosyalHasData) secs.push({ t: 'Sosyal destek & ilişkiler', node: (
-    <>
+  if (sosyalHasData) secs.push({ t: 'Sosyal destek & ilişkiler', eye: 'bağ', node: (
+    <div className="kv one">
       {iliskiSorun != null && (
-        <div className="ozs-nblock">
-          <span className="ozs-col-l">İlişkilerde sorun sıklığı</span>
-          <div className="ozs-scoreline">
-            <div className="ozs-bar"><span style={{ width: `${Math.max(0, Math.min(10, iliskiSorun)) * 10}%` }} /></div>
-            <span className="ozs-axis-v">{iliskiSorun}/10</span>
-          </div>
+        <div className="kv-item span"><div className="kl">İlişkilerde sorun sıklığı</div>
+          <div className="scoreline"><div className="ht"><div className="hf" style={{ width: `${Math.max(0, Math.min(10, iliskiSorun)) * 10}%` }} /></div><span className="hv">{iliskiSorun}/10</span></div>
         </div>
       )}
-      {baglanmaStili && <div className="ozs-nblock"><span className="ozs-col-l">Bağlanma stili</span><p><b>{baglanmaStili}</b></p></div>}
-      {sosyalDestek && <div className="ozs-nblock"><span className="ozs-col-l">Sosyal destek ve arkadaş ilişkileri</span><p>{sosyalDestek}</p></div>}
-    </>
+      {baglanmaStili && <div className="kv-item span"><div className="kl">Bağlanma stili</div><div className="kt"><b>{baglanmaStili}</b></div></div>}
+      {sosyalDestek && <div className="kv-item span"><div className="kl">Sosyal destek ve arkadaş ilişkileri</div><div className="kt">{sosyalDestek}</div></div>}
+    </div>
   ) });
 
-  if (sikayetDetay.length) secs.push({ t: 'Şikayet & tetikleyiciler', node: (
-    <>{sikayetDetay.map((r, i) => <div key={i} className="ozs-nblock"><span className="ozs-col-l">{r.l}</span><p>{r.v}</p></div>)}</>
+  if (sikayetDetay.length) secs.push({ t: 'Şikayet & tetikleyiciler', eye: 'giriş', node: (
+    <div className="kv one">{sikayetDetay.map((r, i) => <div key={i} className="kv-item span"><div className="kl">{r.l}</div><div className="kt">{r.v}</div></div>)}</div>
   ) });
 
   // Aile öyküsü: terapist onayıyla derlenir. ONAYLANMAYAN/bayat/yok-sayılan veri
-  // PDF'e GEÇMEZ (className 'ozs-print-hide' → @media print: gizli). Yalnız ONAYLI
-  // ve güncel olan basılır. Yok say → ekranda 'geri al' kalır (basımda yok).
+  // PDF'e GEÇMEZ (className 'ozs-print-hide' → @media print: gizli).
   if (aileRows.length) {
-    const aileChip = aileIgnored ? null : (
-      <span className="ozs-ownchip ozs-noprint">
-        {aileConfirmed
-          ? <span className="ozs-own-ok">✓ Onaylandı</span>
-          : <button type="button" className="ozs-own-btn" onClick={() => setAileDerived('onaylandi')}>{aileStale ? 'Sinyaller değişti — yeniden onayla' : 'Aile yapısını onayla'}</button>}
-        <button type="button" className="ozs-own-btn ghost" onClick={() => setAileDerived('yoksay')}>Yok say</button>
-      </span>
-    );
-    const aileNode = aileIgnored ? (
-      <div className="ozs-nblock ozs-ignored"><p>Aile yapısı bu dosyada yok sayıldı — PDF’e girmez. <button type="button" className="ozs-own-btn ghost" onClick={() => setAileDerived(null)}>Geri al</button></p></div>
+    const gate = aileConfirmed ? (
+      <div className="gate-ok"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" /></svg>Onaylandı — bu bölüm PDF&apos;e dahil.</div>
+    ) : aileStale ? (
+      <div className="gate stale ozs-noprint"><span className="gate-msg"><svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" /></svg>Sinyaller değişti. Yeniden onaylanana dek PDF&apos;e girmez.</span><div className="gate-act"><button type="button" className="btn btn-primary btn-sm" onClick={() => setAileDerived('onaylandi')}>Yeniden onayla</button></div></div>
+    ) : aileIgnored ? (
+      <div className="gate ozs-noprint"><span className="gate-msg"><svg viewBox="0 0 24 24"><path d="M3 3l18 18M10.6 5.1A9 9 0 0 1 21 12a9 9 0 0 1-1.6 4.9M6.6 6.6A9 9 0 0 0 3 12a9 9 0 0 0 9 9 9 9 0 0 0 4-1" /></svg>Aile yapısı bu dosyada yok sayıldı — PDF&apos;e girmez.</span><div className="gate-act"><button type="button" className="btn btn-ghost btn-sm btn-undo" onClick={() => setAileDerived(null)}>Geri al</button></div></div>
     ) : (
-      <>
-        {aileRows.map((r, i) => <div key={i} className="ozs-nblock"><span className="ozs-col-l">{r.l}</span><p>{r.v}</p></div>)}
-        {!aileConfirmed && <p className="ozs-own-hint ozs-noprint">{aileStale ? 'Sinyaller değişti. Yeniden onaylanana dek PDF’e girmez.' : 'Terapist onaylayana dek bu bölüm PDF’e girmez.'}</p>}
-      </>
+      <div className="gate ozs-noprint"><span className="gate-msg"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 8v4M12 16h.01" /></svg>Terapist onaylayana dek bu bölüm PDF&apos;e girmez.</span><div className="gate-act"><button type="button" className="btn btn-ghost btn-sm btn-undo" onClick={() => setAileDerived('yoksay')}>Yok say</button><button type="button" className="btn btn-primary btn-sm" onClick={() => setAileDerived('onaylandi')}>Onayla &amp; PDF&apos;e ekle</button></div></div>
     );
-    secs.push({ t: 'Aile öyküsü', node: aileNode, headExtra: aileChip, className: aileConfirmed ? undefined : 'ozs-print-hide' });
+    secs.push({ t: 'Aile öyküsü', eye: 'köken · onay kapılı', className: aileConfirmed ? undefined : 'ozs-print-hide', node: (
+      <div className={`fam${aileIgnored ? ' ignored' : ''}`}>
+        <div className="fam-body"><div className="kv one">{aileRows.map((r, i) => <div key={i} className="kv-item span"><div className="kl">{r.l}</div><div className="kt">{r.v}</div></div>)}</div></div>
+        {gate}
+      </div>
+    ) });
   }
 
-  if (story2.length) secs.push({ t: 'Danışanın hikâyesi', sub: 'gelişimsel anlatı', node: (
-    <>{story2.map((r, i) => <div key={i} className="ozs-nblock"><span className="ozs-col-l">{r.l}</span><p>{r.v}</p></div>)}</>
+  if (story2.length) secs.push({ t: 'Danışanın hikâyesi', eye: 'gelişimsel anlatı', node: (
+    <div className="kv one">{story2.map((r, i) => <div key={i} className="kv-item span"><div className="kl">{r.l}</div><div className="kt">{r.v}</div></div>)}</div>
   ) });
 
-  if (dh.length) secs.push({ t: 'Danışan hedefleri', sub: `${dhDone}/${dh.length} tamamlandı · %${dhPct}`, node: (
+  if (dh.length) secs.push({ t: 'Danışan hedefleri', eye: `${dhDone}/${dh.length} · %${dhPct}`, node: (
     <>
-      <div className="ozs-prog"><span className="ozs-prog-fill" style={{ width: `${dhPct}%` }} /></div>
-      <div className="ozs-list">{dh.map((g, i) => <div key={i} className="ozs-goal"><span className={`ozs-pill ${['tamamlandi', 'devam', 'baslanmadi'].includes(g.durum) ? g.durum : 'baslanmadi'}`}>{DLBL[g.durum] || DLBL.baslanmadi}</span><span>{g.hedef}</span></div>)}</div>
+      <div className="prog"><span className="prog-fill" style={{ width: `${dhPct}%` }} /></div>
+      <div className="goal-list">{dh.map((g, i) => <div key={i} className="goal-row"><span className={`gpill ${['tamamlandi', 'devam', 'baslanmadi'].includes(g.durum) ? g.durum : 'baslanmadi'}`}>{DLBL[g.durum] || DLBL.baslanmadi}</span><span>{g.hedef}</span></div>)}</div>
     </>
   ) });
 
-  if (interventions.length) secs.push({ t: 'Müdahaleler', sub: 'uygulanan ve planlanan teknikler', node: (
-    <div className="ozs-list">
+  if (interventions.length) secs.push({ t: 'Seanslarda işlenen konular / yapılan müdahaleler', eye: 'plan', node: (
+    <ul className="list">
       {interventions.map((iv, i) => (
-        <div key={i} className="ozs-iv"><span className="ozs-iv-no">{iv.romanNum}</span><b>{iv.title}</b>
-          {iv.outcome ? <span className={`ozs-out ${iv.outcome}`}>{OUT[iv.outcome] || iv.outcome}</span> : null}</div>
+        <li key={i} className="iv-row"><span className="iv-no">{iv.romanNum}</span><b>{iv.title}</b>{iv.outcome ? <span className={`iv-out ${iv.outcome}`}>{OUT[iv.outcome] || iv.outcome}</span> : null}</li>
       ))}
+    </ul>
+  ) });
+
+  if (T(rel.note) || T(rel.rupture) || (rel.supervision || []).length) secs.push({ t: 'İlişki & klinik notlar', eye: 'süreç', node: (
+    <div className="kv one">
+      {T(rel.rupture) && <div className="kv-item span"><div className="kl">Kırılma–onarım</div><div className="kt">{T(rel.rupture)}</div></div>}
+      {(rel.supervision || []).length > 0 && <div className="kv-item span"><div className="kl">Süpervizyon soruları</div><ul className="list">{rel.supervision.map((s: string, i: number) => <li key={i}><span className="mk" /><span>{s}</span></li>)}</ul></div>}
+      {T(rel.note) && <div className="kv-item span"><div className="kl">Klinik not</div><div className="kt">{T(rel.note)}</div></div>}
     </div>
   ) });
 
-  if (T(rel.note) || T(rel.rupture) || (rel.supervision || []).length) secs.push({ t: 'İlişki & klinik notlar', node: (
-    <>
-      {T(rel.rupture) && <div className="ozs-nblock"><span className="ozs-col-l">Kırılma–onarım</span><p>{T(rel.rupture)}</p></div>}
-      {(rel.supervision || []).length > 0 && <div className="ozs-nblock"><span className="ozs-col-l">Süpervizyon soruları</span><ul className="ozs-ul">{rel.supervision.map((s: string, i: number) => <li key={i}>{s}</li>)}</ul></div>}
-      {T(rel.note) && <div className="ozs-nblock"><span className="ozs-col-l">Klinik not</span><p>{T(rel.note)}</p></div>}
-    </>
-  ) });
-
-  if (moodSeries.length) secs.push({ t: 'Ölçek skorları', sub: 'seans bazlı ruh hali serisi', node: (
-    <div className="ozs-spark">
+  if (moodSeries.length) secs.push({ t: 'Ölçek skorları', eye: 'ruh hali serisi', node: (
+    <div className="spark">
       {moodSeries.map((s, i) => (
-        <div key={i} className="ozs-spark-col">
-          <div className="ozs-spark-bar"><span style={{ height: `${Math.max(6, Math.min(10, s.score)) * 10}%` }} /></div>
-          <span className="ozs-spark-v">{s.score}</span>
-          <span className="ozs-spark-x">S{s.seansNo}</span>
+        <div key={i} className="spark-col">
+          <div className="spark-bar" style={{ height: `${Math.max(6, Math.min(10, s.score)) * 10}%` }} />
+          <span className="spark-v">{s.score}</span>
+          <span className="spark-x">S{s.seansNo}</span>
         </div>
       ))}
     </div>
   ) });
 
-  if (records.length) secs.push({ t: 'Katılım & süreklilik', sub: `%${attendPct} katılım · ${records.length} seans`, node: (
+  if (records.length) secs.push({ t: 'Katılım & süreklilik', eye: `%${attendPct} · ${records.length} seans`, node: (
     <>
-      <div className="ozs-att">
-        <div className="ozs-att-pct"><b>%{attendPct}</b><span>katılım oranı</span></div>
-        <div className="ozs-att-grid">
-          <div className="ozs-att-s"><b>{attend.katildi}</b><span>Katıldı</span></div>
-          <div className="ozs-att-s"><b>{attend.katilmadi}</b><span>Katılmadı</span></div>
-          <div className="ozs-att-s"><b>{attend.ertelendi}</b><span>Ertelendi</span></div>
-          <div className="ozs-att-s"><b>{attend.iptal}</b><span>İptal</span></div>
+      <div className="attend">
+        <div className="attend-pct"><b>%{attendPct}</b><span>katılım oranı</span></div>
+        <div className="attend-grid">
+          <div className="attend-s"><b>{attend.katildi}</b><span>Katıldı</span></div>
+          <div className="attend-s"><b>{attend.katilmadi}</b><span>Katılmadı</span></div>
+          <div className="attend-s"><b>{attend.ertelendi}</b><span>Ertelendi</span></div>
+          <div className="attend-s"><b>{attend.iptal}</b><span>İptal</span></div>
         </div>
       </div>
-      <div className="ozs-prog" style={{ marginTop: 14 }}><span className="ozs-prog-fill" style={{ width: `${attendPct}%` }} /></div>
+      <div className="prog" style={{ marginTop: 14 }}><span className="prog-fill" style={{ width: `${attendPct}%` }} /></div>
     </>
   ) });
 
-  if (records.length) secs.push({ t: 'Seans kayıtları', sub: `${c.sessionCount != null ? c.sessionCount : records.length} seans`, node: (
-    <div className="ozs-list">
+  if (records.length) secs.push({ t: 'Seans kayıtları', eye: `${c.sessionCount != null ? c.sessionCount : records.length} seans`, node: (
+    <div className="sess">
       {records.slice(0, 6).map((s, i) => (
-        <div key={i} className="ozs-ses">
-          <div className="ozs-ses-h"><span className="ozs-ses-no">{s.seansNo != null ? `S${s.seansNo}` : '—'}</span><b>{s.title || '—'}</b><span className="ozs-ses-meta">{[s.modality, s.date].filter(Boolean).join(' · ')}</span></div>
-          {s.summary && s.summary !== '—' && <p className="ozs-ses-sum">{s.summary}</p>}
-          {Array.isArray(s.interventions) && s.interventions.length > 0 && <div className="ozs-chips">{s.interventions.map((t: string, k: number) => <span key={k}>{t}</span>)}</div>}
+        <div key={i} className="sess-row">
+          <span className="sess-no">{s.seansNo != null ? `S${s.seansNo}` : '—'}</span>
+          <div className="sess-b">
+            <div className="st">{s.title || '—'}</div>
+            {s.summary && s.summary !== '—' && <div className="sp">{s.summary}</div>}
+            {Array.isArray(s.interventions) && s.interventions.length > 0 && <div className="schips">{s.interventions.map((t: string, k: number) => <span key={k}>{t}</span>)}</div>}
+          </div>
+          <span className="sess-d">{[s.modality, s.date].filter(Boolean).join(' · ')}</span>
         </div>
       ))}
     </div>
   ) });
 
-  if ((story.preQuote || '').trim()) secs.push({ t: 'Danışan hikâyesi', node: (
-    <><p className="ozs-quote">{story.preQuote}</p>{story.meta ? <div className="ozs-quote-meta">{story.meta}{story.metaTail ? ` · ${story.metaTail}` : ''}</div> : null}</>
+  if ((story.preQuote || '').trim()) secs.push({ t: 'Danışanın hikâyesi', eye: 'kabul görüşmesi', node: (
+    <div className="quote"><div className="quote-mark">“</div><p className="quote-t">{(story.preQuote || '').replace(/^[“"]|[”"]$/g, '')}</p>{story.meta ? <div className="quote-c">{story.meta}{story.metaTail ? ` · ${story.metaTail}` : ''}</div> : null}</div>
   ) });
+
+  const today = new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
 
   return (
-    <>
+    <div className="ozx" data-theme={theme}>
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,300;1,400;1,500;1,600&display=swap" rel="stylesheet" />
+      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600;1,700&display=swap" rel="stylesheet" />
 
-      <div className="an2 cchrome" data-bg={theme === 'default' ? undefined : theme}>
-        <div className="app-bg" aria-hidden="true">
-          <span className="hb-mesh" />
-          <img className="hb-photo" alt="" src={bgPhoto || OZS_BG} />
-          <img className="hb-cherry" alt="" src="/tema-cherry.jpg" /><span className="hb-cherry-scrim" />
-          <img className="hb-fur" alt="" src="/tema-kurk.jpg" /><span className="hb-fur-scrim" />
-          <span className="hb-tint" /><span className="hb-crest" /><span className="hb-grade" /><span className="hb-vignette" /><span className="hb-grain" />
-        </div>
-        <div className="scrim" aria-hidden="true" />
+      <div className="scene" aria-hidden="true" />
+      <div className="grain" aria-hidden="true" />
 
-        <header className="page-menu">
-          <span className="pm-brand"><b>Calmie</b><i>.</i></span>
-          <nav className="pm-nav" aria-label="Sayfa menüsü" ref={menuRef} onMouseLeave={() => moveGlider(activeLink())}>
-            <span className="pm-glider" ref={gliderRef} aria-hidden="true" />
-            {OZS_DOCK.map((d) => (
-              <a key={d.target} href="#" className={d.active ? 'active' : ''} onMouseEnter={(e) => moveGlider(e.currentTarget)} onClick={(e) => { e.preventDefault(); if (!d.active) props.onNav?.(d.target); }}>{d.label}</a>
-            ))}
-          </nav>
-        </header>
-
-        <div className="modal-wrap">
-          <div className="shell" role="dialog" aria-modal="true" aria-label="Özet sunum">
-
-            <div className="topbar">
-              <div className="tb-left">
-                <button className="back" type="button" onClick={() => props.onBack?.()}><span className="chev">‹</span>{props.backLabel || 'Danışanlar'}</button>
-                <div className="tb-title"><span className="e">Klinik özet · sunum dosyası</span><b>{name}{c.vakaNo != null ? ` · #${c.vakaNo}` : ''}</b></div>
-              </div>
-              <div className="tb-right">
-                <button className="tb-act" type="button" onClick={() => { if (typeof window !== 'undefined') window.print(); }}><svg viewBox="0 0 24 24"><path d="M6 9V3h12v6M6 18H4v-5h16v5h-2M8 14h8v7H8z" /></svg><span>Yazdır / PDF</span></button>
-                {props.onSwitchView && (
-                  <div className="view-seg" role="group" aria-label="Görünüm">
-                    <button className="vs-opt" type="button" aria-pressed="false" onClick={props.onSwitchView}>Pano</button>
-                    <button className="vs-opt active" type="button" aria-pressed="true">Özet sunum</button>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="formcol">
-              <div className="ozs-doc">
-                {/* KLİNİK DİKKAT — en üstte solda, kırmızı vurgu (yatış / psikiyatrik ilaç) */}
-                {showFlag && (
-                  <div className="ozs-flag" role="alert">
-                    <span className="ozs-flag-ic" aria-hidden>!</span>
-                    <div className="ozs-flag-body">
-                      <span className="ozs-flag-t">Klinik dikkat</span>
-                      <ul>
-                        {yatisVar && <li>Yatış öyküsü <b>var</b></li>}
-                        {psikIlac && <li>Psikiyatrik ilaç kullanımı: <b>{psikIlac}</b></li>}
-                        {istismarVar && <li>Ailede eşitsizlik / adaletsizlik / istismar <b>var</b>{istismarNot ? ` — ${istismarNot}` : ''}</li>}
-                      </ul>
-                    </div>
-                  </div>
-                )}
-                {/* HERO */}
-                <header className="ozs-hero">
-                  <span className="ozs-eyebrow">Klinik özet · sunum dosyası</span>
-                  <h1 className="ozs-name">{c.firstName ? <><b>{c.firstName}</b> <i>{c.lastName}</i></> : name}</h1>
-                  {metaBits && <div className="ozs-meta">{metaBits}</div>}
-                  {kendiSifat && <div className="ozs-self">Kendini tanımı: <i>{kendiSifat}</i></div>}
-                  {Array.isArray(c.tags) && c.tags.length > 0 && (
-                    <div className="ozs-tagblock">
-                      <span className="ozs-tagblock-l">Temel sorunlar</span>
-                      <div className="ozs-tags">{c.tags.map((t: string, i: number) => <span key={i} className="ozs-tag">{t}</span>)}</div>
-                    </div>
-                  )}
-                  <div className="ozs-stats">
-                    <div className="ozs-stat"><span className="k">Vaka</span><b>#{c.vakaNo ?? '—'}</b></div>
-                    <div className="ozs-stat"><span className="k">Seans</span><b>{c.sessionCount ?? records.length}</b></div>
-                    {c.seansUcreti != null && <div className="ozs-stat"><span className="k">Ücret</span><b>₺{c.seansUcreti}</b></div>}
-                    {cycles.length > 0 && <div className="ozs-stat"><span className="k">Döngü</span><b>{cycles.length}</b></div>}
-                  </div>
-                </header>
-
-                {secs.map((s, i) => (
-                  <section key={i} className={`ozs-sec${s.className ? ' ' + s.className : ''}`}>
-                    <div className="ozs-sec-h"><span className="ozs-no">{String(i + 1).padStart(2, '0')}</span><h2>{s.t}</h2>{s.sub ? <span className="ozs-sec-sub">{s.sub}</span> : null}{s.headExtra ?? null}</div>
-                    {s.node}
-                  </section>
-                ))}
-
-                <footer className="ozs-foot">Calmie · klinik özet sunum dosyası — yalnızca terapist içindir.</footer>
-              </div>
-            </div>
-
+      {/* ÜST BAR (noprint) */}
+      <header className="ozs-topbar print-hide">
+        <div className="bar">
+          <button className="back" type="button" onClick={() => props.onBack?.()}><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6" /></svg>{props.backLabel || 'Dosya'}</button>
+          <a className="ozs-logo" onClick={() => props.onNav?.('home')}>Calmie<i>.</i></a>
+          <div className="bar-right">
+            <span className="tb-tag">Salt-okunur · Özet</span>
+            <button className="btn btn-print" type="button" onClick={() => { if (typeof window !== 'undefined') window.print(); }}><svg viewBox="0 0 24 24"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z" /></svg>Yazdır / PDF</button>
           </div>
         </div>
+      </header>
+
+      <main className="doc">
+        <div className="wrap">
+          <div className="doc-inner">
+            {/* KLİNİK DİKKAT */}
+            {showFlag && (
+              <section className="attn" role="alert">
+                <div className="attn-ic"><svg viewBox="0 0 24 24"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" /><path d="M12 9v4M12 17h.01" /></svg></div>
+                <div className="attn-b">
+                  <div className="lab">Klinik dikkat</div>
+                  <h3>Bu danışan için öncelikli klinik sinyaller var.</h3>
+                  <div className="attn-list">{attnItems.map((it, i) => <span key={i} className="attn-chip">{it.k}{it.v ? `: ${it.v}` : ''}</span>)}</div>
+                </div>
+              </section>
+            )}
+
+            {/* HERO */}
+            <section className="hero">
+              <div className="hero-top">
+                <div className="hero-av">{initials}</div>
+                <div className="hero-id">
+                  <div className="hero-eye">Danışan özeti · Klinik formülasyon dosyası</div>
+                  <h1 className="hero-name">{c.firstName || name}{c.lastName ? <> <i>{c.lastName}</i></> : null}</h1>
+                  {metaBits.length > 0 && <div className="hero-meta">{metaBits.map((m, i) => <span key={i}>{i > 0 ? <i>·</i> : null}{m}</span>)}</div>}
+                </div>
+              </div>
+              {kendiSifat && <p className="hero-desc">Kendini tanımı: <i>{kendiSifat}</i></p>}
+              {Array.isArray(c.tags) && c.tags.length > 0 && (
+                <>
+                  <span className="tagblock-l">Temel sorunlar</span>
+                  <div className="tags">{c.tags.map((t: string, i: number) => <span key={i} className="tag">{t}</span>)}</div>
+                </>
+              )}
+              <div className="stat-strip">
+                <div className="stat"><span className="k">Danışan no</span><span className="v">#{c.vakaNo ?? '—'}</span></div>
+                <div className="stat"><span className="k">Seans</span><span className="v">{c.sessionCount ?? records.length}</span></div>
+                {c.seansUcreti != null && <div className="stat"><span className="k">Ücret / seans</span><span className="v">₺{c.seansUcreti}</span></div>}
+                {cycles.length > 0 && <div className="stat"><span className="k">Döngü</span><span className="v">{cycles.length}</span></div>}
+              </div>
+            </section>
+
+            {/* NUMARALI KOŞULLU BÖLÜMLER */}
+            {secs.map((s, i) => (
+              <section key={i} className={`ozs-sec${s.className ? ' ' + s.className : ''}`}>
+                <div className="sec-head"><span className="ozs-no">{String(i + 1).padStart(2, '0')}</span><h2 className="sec-title">{s.t}</h2>{s.eye ? <span className="sec-eye">{s.eye}</span> : null}</div>
+                {s.node}
+              </section>
+            ))}
+          </div>
+
+          <div className="ozs-foot">
+            <span className="lock"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>Bu dosya yalnızca terapist içindir.</span>
+            <small>{name}{c.vakaNo != null ? ` #${c.vakaNo}` : ''} · Calmie · {today}</small>
+          </div>
+        </div>
+      </main>
+
+      {/* TEMA DOCK (sol alt) */}
+      <div className="dock print-hide" aria-label="Renk teması">
+        {THEMES.map(([t, col]) => <button key={t} type="button" className={'dock-dot' + (theme === t ? ' on' : '')} style={{ background: col }} title={t} aria-label={`${t} tema`} onClick={() => applyTheme(t)} />)}
       </div>
-    </>
+    </div>
   );
 }

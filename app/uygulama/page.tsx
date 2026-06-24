@@ -3721,7 +3721,7 @@ export default function HomePage() {
 
       <main className={cx(
         "siyi-inapp",
-        (tab === "home" || tab === "ayarlar" || (tab === "calisma-alani" && (calismaSubTab === "hub" || calismaSubTab === "bu-hafta"))) ? "overflow-x-hidden" : (tab === "act-gelistirme" || tab === "calisma-alani" || tab === "terapist") ? "pb-24" : "pb-24 max-w-6xl mx-auto px-6 py-8"
+        (tab === "home" || tab === "ayarlar" || tab === "mudahale-kutuphanesi" || (tab === "calisma-alani" && (calismaSubTab === "hub" || calismaSubTab === "bu-hafta"))) ? "overflow-x-hidden" : (tab === "act-gelistirme" || tab === "calisma-alani" || tab === "terapist") ? "pb-24" : "pb-24 max-w-6xl mx-auto px-6 py-8"
       )}>
         <div key={tab} className="animate-fade-in">
           {tab === "home" && (() => {
@@ -4605,8 +4605,8 @@ export default function HomePage() {
         note="Danışan bu bağlantıdan bilgilendirme kitapçığını okuyabilir."
       />
 
-      {/* ── Bottom pill nav (AnaSayfaV3/TerapistProfilV2/Ayarlar kendi üst nav'ını render eder → gizle) ── */}
-      {tab !== 'home' && tab !== 'ayarlar' && tab !== 'terapist' && !(tab === 'calisma-alani' && (calismaSubTab === 'takvim' || calismaSubTab === 'hub' || calismaSubTab === 'bu-hafta' || calismaSubTab === 'danisanlar')) && (
+      {/* ── Bottom pill nav (AnaSayfaV3/TerapistProfilV2/Ayarlar/Müdahale Kütüphanesi kendi üst nav'ını render eder → gizle) ── */}
+      {tab !== 'home' && tab !== 'ayarlar' && tab !== 'terapist' && tab !== 'mudahale-kutuphanesi' && !(tab === 'calisma-alani' && (calismaSubTab === 'takvim' || calismaSubTab === 'hub' || calismaSubTab === 'bu-hafta' || calismaSubTab === 'danisanlar')) && (
       <nav className="fixed bottom-[22px] left-0 right-0 z-[60] flex justify-center pointer-events-none">
         <div className="pointer-events-auto flex items-center gap-1 rounded-full bg-[#131311] p-[7px] shadow-[0_24px_50px_-22px_rgba(0,0,0,0.55),0_2px_8px_-3px_rgba(0,0,0,0.4)] max-w-[calc(100vw-28px)] overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {NAV.map(n => {
@@ -4640,8 +4640,8 @@ export default function HomePage() {
       </nav>
       )}
 
-      {/* Brief floating button — visible when a patient is active (home + takvim + terapist'de gizli) */}
-      {tab !== 'home' && tab !== 'ayarlar' && tab !== 'terapist' && !(tab === 'calisma-alani' && (calismaSubTab === 'takvim' || calismaSubTab === 'hub' || calismaSubTab === 'bu-hafta')) && (
+      {/* Brief floating button — visible when a patient is active (home + takvim + terapist + müdahale-kütüphanesi'de gizli) */}
+      {tab !== 'home' && tab !== 'ayarlar' && tab !== 'terapist' && tab !== 'mudahale-kutuphanesi' && !(tab === 'calisma-alani' && (calismaSubTab === 'takvim' || calismaSubTab === 'hub' || calismaSubTab === 'bu-hafta')) && (
       <BriefModal
         patientId={activePatientId ?? undefined}
         patientName={activePatientId ? state.patients.find(p => p.id === activePatientId)?.adSoyad : undefined}

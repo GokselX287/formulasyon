@@ -1,212 +1,17 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import './CalmieChrome.css';
+import { useEffect, useRef, useState } from 'react';
 import './AnamnezV2.css';
 import type { AnamnezData } from './AnamnezPanel';
 
 // ──────────────────────────────────────────────────────────────────────────
-// Anamnez — "Klinik Editöryel Dosya" · Anamnez v2.html birebir port.
-// Bölümler (SECTIONS) · sol nav + tamamlanma % + risk vurgusu + AI/ön-form/kaydet.
-// Gerçek AnamnezData'ya bağlı: skaler anahtarlar yeniden kullanılır (mevcut
-// veri görünür); dizi/nesne tipli alanlar bozulmaz, ayrı not anahtarı kullanılır.
+// Anamnez editörü — landing uyumlu ("mesh + opal cam") tasarım.
+// Cv görsel-42 / design_handoff_anamnez portu. AnaSayfaLanding/.aslx · Terapist/.tpx
+// ile kardeş kabuk. SCHEMA statik (form tanımı), DATA props'tan gelir; her düzenleme
+// onChange(section, value) ile parent'a yazılır (parent /api/anamnez'e autosave eder).
+// 12 bölüm · text/num/textarea/select/radio/suggest/chipsadd/scale + ölçek paneli ·
+// tamamlanma halkası · zorunlu-alan kapısı · sol ray scroll-spy · 5 temalı dock.
 // ──────────────────────────────────────────────────────────────────────────
-
-type SecKey = keyof AnamnezData;
-type FieldType = 'text' | 'num' | 'textarea' | 'select' | 'radio' | 'chips' | 'chipsadd' | 'scale' | 'scaleimport';
-
-type Field = {
-  label: string;
-  type: FieldType;
-  sec: SecKey | '__top';
-  key: string;          // bölüm nesnesi içindeki saklama anahtarı (top için klinisyenNotu)
-  sub?: string;         // iç içe alan (ör. yatis.var, olcekler.phq9.skor, gozlem.gorunus.not)
-  opt?: string[];
-  half?: boolean;
-  max?: number;
-  bands?: string;
-  suggest?: boolean;    // yazarken öğrenilen + sık kullanılan terimleri öner (otomatik tamamlama)
-  suggestSingle?: boolean; // tek-değerli alan (virgülle çoklu DEĞİL) — ör. meslek, şehir
-  suggestSeed?: string[];  // bu alana özel tohum öneri listesi (örn. iller, meslekler)
-  ph?: string;          // soluk yol-gösterici örnek metin (placeholder) — terapisti yönlendirir
-  required?: boolean;   // doldurulmadan dosya KAYDEDİLEMEZ (Kaydet engellenir)
-  enc?: (v: any) => any;  // UI değeri → saklanan değer
-  dec?: (v: any) => any;  // saklanan değer → UI değeri
-};
-
-type Section = { id: string; t: string; risk?: boolean; info?: string; fields: Field[] };
-
-const boolVarYok = { enc: (v: string) => v === 'Var', dec: (v: any) => (v === true ? 'Var' : v === false ? 'Yok' : '') };
-
-// Şehir alanı tohumu — 81 il (yazarken "t" → Tekirdağ, Tokat, Trabzon… önerilir).
-const SEED_SEHIR = [
-  'Adana', 'Adıyaman', 'Afyonkarahisar', 'Ağrı', 'Aksaray', 'Amasya', 'Ankara', 'Antalya', 'Ardahan', 'Artvin',
-  'Aydın', 'Balıkesir', 'Bartın', 'Batman', 'Bayburt', 'Bilecik', 'Bingöl', 'Bitlis', 'Bolu', 'Burdur',
-  'Bursa', 'Çanakkale', 'Çankırı', 'Çorum', 'Denizli', 'Diyarbakır', 'Düzce', 'Edirne', 'Elazığ', 'Erzincan',
-  'Erzurum', 'Eskişehir', 'Gaziantep', 'Giresun', 'Gümüşhane', 'Hakkâri', 'Hatay', 'Iğdır', 'Isparta', 'İstanbul',
-  'İzmir', 'Kahramanmaraş', 'Karabük', 'Karaman', 'Kars', 'Kastamonu', 'Kayseri', 'Kilis', 'Kırıkkale', 'Kırklareli',
-  'Kırşehir', 'Kocaeli', 'Konya', 'Kütahya', 'Malatya', 'Manisa', 'Mardin', 'Mersin', 'Muğla', 'Muş',
-  'Nevşehir', 'Niğde', 'Ordu', 'Osmaniye', 'Rize', 'Sakarya', 'Samsun', 'Siirt', 'Sinop', 'Sivas',
-  'Şanlıurfa', 'Şırnak', 'Tekirdağ', 'Tokat', 'Trabzon', 'Tunceli', 'Uşak', 'Van', 'Yalova', 'Yozgat', 'Zonguldak',
-];
-
-// Ana yakınma tohumu — terapistin düşündüğü sorunlar (öğrenilen + tohum birleşir).
-const SEED_YAKINMA = [
-  'Kaygı', 'Depresif duygudurum', 'Uykusuzluk', 'Panik atak', 'Sosyal kaygı', 'Yaygın anksiyete',
-  'Obsesif düşünceler', 'Kompulsiyonlar', 'Öfke kontrolü', 'İlişki sorunları', 'Boşanma süreci',
-  'Yas', 'Travma sonrası belirtiler', 'Mükemmeliyetçilik', 'Erteleme', 'Dikkat dağınıklığı',
-  'Özgüven eksikliği', 'Performans kaygısı', 'Sınav kaygısı', 'Yeme sorunları', 'Beden imgesi',
-  'Tükenmişlik', 'Kronik stres', 'Motivasyon kaybı', 'Suçluluk hissi', 'Değersizlik hissi',
-  'Sağlık kaygısı', 'Özgül fobi', 'Kayıp ve keder', 'Aile içi çatışma', 'Çocukluk travması',
-  'Bağlanma sorunları', 'Yalnızlık', 'Karar verememe', 'Madde kullanımı',
-];
-
-// Sosyal destek + arkadaş ilişkileri tohumu — tek alanda seçilebilir öneriler
-// (terapist "ne yazacağımı bilemedim" demesin; yeni girilenler ayrıca öğrenilir).
-const SEED_DESTEK = [
-  'Yakın arkadaş çevresi var', 'Sınırlı arkadaş çevresi', 'Aile desteği güçlü', 'Aile desteği zayıf',
-  'Partner / eş desteği var', 'İş / okul ortamında destek görüyor', 'Grup / topluluk desteği',
-  'Online / sosyal medya desteği', 'Profesyonel destek alıyor', 'Çoğunlukla yalnız', 'Destek sistemi yok denecek kadar az',
-  'Güven sorunu yaşıyor', 'Yüzeysel ilişkiler', 'Derin birkaç ilişki', 'Geniş sosyal çevre', 'Yeni taşındı / çevresi dar',
-];
-
-// Meslek alanı tohumu — sık girilen meslekler (yeni girilenler ayrıca öğrenilir).
-const SEED_MESLEK = [
-  'Öğretmen', 'Öğrenci', 'Mühendis', 'Doktor', 'Hemşire', 'Avukat', 'Mimar', 'Muhasebeci', 'Memur', 'Polis',
-  'Asker', 'Esnaf', 'Bankacı', 'Psikolog', 'Psikolojik Danışman', 'Yazılım Geliştirici', 'Grafik Tasarımcı',
-  'Editör', 'Gazeteci', 'Akademisyen', 'Diş Hekimi', 'Eczacı', 'Veteriner', 'Fizyoterapist', 'Diyetisyen', 'Ebe',
-  'Sosyal Hizmet Uzmanı', 'Satış Temsilcisi', 'Pazarlama Uzmanı', 'Aşçı', 'Garson', 'Şoför', 'Teknisyen',
-  'Elektrikçi', 'Tesisatçı', 'Marangoz', 'Terzi', 'Kuaför', 'Berber', 'Çiftçi', 'İşletmeci',
-  'Ev Hanımı', 'Emekli', 'Serbest Meslek', 'İşsiz',
-];
-
-const SECTIONS: Section[] = [
-  { id: 'demografik', t: 'Kişisel bilgiler', fields: [
-    { label: 'Ad Soyad', type: 'text', sec: 'demografik', key: 'adSoyad', half: true },
-    { label: 'Yaş', type: 'num', sec: 'demografik', key: 'yas', half: true },
-    { label: 'Cinsiyet', type: 'select', sec: 'demografik', key: 'cinsiyet', opt: ['', 'Kadın', 'Erkek', 'Diğer'], half: true },
-    { label: 'Medeni durum', type: 'select', sec: 'demografik', key: 'medeniDurum', opt: ['', 'Bekâr', 'Evli', 'Boşanmış', 'Dul'], half: true },
-    { label: 'Meslek', type: 'text', sec: 'demografik', key: 'meslek', half: true, suggest: true, suggestSingle: true, suggestSeed: SEED_MESLEK, ph: 'örn. Öğretmen, Mühendis, Psikolojik Danışman…' },
-    { label: 'Şehir', type: 'text', sec: 'demografik', key: 'sehir', half: true, suggest: true, suggestSingle: true, suggestSeed: SEED_SEHIR, ph: 'örn. Tekirdağ, İstanbul…' },
-    { label: 'İlçe', type: 'text', sec: 'demografik', key: 'ilce', half: true, suggest: true, suggestSingle: true, suggestSeed: [], ph: 'örn. Çerkezköy, Kadıköy…' },
-    { label: 'İş durumu', type: 'select', sec: 'isSosyal', key: 'isDurumu', half: true, opt: ['', 'Çalışıyor (ücretli)', 'Kendi işi / serbest', 'Çalışmıyor', 'İş arıyor', 'Öğrenci', 'Emekli', 'Ev içi'] },
-    { label: 'Kendini hangi sıfatlarla tanımlıyor?', type: 'chipsadd', sec: 'demografik', key: 'kendiSifatlar', opt: ['Kaygılı', 'Kaçıngan', 'Öfkeli', 'Sürekli mutsuz', 'Eleştirel', 'Memnuniyetsiz', 'Sevgi dolu', 'Mükemmeliyetçi', 'İçe kapanık', 'Suçluluk duyan', 'Kararsız', 'Hassas'] },
-  ] },
-  { id: 'basvuru', t: 'Başvuru Sebepleri / Temel Sorunlar', fields: [
-    { label: 'Başvuru nedeni', type: 'textarea', sec: 'basvuru', key: 'sebep' },
-    { label: 'Terapistin düşündüğü sorunlar', type: 'chipsadd', sec: 'basvuru', key: 'anaYakinma', suggest: true, suggestSeed: SEED_YAKINMA, opt: [] },
-    { label: 'Başvuru şekli', type: 'select', sec: 'basvuru', key: 'yonlendiren', opt: ['', 'Kendi isteği', 'Yönlendirme', 'Aile'] },
-    { label: 'Görüşme şekli', type: 'radio', sec: 'basvuru', key: 'gorusmeSekli', opt: ['Yüz yüze', 'Online', 'Hibrit'] },
-    // — Şikayet öyküsü buraya dahil edildi (ayrı bölüm kaldırıldı) —
-    { label: 'Şikayetler ne zamandır sürüyor?', type: 'textarea', sec: 'sikayet', key: 'baslangic', ph: 'örn. 6 aydır, 2 yıldır, çocukluktan beri; giderek artıyor / dalgalı seyrediyor…' },
-    { label: 'Şikayeti başlatan vurucu bir olay var mı?', type: 'textarea', sec: 'sikayet', key: 'vurucuOlay', ph: 'örn. kayıp, ayrılık, taşınma, iş değişikliği, travmatik bir olay; yoksa belirsiz…' },
-    { label: 'Tetikleyiciler', type: 'textarea', sec: 'sikayet', key: 'tetikleyicilerNot', required: true, ph: 'danışan hangi olay, düşünce ya da duygularla tetikleniyor? (kaydetmek için zorunlu)' },
-  ] },
-  { id: 'psikiyatrik', t: 'Psikiyatrik & Tıbbi Geçmiş', fields: [
-    { label: 'Önceki psikiyatrik başvuru', type: 'radio', sec: 'psikiyatrik', key: 'oncekiBasvuru', opt: ['Var', 'Yok'] },
-    { label: 'Kullandığı psikiyatrik ilaç', type: 'text', sec: 'psikiyatrik', key: 'ilacNot' },
-    { label: 'Yatış öyküsü', type: 'radio', sec: 'psikiyatrik', key: 'yatis', sub: 'var', opt: ['Var', 'Yok'], ...boolVarYok },
-    // — Tıbbi geçmiş buraya dahil edildi (alerji çıkarıldı) —
-    { label: 'Kronik hastalık', type: 'text', sec: 'tibbi', key: 'kronikNot' },
-    { label: 'Kullanılan ilaçlar (tıbbi)', type: 'text', sec: 'tibbi', key: 'ilac' },
-  ] },
-  { id: 'aile', t: 'Aile Öyküsü', fields: [
-    { label: 'Ailede psikiyatrik öykü', type: 'textarea', sec: 'aile', key: 'genogram' },
-    // — Anne —
-    { label: 'Anne yaşıyor mu?', type: 'radio', sec: 'aile', key: 'anneSag', opt: ['Yaşıyor', 'Vefat etti'] },
-    { label: 'Anneyi tarifle', type: 'textarea', sec: 'aile', key: 'anneTarif', ph: 'örn. kaygılı, çekingen, öfkeli, sessiz, kontrolcü, eleştirel, aşırı koruyucu…' },
-    // — Baba —
-    { label: 'Baba yaşıyor mu?', type: 'radio', sec: 'aile', key: 'babaSag', opt: ['Yaşıyor', 'Vefat etti'] },
-    { label: 'Babayı tarifle', type: 'textarea', sec: 'aile', key: 'babaTarif', ph: 'örn. otoriter, mesafeli, sıcak, öfkeli, pasif, yokluğu hissedilen, eleştirel…' },
-    // — Anne-baba ilişkisi —
-    { label: 'Anne ve baba arasındaki ilişki', type: 'textarea', sec: 'aile', key: 'anneBabaIliski', ph: 'örn. çatışmalı, mesafeli, uyumlu, baskın–boyun eğen, ayrı yaşıyor, şiddet…' },
-    // — Kardeşler —
-    { label: 'Kardeşler (sayı, yaş, yaşıyor mu?)', type: 'text', sec: 'aile', key: 'kardesDurum', ph: 'örn. 2 kardeş — abla 34 (yaşıyor), erkek kardeş 28 (yaşıyor)…' },
-    { label: 'Kardeşleri tarifle', type: 'textarea', sec: 'aile', key: 'kardesTarif', ph: 'örn. rekabetçi, koruyucu, model alınan, çatışmalı, uzak, kıyaslanan…' },
-    { label: 'Anne/baba gibi davranan kardeş var mı?', type: 'textarea', sec: 'aile', key: 'ebeveynRolKardes', ph: 'örn. abla anne rolünü üstlenmiş; ağabey baba gibi otorite kuruyor…' },
-    { label: 'Ailede eşitsizlik, adaletsizlik veya istismar var mı?', type: 'radio', sec: 'aile', key: 'istismarVar', opt: ['Var', 'Yok', 'Belirsiz'] },
-    { label: 'Varsa belirt', type: 'textarea', sec: 'aile', key: 'istismarNot', ph: 'örn. kardeşler arası kayırma; fiziksel / duygusal / cinsel istismar; ihmal; adaletsiz davranış…' },
-  ] },
-  { id: 'madde', t: 'Madde Kullanımı', fields: [
-    { label: 'Alkol', type: 'radio', sec: 'madde', key: 'alkol', opt: ['Düzenli', 'Ara sıra', 'Yok'] },
-    { label: 'Sigara', type: 'radio', sec: 'madde', key: 'sigara', opt: ['Var', 'Yok'] },
-    { label: 'Madde', type: 'radio', sec: 'madde', key: 'madde', opt: ['Var', 'Yok'] },
-  ] },
-  { id: 'gelisim', t: 'Danışanın Hikayesi', fields: [
-    { label: 'Çocukluğunu nasıl tarifliyor?', type: 'textarea', sec: 'gelisim', key: 'cocuklukTarif', ph: 'örn. mutlu, yalnız, korkulu, baskı altında, güvende, kaygılı, sevgi gören/görmeyen…' },
-    { label: 'Ergenliğini nasıl tarifliyor?', type: 'textarea', sec: 'gelisim', key: 'ergenlikTarif', ph: 'örn. çatışmalı, içe kapanık, asi, uyumlu, yalnız, arayış içinde…' },
-    { label: 'O dönemlerde kendini nasıl hissetti / destek gördü mü?', type: 'textarea', sec: 'gelisim', key: 'erkenDestek', ph: 'örn. anne-babadan destek gördü/görmedi, değerli/değersiz hissetti, güvenli/güvensiz ortam…' },
-    { label: 'Önemli yaşam olayları', type: 'textarea', sec: 'gelisim', key: 'yasamOlaylari' },
-  ] },
-  { id: 'iliskiler', t: 'İlişkiler ve Hayat Bağları', fields: [
-    { label: 'İlişki durumu', type: 'text', sec: 'iliskiler', key: 'romantik' },
-    { label: 'İlişki örüntüleri', type: 'textarea', sec: 'iliskiler', key: 'baglanma', ph: 'örn. sürekli terk edilmeyle biten ilişkiler, sürekli aldatılma, ilgiden boğulup kaçma, kaygılı bağlanma, bağ kuramama, yakınlık kurmaktan kaçınma, aşırı ilgi bekleme, kırılgan olduğu için terk edilme…' },
-    // — İş / Sosyal İşlevsellik buraya taşındı (iş durumu Kişisel bilgilere alındı) —
-    { label: 'Sosyal destek ve arkadaş ilişkileri', type: 'chipsadd', sec: 'isSosyal', key: 'destekNot', suggest: true, suggestSeed: SEED_DESTEK, opt: [] },
-    { label: 'İlişkilerinde sık sık sorun yaşıyor mu?', type: 'scale', sec: 'isSosyal', key: 'iliskiSorunPuan', max: 10, bands: '1–10 · yüksek = sık sorun' },
-    { label: 'Danışanın bağlanma stilini en iyi hangisi tarifliyor?', type: 'radio', sec: 'iliskiler', key: 'baglanmaStili', opt: ['Güvenli bağlanma', 'Kaygılı bağlanma', 'Kaçıngan bağlanma'] },
-  ] },
-  { id: 'travma', t: 'Travma Öyküsü', fields: [
-    { label: 'Travma öyküsü', type: 'radio', sec: 'travma', key: 'travmaVar', opt: ['Var', 'Yok', 'Belirsiz'] },
-    { label: 'Açıklama', type: 'textarea', sec: 'travma', key: 'travmaNot' },
-  ] },
-  { id: 'risk', t: 'Risk Değerlendirme', risk: true, fields: [
-    { label: 'İntihar düşüncesi', type: 'radio', sec: 'risk', key: 'intihar', opt: ['Var', 'Yok'], enc: (v) => (v === 'Var' ? 'var' : 'yok'), dec: (v) => (v === 'var' || v === 'plan' || v === 'girisim' ? 'Var' : v === 'yok' ? 'Yok' : '') },
-    { label: 'Plan / niyet', type: 'radio', sec: 'risk', key: 'planNiyet', opt: ['Var', 'Yok'] },
-    { label: 'Kendine zarar verme', type: 'radio', sec: 'risk', key: 'zarar', opt: ['Var', 'Yok'], enc: (v) => (v === 'Var' ? 'aktif' : 'yok'), dec: (v) => (v === 'aktif' || v === 'gecmis' ? 'Var' : v === 'yok' ? 'Yok' : '') },
-    { label: 'Başkasına zarar riski', type: 'radio', sec: 'risk', key: 'baskasi', opt: ['Var', 'Yok'], enc: (v) => (v === 'Var' ? 'risk' : 'yok'), dec: (v) => (v === 'risk' ? 'Var' : v === 'yok' ? 'Yok' : '') },
-    { label: 'Genel risk düzeyi', type: 'select', sec: 'risk', key: 'seviye', opt: ['', 'Düşük', 'Orta', 'Yüksek'], enc: (v) => ({ 'Düşük': 'dusuk', 'Orta': 'orta', 'Yüksek': 'yuksek', '': '' } as any)[v], dec: (v) => ({ 'dusuk': 'Düşük', 'orta': 'Orta', 'yuksek': 'Yüksek' } as any)[v] ?? '' },
-  ] },
-  { id: 'hedefler', t: 'Hedefler', fields: [
-    { label: 'Terapi hedefleri', type: 'textarea', sec: 'hedefler', key: 'hedeflerNot' },
-    { label: 'Beklenti / motivasyon', type: 'textarea', sec: 'hedefler', key: 'beklenti', ph: 'Danışanın terapiden beklentisi ve motivasyonu — en fazla 5 cümle…' },
-  ] },
-  { id: 'olcekler', t: 'Ölçekler',
-    info: 'Ölçek puanları elle girilmez — danışana seans öncesi gönderilen formdan otomatik gelir. Form yanıtı geldiyse aşağıdan tek tıkla içe aktar.',
-    fields: [
-      { label: 'Ölçek verileri', type: 'scaleimport', sec: 'olcekler', key: '__scales' },
-    ] },
-  { id: 'not', t: 'Danışanın sürecinde neleri çalışacağını planla',
-    info: 'Danışanın sürecini önceden planlamak, terapistin kafa karışıklığını ve hedeften uzaklaşmasını önler. Bu danışana neleri öğretmek, onunla hangi konuları çalışmak istiyorsun? Seans seans dağılmamak için önce bunları netleştir. Buraya yazdıkların kesin değil — süreç ilerledikçe güncellenen, müdahaleleri ve sorun döngüsü seçimini yönlendiren esnek bir yol haritasıdır.',
-    fields: [
-      { label: 'Çalışılacak konular — madde madde', type: 'textarea', sec: '__top', key: 'klinisyenNotu', ph: 'Her satıra bir madde:\n• Değersizlik / yetersizlik inancını fark etme ve sınama\n• Kaçınma davranışlarını azaltma — kademeli maruz bırakma\n• Duygu düzenleme becerileri kazandırma\n• İlişkide sınır koyma ve ihtiyaç ifade etme\n• Erteleme ve mükemmeliyetçilikle çalışma' },
-    ] },
-];
-
-// ── değer oku/yaz ───────────────────────────────────────────────────────────
-function readField(data: AnamnezData, f: Field): any {
-  if (f.sec === '__top') return (data as any)[f.key] ?? '';
-  const secObj = (data as any)[f.sec] ?? {};
-  let raw = f.sub ? secObj[f.key]?.[f.sub] : secObj[f.key];
-  if (f.dec) raw = f.dec(raw);
-  if (f.type === 'chips' || f.type === 'chipsadd') return Array.isArray(raw) ? raw : (typeof raw === 'string' && raw ? raw.split(',').map((s) => s.trim()).filter(Boolean) : []);
-  return raw ?? (f.type === 'num' || f.type === 'scale' ? '' : '');
-}
-
-function writeField(data: AnamnezData, f: Field, uiVal: any): { sec: SecKey | '__top'; value: any } {
-  let stored = f.enc ? f.enc(uiVal) : uiVal;
-  if (f.type === 'num') stored = uiVal === '' ? undefined : Number(uiVal);
-  if (f.type === 'scale') stored = uiVal === '' ? undefined : Number(uiVal);
-  if (f.type === 'chips') stored = Array.isArray(uiVal) ? uiVal.join(', ') : uiVal;
-
-  // __top: değer doğrudan üst düzey anahtara (ör. klinisyenNotu) yazılmalı.
-  // (Eskiden sec='__top' dönüyordu → data.__top'a yazıyordu, readField data.klinisyenNotu
-  //  okuyordu → yazı görünmüyordu. BUG fix.)
-  if (f.sec === '__top') return { sec: f.key as SecKey, value: stored };
-  const secObj = { ...((data as any)[f.sec] ?? {}) };
-  if (f.sub) secObj[f.key] = { ...(secObj[f.key] ?? {}), [f.sub]: stored };
-  else secObj[f.key] = stored;
-  return { sec: f.sec, value: secObj };
-}
-
-const isFilled = (data: AnamnezData, f: Field): boolean => {
-  // Ölçek içe-aktarma: ön-formdan en az bir skor geldiyse "dolu" sayılır.
-  if (f.type === 'scaleimport') { const ol = (data as any).olcekler || {}; return ol.phq9?.skor != null || ol.gad7?.skor != null; }
-  const v = readField(data, f);
-  if (f.type === 'chips' || f.type === 'chipsadd') return Array.isArray(v) && v.length > 0;
-  if (f.type === 'scale' || f.type === 'num') return v !== '' && v != null;
-  return String(v ?? '').trim() !== '';
-};
 
 export type AnamnezV2Props = {
   data: AnamnezData;
@@ -219,463 +24,511 @@ export type AnamnezV2Props = {
   onAiFill?(): void;
   onImportPreForm?(): void;
   onSave?(): void;
-  onOpenDongu?(): void;   // Sorun döngüleri ekranı (/clients/[id]/dongu)
-  onValidityChange?(ok: boolean): void;   // zorunlu alanlar tam mı? — route otomatik-kaydı bunu kapılar
+  onOpenDongu?(): void;
+  onValidityChange?(ok: boolean): void;
 };
 
-// Sayfa menüsü — Ana Sayfa dock'u ile BİREBİR aynı (öge + sıra).
-// Anamnez, Çalışma Alanı → Dosya altından açıldığı için aktif = calisma-alani.
-const DOCK = [
+type FieldType = 'text' | 'num' | 'textarea' | 'select' | 'radio' | 'suggest' | 'chipsadd' | 'scale';
+type Field = { l: string; p: string; t: FieldType; o?: string[]; sug?: string; full?: boolean; req?: boolean; ph?: string };
+type Section = { id: string; no: string; title: string; eye?: string; danger?: boolean; special?: 'olcek'; fields?: Field[] };
+
+const NAV: { label: string; target: string }[] = [
   { label: 'Ana Sayfa', target: 'home' },
-  { label: 'Çalışma Alanı', target: 'calisma-alani', active: true },
-  { label: 'Profil', target: 'terapist' },
-  { label: 'Ayarlar', target: 'ayarlar' },
+  { label: 'Takvim', target: 'calendar' },
+  { label: 'Çalışma Alanı', target: 'calisma-alani' },
+];
+const THEMES: [string, string][] = [['rose', '#E59FB6'], ['sage', '#9FBE96'], ['ocean', '#9DC4D6'], ['dusk', '#AEB2CC'], ['clay', '#E3A982']];
+
+const SUGG: Record<string, string[]> = {
+  kendiSifatlar: ['Kaygılı', 'Kaçıngan', 'Öfkeli', 'Mükemmeliyetçi', 'İçe Dönük', 'Kontrolcü', 'Duyarlı'],
+  anaYakinma: ['OKB', 'Yıkama Kompulsiyonu', 'Kontrol Etme', 'Bulaşma Obsesyonu', 'Yaygın Kaygı'],
+  destekNot: ['Eş', 'Yakın Arkadaş', 'Aile', 'Meslektaş', 'Spor Grubu'],
+  meslek: ['Yazılımcı', 'Öğretmen', 'Mühendis', 'Hemşire', 'Avukat', 'Esnaf', 'Öğrenci', 'Muhasebeci'],
+  sehir: ['İstanbul', 'Ankara', 'İzmir', 'Bursa', 'Antalya', 'Adana', 'Konya', 'Gaziantep'],
+  ilce: ['Kadıköy', 'Beşiktaş', 'Çankaya', 'Konak', 'Nilüfer', 'Muratpaşa'],
+};
+
+const SCHEMA: Section[] = [
+  { id: 'demografik', no: '01', title: 'Kişisel bilgiler', eye: 'kimlik', fields: [
+    { l: 'Ad Soyad', p: 'demografik.adSoyad', t: 'text', full: true },
+    { l: 'Yaş', p: 'demografik.yas', t: 'num' },
+    { l: 'Cinsiyet', p: 'demografik.cinsiyet', t: 'select', o: ['Kadın', 'Erkek', 'Diğer'] },
+    { l: 'Medeni durum', p: 'demografik.medeniDurum', t: 'select', o: ['Bekâr', 'Evli', 'Boşanmış', 'Dul'] },
+    { l: 'Meslek', p: 'demografik.meslek', t: 'suggest', sug: 'meslek' },
+    { l: 'Şehir', p: 'demografik.sehir', t: 'suggest', sug: 'sehir' },
+    { l: 'İlçe', p: 'demografik.ilce', t: 'suggest', sug: 'ilce' },
+    { l: 'İş durumu', p: 'isSosyal.isDurumu', t: 'select', o: ['Çalışıyor (ücretli)', 'Kendi işi / serbest', 'Çalışmıyor', 'İş arıyor', 'Öğrenci', 'Emekli', 'Ev içi'] },
+    { l: 'Kendini hangi sıfatlarla tanımlıyor?', p: 'demografik.kendiSifatlar', t: 'chipsadd', sug: 'kendiSifatlar', full: true },
+  ] },
+  { id: 'basvuru', no: '02', title: 'Başvuru & şikâyet', eye: 'giriş', fields: [
+    { l: 'Başvuru nedeni', p: 'basvuru.sebep', t: 'textarea', full: true },
+    { l: 'Terapistin düşündüğü sorunlar', p: 'basvuru.anaYakinma', t: 'chipsadd', sug: 'anaYakinma', full: true },
+    { l: 'Başvuru şekli', p: 'basvuru.yonlendiren', t: 'select', o: ['Kendi başvurdu', 'Hekim yönlendirmesi', 'Aile yönlendirmesi', 'Online'] },
+    { l: 'Görüşme şekli', p: 'basvuru.gorusmeSekli', t: 'radio', o: ['Yüz yüze', 'Online', 'Hibrit'] },
+    { l: 'Şikâyet süresi / başlangıcı', p: 'sikayet.baslangic', t: 'textarea', full: true },
+    { l: 'Vurucu olay', p: 'sikayet.vurucuOlay', t: 'textarea', full: true },
+    { l: 'Tetikleyiciler', p: 'sikayet.tetikleyicilerNot', t: 'textarea', full: true, req: true },
+  ] },
+  { id: 'psikiyatrik', no: '03', title: 'Psikiyatrik & tıbbi', eye: 'öykü', fields: [
+    { l: 'Önceki psikolojik başvuru', p: 'psikiyatrik.oncekiBasvuru', t: 'radio', o: ['Var', 'Yok'] },
+    { l: 'Yatış öyküsü', p: 'psikiyatrik.yatis.var', t: 'radio', o: ['Var', 'Yok'] },
+    { l: 'Psikiyatrik ilaç', p: 'psikiyatrik.ilacNot', t: 'textarea', full: true },
+    { l: 'Kronik hastalık', p: 'tibbi.kronikNot', t: 'textarea', full: true },
+    { l: 'Kullandığı tıbbi ilaçlar', p: 'tibbi.ilac', t: 'textarea', full: true },
+  ] },
+  { id: 'aile', no: '04', title: 'Aile öyküsü', eye: 'köken', fields: [
+    { l: 'Ailede psikolojik öykü', p: 'aile.genogram', t: 'textarea', full: true },
+    { l: 'Anne sağ mı?', p: 'aile.anneSag', t: 'radio', o: ['Sağ', 'Vefat'] },
+    { l: 'Baba sağ mı?', p: 'aile.babaSag', t: 'radio', o: ['Sağ', 'Vefat'] },
+    { l: 'Anneyi tarifle', p: 'aile.anneTarif', t: 'textarea', full: true },
+    { l: 'Babayı tarifle', p: 'aile.babaTarif', t: 'textarea', full: true },
+    { l: 'Anne–baba ilişkisi', p: 'aile.anneBabaIliski', t: 'textarea', full: true },
+    { l: 'Kardeşler', p: 'aile.kardesDurum', t: 'text' },
+    { l: 'İstismar / eşitsizlik', p: 'aile.istismarVar', t: 'radio', o: ['Var', 'Yok', 'Belirsiz'] },
+    { l: 'Kardeşleri tarifle', p: 'aile.kardesTarif', t: 'textarea', full: true },
+    { l: 'Ebeveyn rolü üstlenen kardeş', p: 'aile.ebeveynRolKardes', t: 'textarea', full: true },
+    { l: 'Varsa istismarı belirt', p: 'aile.istismarNot', t: 'textarea', full: true },
+  ] },
+  { id: 'madde', no: '05', title: 'Madde kullanımı', eye: 'alışkanlık', fields: [
+    { l: 'Alkol', p: 'madde.alkol', t: 'radio', o: ['Yok', 'Ara sıra', 'Düzenli'] },
+    { l: 'Sigara', p: 'madde.sigara', t: 'radio', o: ['Yok', 'Ara sıra', 'Düzenli'] },
+    { l: 'Madde', p: 'madde.madde', t: 'radio', o: ['Yok', 'Var'] },
+  ] },
+  { id: 'gelisim', no: '06', title: 'Danışanın hikâyesi', eye: 'gelişim', fields: [
+    { l: 'Çocukluk dönemi', p: 'gelisim.cocuklukTarif', t: 'textarea', full: true },
+    { l: 'Ergenlik dönemi', p: 'gelisim.ergenlikTarif', t: 'textarea', full: true },
+    { l: 'O dönemki destek', p: 'gelisim.erkenDestek', t: 'textarea', full: true },
+    { l: 'Önemli yaşam olayları', p: 'gelisim.yasamOlaylari', t: 'textarea', full: true },
+  ] },
+  { id: 'iliskiler', no: '07', title: 'İlişkiler', eye: 'bağ', fields: [
+    { l: 'İlişki durumu', p: 'iliskiler.romantik', t: 'text' },
+    { l: 'Bağlanma stili', p: 'iliskiler.baglanmaStili', t: 'radio', o: ['Güvenli', 'Kaygılı', 'Kaçıngan'] },
+    { l: 'İlişki örüntüleri', p: 'iliskiler.baglanma', t: 'textarea', full: true },
+    { l: 'Sosyal destek ve arkadaş ilişkileri', p: 'isSosyal.destekNot', t: 'chipsadd', sug: 'destekNot', full: true },
+    { l: 'İlişkide sorun puanı', p: 'isSosyal.iliskiSorunPuan', t: 'scale', full: true },
+  ] },
+  { id: 'travma', no: '08', title: 'Travma', eye: 'yük', fields: [
+    { l: 'Travma öyküsü', p: 'travma.travmaVar', t: 'radio', o: ['Var', 'Yok'] },
+    { l: 'Açıklama', p: 'travma.travmaNot', t: 'textarea', full: true },
+  ] },
+  { id: 'risk', no: '09', title: 'Risk değerlendirme', eye: 'güvenlik', danger: true, fields: [
+    { l: 'İntihar düşüncesi', p: 'risk.intihar', t: 'radio', o: ['Var', 'Yok'] },
+    { l: 'Plan / niyet', p: 'risk.planNiyet', t: 'radio', o: ['Var', 'Yok'] },
+    { l: 'Kendine zarar verme', p: 'risk.zarar', t: 'radio', o: ['Aktif', 'Yok'] },
+    { l: 'Başkasına zarar riski', p: 'risk.baskasi', t: 'radio', o: ['Risk', 'Yok'] },
+    { l: 'Genel risk düzeyi', p: 'risk.seviye', t: 'select', o: ['Düşük', 'Orta', 'Yüksek'] },
+  ] },
+  { id: 'hedefler', no: '10', title: 'Hedefler', eye: 'yön', fields: [
+    { l: 'Terapi hedefleri', p: 'hedefler.hedeflerNot', t: 'textarea', full: true },
+    { l: 'Beklenti / motivasyon', p: 'hedefler.beklenti', t: 'textarea', full: true },
+  ] },
+  { id: 'olcekler', no: '11', title: 'Ölçekler', eye: 'ön-form', special: 'olcek' },
+  { id: 'klinisyen', no: '12', title: 'Klinisyen notu', eye: 'sentez', fields: [
+    { l: 'Çalışılacak konular', p: 'klinisyenNotu', t: 'textarea', full: true, ph: 'Değersizlik inancını sınama\nKaçınmayı azaltma\nDuygu düzenleme' },
+  ] },
 ];
 
-// Tema + arkaplan görseli — Ana Sayfa & Çalışma Alanı ile paylaşımlı (localStorage)
-const DEFAULT_BG = '/calmie-hero-default.jpg';
-const lsGet = (k: string): string | null => { try { return typeof window !== 'undefined' ? localStorage.getItem(k) : null; } catch { return null; } };
-
+const REQ: { sec: Section; f: Field }[] = [];
+SCHEMA.forEach((s) => s.fields?.forEach((f) => { if (f.req) REQ.push({ sec: s, f }); }));
+const OLC_MAX: Record<string, number> = { phq9: 27, gad7: 21 };
 const lcTr = (s: string) => s.toLocaleLowerCase('tr-TR');
-// Kayıt tutarlılığı — her kelimenin İLK harfi büyük, kalanı küçük (TR-locale).
-// "psikolojik danışman" / "PSİKOLOG" → "Psikolojik Danışman" / "Psikolog".
-const titleTr = (s: string) =>
-  s.replace(/\s+/g, ' ').trim().split(' ')
-    .map((w) => (w ? w.charAt(0).toLocaleUpperCase('tr-TR') + w.slice(1).toLocaleLowerCase('tr-TR') : w))
-    .join(' ');
-function loadSuggestTerms(key: string, seed: string[] = SEED_YAKINMA): string[] {
+
+function getV(data: any, p: string): any { return p.split('.').reduce((o, k) => (o == null ? undefined : o[k]), data); }
+function setIn(obj: any, keys: string[], val: any): any {
+  if (keys.length === 0) return val;
+  const [k, ...rest] = keys;
+  const base = obj && typeof obj === 'object' ? obj : {};
+  return { ...base, [k]: setIn(base[k], rest, val) };
+}
+function filled(v: any): boolean {
+  if (v == null) return false;
+  if (Array.isArray(v)) return v.length > 0;
+  if (typeof v === 'string') return v.trim() !== '';
+  if (typeof v === 'number') return true;
+  return !!v;
+}
+function loadSugg(sug?: string): string[] {
+  const seed = (sug && SUGG[sug]) || [];
+  if (!sug) return seed;
   let saved: string[] = [];
-  try { const a = JSON.parse(localStorage.getItem(key) || '[]'); if (Array.isArray(a)) saved = a.filter((x) => typeof x === 'string'); } catch { /* yok say */ }
+  try { const a = JSON.parse(localStorage.getItem(`anamnez-sugg-${sug}`) || '[]'); if (Array.isArray(a)) saved = a.filter((x) => typeof x === 'string'); } catch { /* yok */ }
   const seen = new Set<string>(); const out: string[] = [];
   for (const t of [...saved, ...seed]) { const k = lcTr(t); if (!seen.has(k)) { seen.add(k); out.push(t); } }
   return out;
 }
-function rememberSuggestTerm(key: string, raw: string) {
-  const t = raw.trim(); if (t.length < 2) return;
+function rememberSugg(sug: string | undefined, raw: string) {
+  if (!sug) return; const t = raw.trim(); if (t.length < 2) return;
   try {
-    const a = JSON.parse(localStorage.getItem(key) || '[]');
+    const a = JSON.parse(localStorage.getItem(`anamnez-sugg-${sug}`) || '[]');
     const list = Array.isArray(a) ? a.filter((x: any) => typeof x === 'string') : [];
-    const k = lcTr(t);
-    const filtered = list.filter((x: string) => lcTr(x) !== k);
+    const filtered = list.filter((x: string) => lcTr(x) !== lcTr(t));
     filtered.unshift(t);
-    localStorage.setItem(key, JSON.stringify(filtered.slice(0, 300)));
-  } catch { /* yok say */ }
+    localStorage.setItem(`anamnez-sugg-${sug}`, JSON.stringify(filtered.slice(0, 300)));
+  } catch { /* yok */ }
 }
 
-// Öneri kutusu — virgülle çok-terimli (ana yakınma) VEYA tek-değerli (meslek/şehir).
-// Tek-değerli modda öneriler önce baştan-eşleşen ("t" → Tekirdağ…) sıralanır ve
-// seçilen/yazılan değer kayıtlarda Title Case'e (titleTr) çevrilir.
-function SuggestInput({ id, value, onChange, storeKey, seed = SEED_YAKINMA, single = false, ph }:
-  { id: string; value: string; onChange: (v: string) => void; storeKey: string; seed?: string[]; single?: boolean; ph?: string }) {
-  const [open, setOpen] = useState(false);
-  const [hi, setHi] = useState(0);
-  const [terms, setTerms] = useState<string[]>([]);
-  const blurT = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => { setTerms(loadSuggestTerms(storeKey, seed)); }, [storeKey, seed]);
-
-  const segs = single ? [value] : value.split(',');
-  const cur = (segs[segs.length - 1] || '').trim();
-  let matches: string[] = [];
-  if (cur.length >= 1) {
-    const c = lcTr(cur);
-    if (single) {
-      // baştan eşleşenler önce, sonra içeride geçenler — "t" → Tekirdağ, Tokat…
-      const starts = terms.filter((t) => { const k = lcTr(t); return k.startsWith(c) && k !== c; });
-      const inside = terms.filter((t) => { const k = lcTr(t); return !k.startsWith(c) && k.includes(c); });
-      matches = [...starts, ...inside].slice(0, 8);
-    } else {
-      matches = terms.filter((t) => { const k = lcTr(t); return k.includes(c) && k !== c; }).slice(0, 8);
-    }
-  }
-
-  const commitToken = (t: string) => {
-    if (single) {
-      const val = titleTr(t);
-      onChange(val);
-      rememberSuggestTerm(storeKey, val);
-    } else {
-      const head = segs.slice(0, -1).map((s) => s.trim()).filter(Boolean);
-      onChange([...head, t].join(', '));
-      rememberSuggestTerm(storeKey, t);
-    }
-    setTerms(loadSuggestTerms(storeKey, seed));
-    setOpen(false);
-  };
-  const rememberAll = () => {
-    if (single) {
-      const val = titleTr(value);
-      if (val !== value) onChange(val);   // kaydı tutarlı kıl: Title Case'e normalize et
-      rememberSuggestTerm(storeKey, val);
-    } else {
-      value.split(',').forEach((s) => rememberSuggestTerm(storeKey, s));
-    }
-    setTerms(loadSuggestTerms(storeKey, seed));
-  };
-
-  return (
-    <div className="sugg-wrap">
-      <input className="inp" id={id} value={value} placeholder={ph ?? 'örn. kaygı, uykusuzluk…'} autoComplete="off"
-        onChange={(e) => { onChange(e.target.value); setOpen(true); setHi(0); }}
-        onFocus={() => setOpen(true)}
-        onBlur={() => { blurT.current = setTimeout(() => { setOpen(false); rememberAll(); }, 140); }}
-        onKeyDown={(e) => {
-          if (!open || !matches.length) { return; }
-          if (e.key === 'ArrowDown') { e.preventDefault(); setHi((h) => Math.min(h + 1, matches.length - 1)); }
-          else if (e.key === 'ArrowUp') { e.preventDefault(); setHi((h) => Math.max(h - 1, 0)); }
-          else if (e.key === 'Enter') { e.preventDefault(); commitToken(matches[hi] ?? matches[0]); }
-          else if (e.key === 'Escape') { setOpen(false); }
-        }} />
-      {open && matches.length > 0 && (
-        <ul className="sugg-list" role="listbox">
-          {matches.map((m, i) => (
-            <li key={m} role="option" aria-selected={i === hi} className={i === hi ? 'on' : ''}
-              onMouseDown={(e) => { e.preventDefault(); if (blurT.current) clearTimeout(blurT.current); commitToken(m); }}
-              onMouseEnter={() => setHi(i)}>{m}</li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
-
-// Çoklu seçici (premium): kutuya gelince/odaklanınca altta öneri paleti açılır;
-// seçilenler kutu içinde çıkarılabilir etiket olur; serbest yeni terim eklenebilir.
-// storeKey verilirse öneriler öğrenilen + tohum havuzundan gelir ve eklenenler öğrenilir
-// (ör. "Terapistin düşündüğü sorunlar": açık listeden tek tek tıklayıp çoklu ekleme).
-function ChipAddInput({ value, onChange, opt, storeKey, seed }:
-  { value: any; onChange: (v: string[]) => void; opt: string[]; storeKey?: string; seed?: string[] }) {
-  const sel: string[] = Array.isArray(value) ? value : [];
-  const [draft, setDraft] = useState('');
-  const [open, setOpen] = useState(false);
-  const [learned, setLearned] = useState<string[]>([]);
-  const inputRef = useRef<HTMLInputElement>(null);
-  // Öğrenilen + tohum terimler (yalnız storeKey'li alanlarda; ör. ana yakınma).
-  useEffect(() => { if (storeKey) setLearned(loadSuggestTerms(storeKey, seed ?? [])); }, [storeKey, seed]);
-  // Öneri havuzu = preset opt ∪ öğrenilen/tohum (lcTr ile tekilleştirilmiş).
-  const pool = useMemo(() => {
-    const seen = new Set<string>(); const out: string[] = [];
-    for (const t of [...opt, ...learned]) { const k = lcTr(t); if (!seen.has(k)) { seen.add(k); out.push(t); } }
-    return out;
-  }, [opt, learned]);
-  // Tek, iptal-edilebilir kapanma zamanlayıcısı — dropdown'a girince kapanma iptal
-  // olur, böylece "hızlı inmezsem kapanıyor" sorunu kalkar.
-  const closeT = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const cancelClose = () => { if (closeT.current) { clearTimeout(closeT.current); closeT.current = null; } };
-  const scheduleClose = () => { cancelClose(); closeT.current = setTimeout(() => setOpen(false), 280); };
-  // Kayıt tutarlılığı: küçük/büyük nasıl yazılırsa yazılsın her terim Title Case'e çevrilir.
-  const add = (raw: string) => {
-    const t = titleTr(raw); if (!t) return;
-    if (sel.some((x) => lcTr(x) === lcTr(t))) return;
-    onChange([...sel, t]);
-    if (storeKey) { rememberSuggestTerm(storeKey, t); setLearned(loadSuggestTerms(storeKey, seed ?? [])); }
-  };
-  const remove = (t: string) => onChange(sel.filter((x) => x !== t));
-  const d = draft.trim();
-  const suggestions = pool.filter((o) => !sel.some((x) => lcTr(x) === lcTr(o)) && (!d || lcTr(o).includes(lcTr(d))));
-  const canAddNew = !!d && !pool.some((o) => lcTr(o) === lcTr(d)) && !sel.some((x) => lcTr(x) === lcTr(d));
-  return (
-    <div className="chipadd"
-      onMouseEnter={() => { cancelClose(); setOpen(true); }}
-      onMouseLeave={() => { if (document.activeElement !== inputRef.current) scheduleClose(); }}>
-      <div className="ca-box" onClick={() => { cancelClose(); inputRef.current?.focus(); setOpen(true); }}>
-        {sel.map((t) => (
-          <span key={t} className="ca-tag">{t}<button type="button" className="ca-x" aria-label="Kaldır" onClick={(e) => { e.stopPropagation(); remove(t); }}>×</button></span>
-        ))}
-        <input ref={inputRef} className="ca-input" value={draft} placeholder={sel.length ? 'ekle…' : 'Sıfat seç ya da yaz…'} autoComplete="off"
-          onChange={(e) => { setDraft(e.target.value); cancelClose(); setOpen(true); }}
-          onFocus={() => { cancelClose(); setOpen(true); }}
-          onBlur={scheduleClose}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') { e.preventDefault(); if (d) { add(draft); setDraft(''); } }
-            else if (e.key === 'Backspace' && !draft && sel.length) { remove(sel[sel.length - 1]); }
-            else if (e.key === 'Escape') { setOpen(false); }
-          }} />
-      </div>
-      {open && (suggestions.length > 0 || canAddNew) && (
-        <div className="ca-drop" onMouseEnter={cancelClose} onMouseLeave={() => { if (document.activeElement !== inputRef.current) scheduleClose(); }}>
-          {suggestions.map((o) => (
-            <button key={o} type="button" className="ca-opt" onMouseDown={(e) => { e.preventDefault(); cancelClose(); add(o); }}>{o}</button>
-          ))}
-          {canAddNew && (
-            <button type="button" className="ca-opt ca-opt-new" onMouseDown={(e) => { e.preventDefault(); cancelClose(); add(draft); setDraft(''); }}>+ “{d}” ekle</button>
-          )}
-        </div>
-      )}
-    </div>
-  );
+/* auto-grow textarea */
+function AutoTextarea({ value, placeholder, onChange }: { value: string; placeholder?: string; onChange(v: string): void }) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  const grow = () => { const el = ref.current; if (el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; } };
+  useEffect(grow, [value]);
+  return <textarea ref={ref} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />;
 }
 
 export default function AnamnezV2(props: AnamnezV2Props) {
   const { data, clientName, clientNo, hasPreForm, onChange, onBack, onNav, onAiFill, onImportPreForm, onSave, onOpenDongu, onValidityChange } = props;
+
+  const [theme, setTheme] = useState('rose');
   const [active, setActive] = useState('demografik');
-  const [saved, setSaved] = useState(false);
-  const [reqErr, setReqErr] = useState<string | null>(null);   // zorunlu alan eksik uyarısı
-  // paylaşımlı tema + arkaplan görseli (Çalışma Alanı / Ana Sayfa ile aynı)
-  const [theme] = useState<string>(() => lsGet('calmie_home_bgtheme') || 'default');
-  const [bgPhoto] = useState<string | null>(() => lsGet('siyi_home_bg_v1'));
+  const [mobileMenu, setMobileMenu] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [savedAt, setSavedAt] = useState<string | null>(null);
+  const [adding, setAdding] = useState<{ p: string; val: string } | null>(null);
+  const [pulled, setPulled] = useState(false);
+  const saveT = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // ── Sayfa menüsü glider (Ana Sayfa ile aynı) — aktif/hover sekmeye kayan beyaz pill ──
-  const menuRef = useRef<HTMLElement>(null);
-  const gliderRef = useRef<HTMLSpanElement>(null);
-  const activeLink = () => (menuRef.current?.querySelector('a.active') || menuRef.current?.querySelector('a')) as HTMLElement | null;
-  const moveGlider = (a: HTMLElement | null, instant = false) => {
-    const g = gliderRef.current; if (!g || !a) return;
-    if (instant) g.style.transition = 'none';
-    g.style.width = a.offsetWidth + 'px';
-    g.style.transform = `translateX(${a.offsetLeft}px)`;
-    g.classList.add('on');
-    menuRef.current?.querySelectorAll('a').forEach((l) => l.classList.toggle('lit', l === a));
-    if (instant) { void g.offsetWidth; g.style.transition = ''; }
-  };
   useEffect(() => {
-    moveGlider(activeLink(), true);
-    const onR = () => moveGlider(activeLink(), true);
-    window.addEventListener('resize', onR);
-    (document as any).fonts?.ready?.then(() => moveGlider(activeLink(), true));
-    return () => window.removeEventListener('resize', onR);
+    try { const t = localStorage.getItem('calmie-theme'); if (t && THEMES.some(([x]) => x === t)) setTheme(t); } catch {}
   }, []);
-  const formColRef = useRef<HTMLDivElement>(null);
-  const secRefs = useRef<Record<string, HTMLElement | null>>({});
+  const applyTheme = (t: string) => { setTheme(t); try { localStorage.setItem('calmie-theme', t); } catch {} };
 
-  const set = (f: Field, uiVal: any) => {
-    const { sec, value } = writeField(data, f, uiVal);
-    onChange(sec as any, value);
+  /* veri yazımı — bölüm-bazlı onChange + autosave göstergesi */
+  const markSaving = () => {
+    setSaving(true);
+    if (saveT.current) clearTimeout(saveT.current);
+    saveT.current = setTimeout(() => {
+      setSaving(false);
+      setSavedAt(new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }));
+    }, 800);
+  };
+  const setV = (p: string, val: any) => {
+    const keys = p.split('.');
+    const topKey = keys[0] as keyof AnamnezData;
+    const newTop = keys.length === 1 ? val : setIn((data as any)[topKey] ?? {}, keys.slice(1), val);
+    onChange(topKey, newTop as AnamnezData[typeof topKey]);
+    markSaving();
   };
 
-  // tamamlanma
-  const { pct, secState } = useMemo(() => {
-    const all = SECTIONS.flatMap((s) => s.fields);
-    const n = all.filter((f) => isFilled(data, f)).length;
-    const secState: Record<string, '' | 'part' | 'done'> = {};
-    SECTIONS.forEach((s) => {
-      const c = s.fields.filter((f) => isFilled(data, f)).length;
-      secState[s.id] = c === 0 ? '' : c === s.fields.length ? 'done' : 'part';
-    });
-    return { pct: Math.round((n / all.length) * 100), secState };
-  }, [data]);
+  /* tamamlanma */
+  const secStatus = (s: Section): '' | 'part' | 'done' => {
+    if (s.special === 'olcek') return hasPreForm ? 'done' : '';
+    const fields = s.fields ?? []; const total = fields.length;
+    let n = 0; fields.forEach((f) => { if (filled(getV(data, f.p))) n++; });
+    return n === 0 ? '' : n >= total ? 'done' : 'part';
+  };
+  const doneCount = SCHEMA.filter((s) => secStatus(s) === 'done').length;
+  const pct = Math.round((doneCount / SCHEMA.length) * 100);
+  const C = 2 * Math.PI * 31;
 
-  // scroll-spy
+  /* zorunlu kapı */
+  const missing = REQ.filter((r) => !filled(getV(data, r.f.p)));
+  useEffect(() => { onValidityChange?.(missing.length === 0); }, [missing.length, onValidityChange]);
+
+  /* scroll-spy + ray navigasyon (window scroll, 92px ofset) */
   useEffect(() => {
-    const root = formColRef.current; if (!root) return;
-    const secs = Object.values(secRefs.current).filter(Boolean) as HTMLElement[];
-    const io = new IntersectionObserver(
-      (ents) => ents.forEach((e) => { if (e.isIntersecting) setActive((e.target as HTMLElement).dataset.sid!); }),
-      { root, rootMargin: '-8% 0px -80% 0px', threshold: 0 },
-    );
-    secs.forEach((s) => io.observe(s));
-    return () => io.disconnect();
+    const onScroll = () => {
+      const mid = window.innerHeight * 0.34;
+      let cur = SCHEMA[0].id;
+      for (const s of SCHEMA) {
+        const el = document.getElementById('anx-sec-' + s.id);
+        if (el && el.getBoundingClientRect().top <= mid) cur = s.id;
+      }
+      setActive(cur);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener('scroll', onScroll);
   }, []);
-
-  const scrollTo = (id: string) => {
-    const el = secRefs.current[id]; const fc = formColRef.current;
-    if (el && fc) fc.scrollTo({ top: el.offsetTop - 12, behavior: 'smooth' });
+  const goTo = (id: string) => {
+    const el = document.getElementById('anx-sec-' + id);
+    if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 92, behavior: 'smooth' });
   };
 
-  // ── Zorunlu alanlar (required:true) — doldurulmadan KAYDEDİLEMEZ ──
-  const isFieldEmpty = (f: Field) => {
-    const v = readField(data, f);
-    if (Array.isArray(v)) return v.length === 0;
-    return !(v != null && String(v).trim());
-  };
-  const requiredMissing = SECTIONS
-    .flatMap((s, si) => s.fields.map((f, fi) => ({ f, s, si, fi })))
-    .filter(({ f }) => f.required && isFieldEmpty(f));
+  const name = (clientName ?? '').trim() || 'Danışan';
+  const initials = name.split(/\s+/).filter(Boolean).map((w) => w[0]).slice(0, 2).join('').toLocaleUpperCase('tr-TR') || 'DA';
 
-  const doSave = () => {
-    // Eksik zorunlu alan varsa HATIRLAT ama kaydı engelleme — veri her zaman kaydedilir.
-    if (requiredMissing.length) {
-      const first = requiredMissing[0];
-      setReqErr(requiredMissing.map((m) => m.f.label).join(', '));
-      setActive(first.s.id);
-      scrollTo(first.s.id);
-      setTimeout(() => document.getElementById(`f-${first.si}-${first.fi}`)?.focus(), 320);
-    } else {
-      setReqErr(null);
-    }
-    onSave?.(); setSaved(true); setTimeout(() => setSaved(false), 2000);
-  };
-  // zorunlu alan doldurulunca uyarıyı temizle
-  useEffect(() => { if (reqErr && requiredMissing.length === 0) setReqErr(null); }, [reqErr, requiredMissing.length]);
-  // route otomatik-kaydı zorunlu alanlar tamamlanmadan PATCH etmesin diye geçerliliği bildir
-  useEffect(() => { onValidityChange?.(requiredMissing.length === 0); }, [requiredMissing.length, onValidityChange]);
+  /* chipsadd yardımcıları */
+  const chipArr = (p: string): string[] => { const v = getV(data, p); return Array.isArray(v) ? v : []; };
+  const chipRemove = (p: string, i: number) => { const a = chipArr(p).slice(); a.splice(i, 1); setV(p, a); };
+  const chipPush = (p: string, sug: string | undefined, val: string) => { const t = val.trim(); if (!t) return; setV(p, [...chipArr(p), t]); rememberSugg(sug, t); };
 
-  const renderControl = (f: Field, si: number, fi: number) => {
-    const v = readField(data, f);
-    const id = `f-${si}-${fi}`;
-    switch (f.type) {
+  /* ── alan render ── */
+  const renderCtrl = (f: Field) => {
+    const v = getV(data, f.p);
+    switch (f.t) {
       case 'text':
-        if (f.suggest) return <SuggestInput id={id} value={v} onChange={(val) => set(f, val)} storeKey={`calmie_suggest_${f.sec}_${f.key}`} seed={f.suggestSeed ?? SEED_YAKINMA} single={!!f.suggestSingle} ph={f.ph} />;
-        return <input className="inp" id={id} value={v} placeholder={f.ph ?? '—'} onChange={(e) => set(f, e.target.value)} />;
+        return <input className="inp" type="text" value={v ?? ''} placeholder="Yaz…" onChange={(e) => setV(f.p, e.target.value)} />;
       case 'num':
-        return <input className="inp" id={id} value={v} placeholder="—" inputMode="numeric" onChange={(e) => set(f, e.target.value)} />;
+        return <input className="inp" type="number" value={v ?? ''} placeholder="—" onChange={(e) => setV(f.p, e.target.value === '' ? null : +e.target.value)} />;
       case 'textarea':
-        return <textarea className="ta" id={id} value={v} placeholder={f.ph ?? '—'} onChange={(e) => set(f, e.target.value)} />;
+        return <AutoTextarea value={v ?? ''} placeholder={f.ph || 'Yaz…'} onChange={(val) => setV(f.p, val)} />;
       case 'select':
-        return <select className="sel" id={id} value={v} onChange={(e) => set(f, e.target.value)}>{f.opt!.map((o) => <option key={o} value={o}>{o}</option>)}</select>;
-      case 'radio':
-        return <div className="radio">{f.opt!.map((o) => <button key={o} type="button" className={o === v ? 'on' : ''} onClick={() => set(f, o)}>{o}</button>)}</div>;
-      case 'chips':
-        return <div className="chips-in">{f.opt!.map((o) => {
-          const on = Array.isArray(v) && v.includes(o);
-          return <button key={o} type="button" className={on ? 'on' : ''} onClick={() => { const next = on ? v.filter((x: string) => x !== o) : [...v, o]; set(f, next); }}>{o}</button>;
-        })}</div>;
-      case 'chipsadd':
-        return <ChipAddInput value={v} onChange={(arr) => set(f, arr)} opt={f.opt ?? []}
-          storeKey={f.suggest ? `calmie_suggest_${f.sec}_${f.key}` : undefined} seed={f.suggestSeed} />;
-      case 'scaleimport': {
-        const ol = (data as any).olcekler || {};
-        const has = ol.phq9?.skor != null || ol.gad7?.skor != null;
-        const card = (name: string, sc: any, max: number) => (
-          <div className="olc-card">
-            <span className="olc-name">{name}</span>
-            {sc?.skor != null
-              ? <span className="olc-val"><b>{sc.skor}</b><em>/{max}</em>{sc.sinif ? <i className="olc-band">{sc.sinif}</i> : null}{sc.tarih ? <i className="olc-date">{sc.tarih}</i> : null}</span>
-              : <span className="olc-empty">—</span>}
+        return (
+          <div className="sel-wrap">
+            <select className="sel" value={filled(v) ? v : ''} onChange={(e) => setV(f.p, e.target.value)}>
+              <option value="">Seç…</option>
+              {f.o!.map((o) => <option key={o} value={o}>{o}</option>)}
+            </select>
+            <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" /></svg>
           </div>
         );
+      case 'radio':
         return (
-          <div className="olc-import">
-            <div className="olc-grid">
-              {card('PHQ-9 · depresyon', ol.phq9, 27)}
-              {card('GAD-7 · anksiyete', ol.gad7, 21)}
+          <div className="segd">
+            {f.o!.map((o) => <button key={o} type="button" className={v === o ? 'on' : ''} onClick={() => setV(f.p, o)}>{o}</button>)}
+          </div>
+        );
+      case 'suggest':
+        return <input className="inp" type="text" value={v ?? ''} placeholder="Yaz veya seç…" list={`anx-dl-${f.sug}`} onChange={(e) => setV(f.p, e.target.value)} onBlur={(e) => rememberSugg(f.sug, e.target.value)} />;
+      case 'chipsadd': {
+        const arr = chipArr(f.p);
+        const sug = loadSugg(f.sug).filter((s) => !arr.some((a) => lcTr(a) === lcTr(s)));
+        const isAdding = adding?.p === f.p;
+        return (
+          <div className="chipsadd">
+            <div className="chips">
+              {arr.map((c, i) => (
+                <span className="chip" key={c + i}>{c}<button type="button" aria-label="kaldır" onClick={() => chipRemove(f.p, i)}>×</button></span>
+              ))}
+              {isAdding ? (
+                <input className="chip-inp" autoFocus placeholder="yaz + Enter" value={adding!.val}
+                  onChange={(e) => setAdding({ p: f.p, val: e.target.value })}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); chipPush(f.p, f.sug, adding!.val); setAdding(null); } if (e.key === 'Escape') setAdding(null); }}
+                  onBlur={() => { chipPush(f.p, f.sug, adding!.val); setAdding(null); }} />
+              ) : (
+                <button type="button" className="chip-add" onClick={() => setAdding({ p: f.p, val: '' })}>+ ekle</button>
+              )}
             </div>
-            <button type="button" className="olc-pull" disabled={!hasPreForm} onClick={() => onImportPreForm?.()}>
-              {hasPreForm ? 'Ölçek verilerini ön-formdan çek' : 'Seans öncesi form / ölçek yanıtı yok'}
-            </button>
-            <p className="olc-hint">
-              {has
-                ? 'Skorlar seans öncesi formdan çekildi. Yeni yanıt geldiyse tekrar çekebilirsin.'
-                : hasPreForm
-                  ? 'Danışanın seans öncesi formundaki PHQ-9 / GAD-7 yanıtları buraya işlenecek.'
-                  : 'Danışana henüz ölçekli bir form ulaşmamış. Form yanıtı geldiğinde burada içe aktarabilirsin.'}
-            </p>
+            {sug.length > 0 && (
+              <div className="sugg">
+                <span className="sugg-lab">öneriler</span>
+                {sug.map((s) => <button key={s} type="button" className="sugg-chip" onClick={() => chipPush(f.p, f.sug, s)}>{s}</button>)}
+              </div>
+            )}
           </div>
         );
       }
       case 'scale': {
-        const cur = v === '' ? -1 : Number(v);
-        const segs = Array.from({ length: 11 }, (_, i) => i); // 0–10 gösterim
+        const val = filled(v) ? +v : 0;
         return (
           <div className="scale">
-            <div className="sh"><b>{f.label}</b><span className="sc">{v === '' ? '–' : v}<em>/{f.max}</em></span></div>
-            <div className="seg">{segs.map((i) => <button key={i} type="button" className={i === cur ? 'on' : ''} onClick={() => set(f, i)}>{i}</button>)}</div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '.06em', color: 'var(--ink-faint)', marginTop: 8 }}>aralık {f.bands} · 0–10 gösteriliyor</div>
+            <div className="scale-track">
+              {Array.from({ length: 10 }, (_, idx) => idx + 1).map((i) => (
+                <div key={i} className={'scale-seg' + (i <= val ? ' fill' : '') + (i === val ? ' cur' : '')} onClick={() => setV(f.p, i)}>{i}</div>
+              ))}
+            </div>
+            <div className="scale-cap"><span>Düşük</span><span>{val ? <>Seçili: <b>{val}/10</b></> : 'Henüz seçilmedi'}</span><span>Yüksek</span></div>
           </div>
         );
       }
     }
+    return null;
+  };
+
+  const renderField = (f: Field) => {
+    const miss = !!f.req && !filled(getV(data, f.p));
+    return (
+      <div key={f.p} className={'fld' + (f.full ? ' full' : '') + (miss ? ' req-miss' : '')}>
+        <label className="fld-lab">{f.l}{f.req && <span className="req">zorunlu</span>}</label>
+        <div className="fld-ctrl">{renderCtrl(f)}</div>
+      </div>
+    );
+  };
+
+  const renderOlcek = () => {
+    const o: any = (data as any).olcekler || {};
+    const card = (key: string, nm: string, sub: string) => {
+      const d = o[key]; if (!d) return null;
+      const cls = d.cls || (d.sinif === 'Yüksek' ? 'yuksek' : d.sinif === 'Düşük' ? 'dusuk' : 'orta');
+      return (
+        <div className="olc-card" key={key}>
+          <div className="olc-eye">{nm}</div>
+          <div className="olc-name">{sub}</div>
+          <div className="olc-score"><b>{d.skor}</b><small>/ {d.max || OLC_MAX[key] || 27}</small></div>
+          <div className="olc-meta"><span className={'olc-cls ' + cls}>{d.sinif || '—'}</span><span className="olc-date">{d.tarih || ''}</span></div>
+        </div>
+      );
+    };
+    const cards = [card('phq9', 'PHQ-9', 'Depresyon ölçeği'), card('gad7', 'GAD-7', 'Anksiyete ölçeği')].filter(Boolean);
+    const show = hasPreForm && cards.length > 0;
+    return (
+      <>
+        <p className="olc-lead">Bu skorlar elle girilmez; danışanın doldurduğu ön-formdan otomatik aktarılır.</p>
+        {show ? (
+          <>
+            <div className="olc">{cards}</div>
+            <button className="btn btn-ghost olc-import" type="button" disabled={pulled} onClick={() => { setPulled(true); onImportPreForm?.(); }}>
+              {pulled
+                ? <><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>Ön-formdan güncel</>
+                : <><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7M21 3v6h-6" /></svg>Ölçek verilerini ön-formdan çek</>}
+            </button>
+          </>
+        ) : (
+          <div className="olc"><div className="olc-empty"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 8v4M12 16h.01" /></svg>Ön-form yanıtı yok — ölçek skorları otomatik çekilemiyor.</div></div>
+        )}
+      </>
+    );
   };
 
   return (
-    <>
+    <div className="anx" data-theme={theme}>
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,300;1,400;1,500;1,600&display=swap" rel="stylesheet" />
+      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600&display=swap" rel="stylesheet" />
 
-      <div className="an2 cchrome" data-bg={theme === 'default' ? undefined : theme}>
+      <div className="scene" aria-hidden="true" />
+      <div className="grain" aria-hidden="true" />
 
-        {/* 1) tema mesh/foto zemin — Çalışma Alanı ile paylaşımlı */}
-        <div className="app-bg" aria-hidden="true">
-          <span className="hb-mesh" />
-          <img className="hb-photo" alt="" src={bgPhoto || DEFAULT_BG} />
-          <img className="hb-cherry" alt="" src="/tema-cherry.jpg" /><span className="hb-cherry-scrim" />
-          <img className="hb-fur" alt="" src="/tema-kurk.jpg" /><span className="hb-fur-scrim" />
-          <span className="hb-tint" /><span className="hb-crest" /><span className="hb-grade" /><span className="hb-vignette" /><span className="hb-grain" />
-        </div>
+      {/* NAV */}
+      <div className="navwrap">
+        <nav className="nav" aria-label="Birincil">
+          <a className="logo" onClick={() => onNav?.('home')}>Calmie<i>.</i></a>
+          <div className="nav-links">
+            {NAV.map((n) => <a key={n.target} onClick={() => onNav?.(n.target)}>{n.label}</a>)}
+            <a className="active" onClick={() => onBack?.()}>Danışanlar</a>
+          </div>
+          <a className="nav-prof" onClick={() => onNav?.('terapist')}>
+            <div className="np-col">
+              <span className="pro-badge"><svg viewBox="0 0 24 24"><path d="M12 2l2.6 6.3L21 9l-4.8 4.3L17.6 22 12 18.4 6.4 22l1.4-8.7L3 9l6.4-.7z" /></svg>PRO</span>
+              <span className="np-name">Profil</span>
+            </div>
+            <span className="np-av">{initials}</span>
+          </a>
+          <button className="menu-btn" aria-label="Menü" onClick={() => setMobileMenu((v) => !v)}><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16" /></svg></button>
+        </nav>
+      </div>
 
-        {/* 2) frosted-glass scrim */}
-        <div className="scrim" aria-hidden="true" />
-
-        {/* sayfa menüsü — Ana Sayfa dock'u ile aynı (kayan glider + aktif seçim) */}
-        <header className="page-menu">
-          <span className="pm-brand"><b>Calmie</b><i>.</i></span>
-          <nav className="pm-nav" aria-label="Sayfa menüsü" ref={menuRef} onMouseLeave={() => moveGlider(activeLink())}>
-            <span className="pm-glider" ref={gliderRef} aria-hidden="true" />
-            {DOCK.map((d) => (
-              <a key={d.target} href="#" className={d.active ? 'active' : ''} onMouseEnter={(e) => moveGlider(e.currentTarget)} onClick={(e) => { e.preventDefault(); if (!d.active) onNav?.(d.target); }}>{d.label}</a>
-            ))}
-          </nav>
-        </header>
-
-        {/* 3) ortada yüzen modal kart */}
-        <div className="modal-wrap">
-          <div className="shell" role="dialog" aria-modal="true" aria-label="Anamnez">
-
-            <div className="topbar">
-              <div className="tb-left">
-                <button className="back" type="button" onClick={() => onBack?.()}><span className="chev">‹</span>Danışanlar</button>
-                <div className="tb-title"><span className="e">Anamnez · ilk değerlendirme</span><b>{clientName || '—'}{clientNo ? ` · ${clientNo}` : ''}</b></div>
-              </div>
-              <div className="tb-right">
-                {reqErr && <span className="save-err" role="alert">⚠ Zorunlu: {reqErr}</span>}
-                <button className="tb-act ai" type="button" onClick={() => onAiFill?.()}><svg viewBox="0 0 24 24"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8" /></svg><span>AI ile doldur</span></button>
-                <button className="tb-act" type="button" disabled={!hasPreForm} onClick={() => onImportPreForm?.()}><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5" /><path d="M5 21h14" /></svg><span>Ön-form içe aktar</span></button>
-                <button className={`tb-save${saved ? ' done' : ''}`} type="button" onClick={doSave}>
-                  {saved
-                    ? <><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M20 6 9 17l-5-5" /></svg>Kaydedildi</>
-                    : <><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><path d="M17 21v-8H7v8M7 3v5h8" /></svg>Kaydet</>}
-                </button>
+      {/* TOPBAR */}
+      <section className="topbar">
+        <div className="wrap">
+          <div className="crumb">
+            <a onClick={() => onBack?.()}>Danışanlar</a>
+            <svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" /></svg>
+            <a onClick={() => onBack?.()}>Dosya</a>
+            <svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" /></svg>
+            <b>Anamnez</b>
+          </div>
+          <div className="top-row">
+            <div className="top-id">
+              <div className="top-av">{initials}</div>
+              <div className="top-meta">
+                <div className="top-eye">İlk değerlendirme · Anamnez</div>
+                <h1 className="top-name">{name}<span>{clientNo || ''}</span></h1>
+                <div className="top-sub">Tüm bölümleri doldur — bittiğinde Sorun Döngüleri&apos;ne geç.</div>
               </div>
             </div>
-
-            <div className="layout">
-              <aside className="navcol">
-                <div className="prog">
-                  <div className="pt"><span className="e">Tamamlanma</span><span className="pc num">{pct}%</span></div>
-                  <div className="track"><span className="fill" style={{ width: `${pct}%` }} /></div>
+            <div className="top-right">
+              <div className="compl">
+                <div className="compl-ring">
+                  <svg width="74" height="74" viewBox="0 0 74 74">
+                    <circle cx="37" cy="37" r="31" fill="none" stroke="rgba(35,34,42,.10)" strokeWidth="7" />
+                    <circle cx="37" cy="37" r="31" fill="none" stroke="url(#anxcg)" strokeWidth="7" strokeLinecap="round"
+                      strokeDasharray={C.toFixed(1)} strokeDashoffset={(C * (1 - doneCount / SCHEMA.length)).toFixed(1)} style={{ transition: 'stroke-dashoffset .5s' }} />
+                    <defs><linearGradient id="anxcg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="var(--viz-a)" /><stop offset="1" stopColor="var(--viz-b)" /></linearGradient></defs>
+                  </svg>
+                  <div className="pct">{pct}%</div>
                 </div>
-                <nav className="navlist">
-                  {SECTIONS.map((s, si) => (
-                    <a key={s.id} className={`navitem${s.risk ? ' risk' : ''}${active === s.id ? ' active' : ''}`} href={`#sec-${s.id}`} onClick={(e) => { e.preventDefault(); scrollTo(s.id); }}>
-                      <span className="no">{String(si + 1).padStart(2, '0')}</span>
-                      <span className="nm">{s.t}</span>
-                      <span className={`st ${secState[s.id]}`} />
-                    </a>
-                  ))}
-                </nav>
-
-                {onOpenDongu && (
-                  <>
-                    <div className="navsep"><span className="navsep-l">Formülasyon</span></div>
-                    <nav className="navlist">
-                      <a className="navitem go" href="#dongu" onClick={(e) => { e.preventDefault(); onOpenDongu(); }}>
-                        <span className="no">↗</span>
-                        <span className="nm">Sorun Döngüleri</span>
-                        <span className="go-arrow" aria-hidden>→</span>
-                      </a>
-                    </nav>
-                  </>
-                )}
-              </aside>
-
-              <div className="formcol" ref={formColRef}>
-                <div className="form-inner">
-                  <div className="banner">
-                    <span className="ic"><svg viewBox="0 0 24 24"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8" /></svg></span>
-                    <span className="bt"><b>AI ile hızlı doldur.</b> Serbest intake metnini yapıştır; AI alanları çıkarsın, sen <a href="#" onClick={(e) => { e.preventDefault(); onAiFill?.(); }}>incele &amp; onayla</a>. Yalnız onayladığın alanlar forma yazılır — uydurma yok.</span>
-                  </div>
-                  <form onSubmit={(e) => e.preventDefault()}>
-                    {SECTIONS.map((s, si) => (
-                      <section key={s.id} className={`fsec${s.risk ? ' risk' : ''}`} id={`sec-${s.id}`} data-sid={s.id} ref={(el) => { secRefs.current[s.id] = el; }}>
-                        <div className="fsec-head"><span className="no">{String(si + 1).padStart(2, '0')}</span><h2>{s.t}</h2>{s.risk && <span className="risk-flag">risk</span>}</div>
-                        {s.info && <p className="fsec-info">{s.info}</p>}
-                        {s.fields.map((f, fi) => {
-                          const reqMiss = !!reqErr && !!f.required && isFieldEmpty(f);
-                          const cls = `field${f.half ? ' half' : ''}${reqMiss ? ' req-miss' : ''}`;
-                          return f.type === 'scale' || f.type === 'scaleimport'
-                            ? <div className={cls} key={fi}>{renderControl(f, si, fi)}</div>
-                            : <div className={cls} key={fi}><label htmlFor={`f-${si}-${fi}`}>{f.label}{f.required && <span className="req-badge">zorunlu</span>}</label>{renderControl(f, si, fi)}</div>;
-                        })}
-                      </section>
-                    ))}
-                  </form>
+                <div className="compl-txt">
+                  <b>{doneCount}/{SCHEMA.length} bölüm</b>
+                  <span className={'compl-save' + (saving ? ' saving' : '')}><span className="dot" />{saving ? 'Kaydediliyor…' : savedAt ? `Kaydedildi · ${savedAt}` : 'Kaydedildi'}</span>
                 </div>
               </div>
+              <div className="top-actions">
+                <button className="btn btn-ghost" type="button" onClick={() => onAiFill?.()}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v3M12 18v3M5 12H2M22 12h-3M6 6l-2-2M20 20l-2-2M18 6l2-2M4 20l2-2" /><circle cx="12" cy="12" r="4" /></svg>AI ile doldur</button>
+                <button className="btn btn-ghost" type="button" onClick={() => onImportPreForm?.()}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12M8 11l4 4 4-4M4 19h16" /></svg>Ön-form içe aktar</button>
+                <button className="btn btn-primary" type="button" onClick={() => onSave?.()}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7" /></svg>Kaydet</button>
+              </div>
             </div>
-
           </div>
         </div>
+        <div className="gatebar">
+          <div className={'gate' + (missing.length ? ' show' : '')}>
+            <svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" /></svg>
+            <span><b>Zorunlu:</b> {missing.map((r) => r.f.l).join(', ')} alanı boş.</span>
+            <button type="button" onClick={() => missing[0] && goTo(missing[0].sec.id)}>Alana git</button>
+          </div>
+        </div>
+      </section>
+
+      {/* ANA */}
+      <section className="ana">
+        <div className="wrap">
+          <aside className="srail" aria-label="Bölümler">
+            <div className="srail-h">Bölümler</div>
+            {SCHEMA.map((s) => {
+              const st = secStatus(s);
+              return (
+                <div key={s.id} className={'sr-item' + (s.danger ? ' danger' : '') + (active === s.id ? ' active' : '')} onClick={() => goTo(s.id)}>
+                  <span className="sr-no">{s.no}</span>
+                  <span className={'sr-dot' + (st ? ' ' + st : '')} />
+                  <span className="sr-lab">{s.title}</span>
+                </div>
+              );
+            })}
+          </aside>
+          <div className="secstack">
+            {SCHEMA.map((s) => (
+              <section key={s.id} className={'acard' + (s.danger ? ' danger' : '')} id={'anx-sec-' + s.id}>
+                <div className="ac-head">
+                  <span className="ac-no">{s.no}</span>
+                  <h2 className="ac-title">{s.title}</h2>
+                  {s.danger
+                    ? <span className="ac-danger-note"><svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" /></svg>Güvenlik bölümü</span>
+                    : <span className="ac-eye">{s.eye}</span>}
+                </div>
+                {s.special === 'olcek' ? renderOlcek() : <div className="fgrid">{s.fields!.map(renderField)}</div>}
+              </section>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* END CTA */}
+      <section className="endcta">
+        <div className="wrap">
+          <div className="endcta-l">
+            <div className="endcta-eye">Sonraki adım</div>
+            <h2 className="endcta-t">Anamnez tamam — <span className="ser">Sorun Döngüleri</span>&apos;ne geç.</h2>
+            <p className="endcta-p">Topladığın bilgiyi formülasyona dönüştür; danışanın döngülerini birlikte haritalandırın.</p>
+          </div>
+          <button className="btn btn-primary" type="button" onClick={() => onOpenDongu?.()}>Sorun Döngüleri<svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" /></svg></button>
+        </div>
+      </section>
+
+      {/* FOOTER */}
+      <div className="footwrap">
+        <footer>
+          <div className="foot-grid">
+            <div className="foot-brand">
+              <span className="logo" style={{ fontSize: 21, fontWeight: 600, color: '#fff' }}>Calmie<i style={{ fontStyle: 'italic', color: 'var(--txt-accent)' }}>.</i></span>
+              <p>Sadece işini yapmak isteyenler için klinik asistan.</p>
+            </div>
+            <div className="foot-col">
+              <h4>Panel</h4>
+              <a onClick={() => onNav?.('home')}>Ana Sayfa</a>
+              <a onClick={() => onNav?.('calendar')}>Takvim &amp; Randevular</a>
+              <a onClick={() => onBack?.()}>Danışanlar</a>
+            </div>
+            <div className="foot-col">
+              <h4>Dosya</h4>
+              <a onClick={() => goTo('demografik')}>Anamnez</a>
+              <a onClick={() => onOpenDongu?.()}>Sorun Döngüleri</a>
+              <a onClick={() => onNav?.('terapist')}>Profil</a>
+            </div>
+          </div>
+          <div className="foot-bottom"><small>© 2026 Calmie</small><div className="foot-legal"><a>{name}{clientNo ? ` · ${clientNo}` : ''}</a></div></div>
+        </footer>
       </div>
-    </>
+
+      {/* DOCK */}
+      <div className="dock" aria-label="Renk teması">
+        {THEMES.map(([t, c]) => <button key={t} type="button" className={'dock-dot' + (theme === t ? ' on' : '')} style={{ background: c }} title={t} aria-label={`${t} tema`} onClick={() => applyTheme(t)} />)}
+      </div>
+
+      {/* datalists (suggest) */}
+      {['meslek', 'sehir', 'ilce'].map((k) => (
+        <datalist key={k} id={`anx-dl-${k}`}>{loadSugg(k).map((o) => <option key={o} value={o} />)}</datalist>
+      ))}
+    </div>
   );
 }

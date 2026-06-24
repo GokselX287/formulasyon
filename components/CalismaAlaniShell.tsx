@@ -36,7 +36,7 @@ export type CalismaAlaniShellProps = {
 };
 
 export default function CalismaAlaniShell({ eyebrow, title, lead, backLabel = 'Çalışma Alanı', wide, onBack, onNav, children, plain }: CalismaAlaniShellProps) {
-  const [theme] = useState<string>(() => lsGet('calmie_home_bgtheme') || 'default');
+  const [theme] = useState<string>(() => lsGet('calmie-theme') || 'sage');
   const [bgPhoto] = useState<string | null>(() => lsGet('siyi_home_bg_v1'));
 
   // ── menü glider (Ana Sayfa ile aynı) ──
@@ -61,7 +61,7 @@ export default function CalismaAlaniShell({ eyebrow, title, lead, backLabel = '�
   }, []);
 
   return (
-    <div className={`cas cchrome${plain ? ' cas-plain' : ''}`} data-bg={plain || theme === 'default' ? undefined : theme}>
+    <div className="cas cchrome" data-theme={theme}>
       {/* tema mesh/foto zemin — paylaşımlı */}
       <div className="app-bg" aria-hidden="true">
         <span className="hb-mesh" />

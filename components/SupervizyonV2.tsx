@@ -30,6 +30,8 @@ const todayISO = () => new Date().toISOString().slice(0, 10);
 export default function SupervizyonV2(props: SupervizyonV2Props) {
   const { onBack, onNav } = props;
   const router = useRouter();
+  const [theme, setTheme] = useState('sage');
+  useEffect(() => { try { setTheme(localStorage.getItem('calmie-theme') || 'sage'); } catch {} }, []);
   const [pane, setPane] = useState<'liste' | 'form'>('liste');
   const [recs, setRecs] = useState<Rec[]>([]);
   const [saved, setSaved] = useState(false);
@@ -59,7 +61,9 @@ export default function SupervizyonV2(props: SupervizyonV2Props) {
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
       <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,300;1,400;1,500;1,600&display=swap" rel="stylesheet" />
 
-      <div className="sp2" data-pane={pane}>
+      <div className="sp2" data-pane={pane} data-theme={theme}>
+        <div className="scene" aria-hidden="true" />
+        <div className="grain" aria-hidden="true" />
         <div className="shell">
 
           <div className="topbar">

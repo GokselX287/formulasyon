@@ -358,28 +358,45 @@ export default function AnaSayfaLanding({ data, onOpenFile, onNav, onOpenProfile
               </div>
               <div className="grid-2 reveal">
                 <div className="panel">
-                  <div className="panel-eye"><span className="eyebrow">Bugünün seansları</span><span className="eyebrow">{sorted.length} seans</span></div>
-                  <div className="tl">
-                    {sorted.length === 0 && <div className="tl-empty">Bugün planlı seans yok.</div>}
-                    {sorted.map((s, i) => {
-                      const cls = s.status === 'next' ? ' next' : s.status === 'past' ? ' past' : '';
-                      return (
-                        <div key={i} className={'tl-row' + cls} role="button" tabIndex={0} onClick={() => openFile(s)}
-                          onKeyDown={(e) => { if (e.key === 'Enter') openFile(s); }}>
-                          <span className="tl-time">{s.time}</span>
-                          <span className="tl-mid">
-                            <span className="tl-name">{s.who}{s.status === 'next' && <span className="tl-badge">Sıradaki</span>}</span>
-                            <span className="tl-topic">{s.topic}</span>
-                          </span>
-                          <span className="tl-end">
-                            {s.status === 'past'
-                              ? <span className="tl-check"><Check /></span>
-                              : <><span className="tl-mod">{s.mod[0] || ''}</span><span className="tl-arr"><Arrow /></span></>}
-                          </span>
+                  <div className="panel-eye"><span className="eyebrow">Seansa hazırlık</span><span className="eyebrow">{sorted.length} seans</span></div>
+                  {sorted.length === 0 ? (
+                    <div className="tl-empty">Bugün planlı seans yok.</div>
+                  ) : (() => {
+                    const nx = sorted.find((s) => s.status === 'next') || sorted.find((s) => s.status !== 'past') || sorted[0];
+                    const others = sorted.filter((s) => s !== nx);
+                    return (
+                      <>
+                        <div className="prep-next" role="button" tabIndex={0} onClick={() => openFile(nx)}
+                          onKeyDown={(e) => { if (e.key === 'Enter') openFile(nx); }}>
+                          <span className="card-tint" />
+                          <div className="prep-z">
+                            <div className="prep-top">
+                              <span className="prep-badge"><span className="dot" />{nx.status === 'next' ? 'Sıradaki' : nx.status === 'past' ? 'Son seans' : 'Bugün'}</span>
+                              <span className="prep-when">{nx.time}</span>
+                            </div>
+                            <h3 className="prep-name">{nx.who}</h3>
+                            <p className="prep-topic">{nx.topic || 'Konu girilmemiş.'}</p>
+                            <span className="prep-go">Hazırlığa geç <Arrow /></span>
+                          </div>
                         </div>
-                      );
-                    })}
-                  </div>
+                        {others.length > 0 && (
+                          <div className="prep-others">
+                            <span className="eyebrow">bugünün diğer seansları</span>
+                            <div className="tl">
+                              {others.map((s, i) => (
+                                <div key={i} className={'tl-row' + (s.status === 'past' ? ' past' : '')} role="button" tabIndex={0}
+                                  onClick={() => openFile(s)} onKeyDown={(e) => { if (e.key === 'Enter') openFile(s); }}>
+                                  <span className="tl-time">{s.time}</span>
+                                  <span className="tl-mid"><span className="tl-name">{s.who}</span><span className="tl-topic">{s.topic}</span></span>
+                                  <span className="tl-end">{s.status === 'past' ? <span className="tl-check"><Check /></span> : <span className="tl-arr"><Arrow /></span>}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
                 <article className="panel mood">
                   <span className="card-tint" />

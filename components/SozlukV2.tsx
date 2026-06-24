@@ -29,6 +29,8 @@ const DOCK = [
 
 export default function SozlukV2(props: SozlukV2Props) {
   const { onBack, onNav } = props;
+  const [theme, setTheme] = useState('sage');
+  useEffect(() => { try { setTheme(localStorage.getItem('calmie-theme') || 'sage'); } catch { /* yoksay */ } }, []);
   const [layout, setLayout] = useState<'kart' | 'liste'>('kart');
   const [cat, setCat] = useState('');
   const [query, setQuery] = useState('');
@@ -50,7 +52,9 @@ export default function SozlukV2(props: SozlukV2Props) {
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
       <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,300;1,400;1,500;1,600&display=swap" rel="stylesheet" />
 
-      <div className="sz2" data-layout={layout}>
+      <div className="sz2" data-layout={layout} data-theme={theme}>
+        <div className="scene" aria-hidden="true" />
+        <div className="grain" aria-hidden="true" />
         <div className="shell">
 
           <div className="topbar">
