@@ -463,3 +463,20 @@ export function getAllSettings(): Record<string, string> {
   const rows = getDb().prepare('SELECT key, value FROM app_settings').all() as { key: string; value: string }[];
   return Object.fromEntries(rows.map(r => [r.key, r.value]));
 }
+
+// ─── Kullanıcıya özel ayarlar (user_settings, owner_id ile kapsamlı) ──────────
+// Terapist profili + Netgsm/Gmail kimlikleri + todayIntent burada tutulur;
+// her terapist yalnızca kendi ayarlarını görür/yazar (çok-kiracılı izolasyon).
+export function getOwnerSetting(ownerId: string, key: string): string | null {
+  const row = getDb().prepare('SELECT value FROM user_settings WHERE owner_id = ? AND key = ?').get(ownerId, key) as { value: string } | undefined;
+  return row?.value ?? null;
+}
+
+export function setOwnerSetting(ownerId: string, key: string, value: string): void {
+  getDb().prepare('INSERT OR REPLACE INTO user_settings (owner_id, key, value) VALUES (?, ?, ?)').run(ownerId, key, value);
+}
+
+export function getOwnerSettings(ownerId: string): Record<string, string> {
+  const rows = getDb().prepare('SELECT key, value FROM user_settings WHERE owner_id = ?').all(ownerId) as { key: string; value: string }[];
+  return Object.fromEntries(rows.map(r => [r.key, r.value]));
+}

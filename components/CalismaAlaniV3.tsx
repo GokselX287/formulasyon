@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import './CalismaAlaniV3.css';
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -73,6 +74,10 @@ const TITLES: Record<RoomKey, string> = {
 };
 const DARK: Partial<Record<RoomKey, boolean>> = { muhasebe: true, ortak: true };
 
+// Henüz yarım/gelişim aşamasındaki modüller — hub'da tek "Gelişim aşamasındakiler" kartında toplanır
+const GELISIM_KEYS: RoomKey[] = ['act', 'yolharitasi', 'supervizyon', 'websitesi', 'pratik', 'antrenor', 'ortak'];
+const WIP_ICON = '<path d="M12 3 3 8l9 5 9-5-9-5z"/><path d="M3 13l9 5 9-5M3 18l9 5 9-5"/>';
+
 // danışan adından türeyen 6 stabil pastel ton (mor+pembe)
 const AV_TONES = [
   { bg: '#F4D2DD', ink: '#8A3D5C' }, { bg: '#E9D6EC', ink: '#6E4878' }, { bg: '#F0DCEA', ink: '#84456E' },
@@ -97,6 +102,7 @@ export default function CalismaAlaniV3(props: CalismaAlaniV3Props) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [mobileMenu, setMobileMenu] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [gelisimOpen, setGelisimOpen] = useState(false);
   const showToast = (m: string) => { setToast(m); window.clearTimeout((showToast as any)._t); (showToast as any)._t = window.setTimeout(() => setToast(null), 2400); };
 
   // ── nav glider (hover'da imlecin altına kayan beyaz pill, mouseleave'de aktife döner) ──
@@ -254,15 +260,15 @@ export default function CalismaAlaniV3(props: CalismaAlaniV3Props) {
                 <RoomCard k="tasarimlar" delay={220} />
                 <RoomCard k="kutuphane" delay={275} />
                 <RoomCard k="muhasebe" delay={330} />
-                <RoomCard k="ortak" delay={385} />
-                <RoomCard k="yolharitasi" delay={440} />
-                <RoomCard k="act" delay={495} />
-                <RoomCard k="sms" delay={550} />
-                <RoomCard k="supervizyon" delay={605} />
-                <RoomCard k="websitesi" delay={660} />
-                <RoomCard k="gelisim" delay={715} />
-                <RoomCard k="pratik" delay={770} />
-                <RoomCard k="antrenor" delay={825} />
+                <RoomCard k="sms" delay={385} />
+                <RoomCard k="gelisim" delay={440} />
+                {/* Yarım/gelişim aşamasındaki 7 modül tek kartta toplandı */}
+                <a className="room reveal" href="#" data-screen-label="Gelişim aşamasındakiler" style={{ animationDelay: '495ms' }}
+                  onClick={(e) => { e.preventDefault(); setGelisimOpen(true); }}>
+                  <div className="room-head"><span className="room-ic"><svg viewBox="0 0 24 24" dangerouslySetInnerHTML={{ __html: WIP_ICON }} /></span><span className="room-more" aria-hidden="true">⋯</span></div>
+                  <div className="room-body"><div className="room-title">Gelişim aşamasındakiler</div><div className="room-sub">Yapım aşamasındaki modüller</div></div>
+                  <div className="room-foot"><span className="room-tag">Yakında</span><span className="room-count num">{GELISIM_KEYS.length}</span></div>
+                </a>
               </div>
             </section>
 
@@ -271,7 +277,7 @@ export default function CalismaAlaniV3(props: CalismaAlaniV3Props) {
               <div className="dual">
                 {/* §02 Konumlar */}
                 <div className="dual-col">
-                  <div className="hub-head"><div className="l"><span className="eyebrow" data-no="02">Konumlar</span><h2 className="hub-title">Danışanlar <em>nerede</em>?</h2></div></div>
+                  <div className="hub-head"><div className="l"><span className="eyebrow" data-no="02">Konumlar</span><h2 className="hub-title">Danışanların <em>nereden</em> geliyor?</h2></div></div>
                   {cities === null ? (
                     <div className="geo-list reveal"><div className="geo-empty">Konum verisi yükleniyor…</div></div>
                   ) : cities.length === 0 ? (
@@ -291,7 +297,7 @@ export default function CalismaAlaniV3(props: CalismaAlaniV3Props) {
                 </div>
                 {/* §03 Kaynak */}
                 <div className="dual-col" id="ca-kaynak">
-                  <div className="hub-head"><div className="l"><span className="eyebrow" data-no="03">Kaynak</span><h2 className="hub-title">Danışan <em>nereden</em> geldi?</h2></div></div>
+                  <div className="hub-head"><div className="l"><span className="eyebrow" data-no="03">Kaynak</span><h2 className="hub-title">Danışanların seni <em>nasıl</em> buluyor?</h2></div></div>
                   {channels === null ? (
                     <div className="acq-wrap reveal" style={{ display: 'block' }}><div className="geo-empty">Kaynak verisi yükleniyor…</div></div>
                   ) : channels.length === 0 ? (
@@ -356,6 +362,34 @@ export default function CalismaAlaniV3(props: CalismaAlaniV3Props) {
             </a>
           ))}
         </nav>
+
+        {/* Gelişim aşamasındakiler — overlay'i body'ye portal et (sekme animasyonunun transform'lu sarmalayıcısı fixed'i kırıyor) */}
+        {gelisimOpen && typeof document !== 'undefined' && createPortal(
+          <div className="cav3 cav3-portal">
+            <div className="gov" onClick={(e) => { if (e.target === e.currentTarget) setGelisimOpen(false); }}>
+              <div className="gpanel">
+                <div className="gpanel-h">
+                  <div>
+                    <span className="eyebrow">Gelişim aşamasındakiler</span>
+                    <h3>Yapım aşamasındaki modüller</h3>
+                    <p>Bu araçlar henüz geliştiriliyor; hazır oldukça hub&apos;a ayrı kart olarak taşınacak.</p>
+                  </div>
+                  <button className="gx" type="button" aria-label="Kapat" onClick={() => setGelisimOpen(false)}>×</button>
+                </div>
+                <div className="grooms">
+                  {GELISIM_KEYS.map((k) => (
+                    <a key={k} className="room" href="#" data-screen-label={TITLES[k]}
+                      onClick={(e) => { e.preventDefault(); setGelisimOpen(false); roomClick[k]?.(); }}>
+                      <div className="room-head"><span className="room-ic"><svg viewBox="0 0 24 24" dangerouslySetInnerHTML={{ __html: ICONS[k] }} /></span></div>
+                      <div className="room-body"><div className="room-title">{TITLES[k]}</div><div className="room-sub">{SUBS[k]}</div></div>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
 
         {/* ───────── TOAST ───────── */}
         <div className="toast-wrap">

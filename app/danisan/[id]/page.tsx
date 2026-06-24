@@ -345,6 +345,10 @@ export default function DanisanDosyasiAcilis({ params }: { params: Promise<{ id:
             <button type="button" aria-pressed={!danisan} onClick={() => setMode('terapist')}>Terapist</button>
             <button type="button" aria-pressed={danisan} onClick={() => setMode('danisan')}>Danışan</button>
           </div>
+          <button className="dfx-print" type="button" onClick={() => window.print()} aria-label="Yazdır / PDF" title="Yazdır / PDF olarak kaydet">
+            <svg viewBox="0 0 24 24"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z" /></svg>
+            <span>Yazdır</span>
+          </button>
         </header>
 
         {/* ── scrollable body ── */}

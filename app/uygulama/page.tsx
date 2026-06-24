@@ -43,7 +43,6 @@ import FormulasyonV2 from "@/components/FormulasyonV2";
 import OrtakCalisma from "@/components/OrtakCalisma";
 import ACTGelistirmeV2 from "@/components/ACTGelistirmeV2";
 import AnaSayfaLanding from "@/components/AnaSayfaLanding";
-import AyarlarPanel from "@/components/AyarlarPanel";
 import BuHaftaPanel from "@/components/BuHaftaPanel";
 import CalismaAlaniShell from "@/components/CalismaAlaniShell";
 import WebSitesiPanel from "@/components/WebSitesiPanel";
@@ -141,6 +140,7 @@ type Settings_ = {
   gmailImapHost: string;
   gmailImapPort: number;
   todayIntent?: string;
+  therapistTrainings?: string; // JSON: {ti,by,yr}[] — eğitim geçmişine eklenen özel eğitimler
 };
 
 type State = {
@@ -192,6 +192,7 @@ const defaultSettings: Settings_ = {
   gmailImapHost: 'imap.gmail.com',
   gmailImapPort: 993,
   todayIntent: '',
+  therapistTrainings: '[]',
 };
 
 const defaultState: State = {
@@ -3328,16 +3329,6 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [ready, setReady] = useState(true);
   const [tab, setTab] = useState<Tab>("home");
-  // Ayarlar'a hangi sekmeden gelindi? Geri butonu oraya döner (Profil→Hesap akışı dahil).
-  const [ayarlarBack, setAyarlarBack] = useState<Tab>("home");
-  const lastTabRef = useRef<Tab>("home");
-  useEffect(() => {
-    if (tab !== lastTabRef.current) {
-      if (tab === "ayarlar") setAyarlarBack(lastTabRef.current);
-      lastTabRef.current = tab;
-    }
-  }, [tab]);
-  const ayarlarBackLabel = ayarlarBack === "terapist" ? "Profil" : ayarlarBack === "calisma-alani" ? "Çalışma Alanı" : "Ana Sayfa";
   const [activePatientId, setActivePatientId] = useState<string | null>(null);
 
   // Bugün incelenmiş seans dosyaları (havuz işaretleri) — günlük, localStorage
@@ -4453,7 +4444,7 @@ export default function HomePage() {
             <TerapistProfilV2
               key={profileKey}
               onBack={() => setTab('home')}
-              onNav={(target) => setTab(target as Tab)}
+              onNav={(t) => { if (t === 'calisma-alani') { setCalismaSubTab('hub'); setTab('calisma-alani'); } else if (t === 'calendar') goToTakvim(); else setTab(t as Tab); }}
               onEditProfile={() => setEditProfileOpen(true)}
               onShareConsent={() => { window.location.href = 'https://www.elegantpsikoloji.com/onam-onizleme'; }}
               onShowQr={() => { window.location.href = 'https://www.elegantpsikoloji.com/onam-onizleme'; }}
@@ -4473,17 +4464,21 @@ export default function HomePage() {
               }}
             />
           )}
+          {/* "Ayarlar" artık ayrı ekran değil → Terapist Profil'in "Hesap & Ayarlar" kutucuğu açık gelir. */}
           {tab === "ayarlar" && (
-            <AyarlarPanel
+            <TerapistProfilV2
+              key={'ayarlar-' + profileKey}
+              initialTile="hesap"
+              onBack={() => setTab('home')}
+              onNav={(t) => { if (t === 'calisma-alani') { setCalismaSubTab('hub'); setTab('calisma-alani'); } else if (t === 'calendar') goToTakvim(); else setTab(t as Tab); }}
+              onEditProfile={() => { setTab('terapist'); setEditProfileOpen(true); }}
+              onShareConsent={() => { window.location.href = 'https://www.elegantpsikoloji.com/onam-onizleme'; }}
+              onShowQr={() => { window.location.href = 'https://www.elegantpsikoloji.com/onam-onizleme'; }}
               settings={state.settings}
               onUpdateSetting={async (patch) => {
                 dispatch({ type: 'SETTINGS', patch });
                 await fetch('/api/settings', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch) }).catch(() => {});
               }}
-              onBack={() => { if (ayarlarBack === 'calisma-alani') { setCalismaSubTab('hub'); setTab('calisma-alani'); } else setTab(ayarlarBack); }}
-              backLabel={ayarlarBackLabel}
-              onNav={(t) => { if (t === 'calisma-alani') { setCalismaSubTab('hub'); setTab('calisma-alani'); } else setTab(t as Tab); }}
-              onOpenProfile={() => { setTab('terapist'); setEditProfileOpen(true); }}
               onExportData={() => {
                 const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
                 const url = URL.createObjectURL(blob);

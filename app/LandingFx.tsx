@@ -15,6 +15,12 @@ export default function LandingFx() {
   useEffect(() => {
     const cleanups: Array<() => void> = [];
 
+    // JS çalışıyor → reveal animasyonunu etkinleştir. (CSS'te gizleme .fx-on'a bağlı;
+    // bu sınıf eklenmezse içerik baştan görünür kalır → landing asla boş kalmaz.)
+    const root = document.documentElement;
+    root.classList.add('fx-on');
+    cleanups.push(() => root.classList.remove('fx-on'));
+
     // ---- mobil menü ----
     const mb = document.getElementById('menuBtn');
     const mm = document.getElementById('mobileMenu');

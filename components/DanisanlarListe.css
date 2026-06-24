@@ -199,8 +199,9 @@
 /* stat tiles (liquid-glass) */
 .dlst .stats{display:flex;gap:14px;flex:none}
 .dlst .stat{position:relative;overflow:hidden;isolation:isolate;border-radius:var(--r-card);padding:20px 24px 18px;
-  min-width:142px;display:flex;flex-direction:column;justify-content:space-between;min-height:138px;
-  border:1px solid transparent;box-shadow:var(--sh-card)}
+  min-width:142px;display:flex;flex-direction:column;justify-content:space-between;min-height:128px;
+  border:1px solid transparent;box-shadow:var(--sh-card);
+  background:var(--opal-face);-webkit-backdrop-filter:blur(var(--glass-blur)) saturate(1.6);backdrop-filter:blur(var(--glass-blur)) saturate(1.6)}
 .dlst .stat::after{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;z-index:3;
   background:var(--opal-rim);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
   -webkit-mask-composite:xor;mask-composite:exclude;opacity:.6}
@@ -208,46 +209,13 @@
 .dlst .stat-num{font-size:42px;font-weight:600;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}
 .dlst .stat-lab{font-family:var(--font-mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;margin-top:14px}
 .dlst .stat-sub{font-size:12px;margin-top:3px;font-weight:500}
-.dlst .stat.active{
-  box-shadow:inset 0 2px 1px rgba(255,255,255,.85), inset 0 -3px 6px rgba(40,70,95,.4), inset 2px 0 4px rgba(255,255,255,.3), 0 8px 22px rgba(60,90,120,.22);
-  background:
-    radial-gradient(120% 80% at 22% 8%, rgba(255,255,255,.78), transparent 56%),
-    radial-gradient(100% 90% at 88% 14%, rgba(150,190,225,.85), transparent 60%),
-    linear-gradient(162deg,#A7C6E6 0%,#9FC0E0 44%,#C9DCEA 100%);
-  -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(1.1);backdrop-filter:blur(var(--glass-blur)) saturate(1.1)}
-.dlst .stat.active::before{content:"";position:absolute;inset:0;z-index:0;border-radius:inherit;pointer-events:none;
-  background:linear-gradient(134deg,rgba(255,255,255,.66) 0%,rgba(255,255,255,.12) 26%,transparent 50%);
-  mix-blend-mode:screen}
-.dlst .stat.active .stat-num{color:#0B0B0D;font-style:italic;font-weight:600}
-.dlst .stat.active .stat-lab{color:#0B0B0D;font-family:var(--font-display);font-style:italic;font-weight:600;
-  font-size:12px;letter-spacing:.04em;text-transform:uppercase}
-.dlst .stat.active .stat-sub{color:#15161A;font-style:italic;font-weight:600}
-.dlst .stat.risk{
-  box-shadow:inset 0 2px 1px rgba(255,255,255,.55), inset 0 -3px 6px rgba(120,20,14,.5), inset 2px 0 4px rgba(255,255,255,.2), 0 8px 22px rgba(150,40,30,.24);
-  background:
-    radial-gradient(120% 80% at 22% 8%, rgba(255,210,200,.6), transparent 56%),
-    radial-gradient(100% 90% at 88% 14%, rgba(225,55,42,.9), transparent 60%),
-    linear-gradient(162deg,#F4554A 0%,#E11E18 46%,#B5120E 100%);
-  -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(1.1);backdrop-filter:blur(var(--glass-blur)) saturate(1.1)}
-.dlst .stat.risk::before{content:"";position:absolute;inset:0;z-index:0;border-radius:inherit;pointer-events:none;
-  background:linear-gradient(134deg,rgba(255,255,255,.6) 0%,rgba(255,255,255,.1) 26%,transparent 50%);
-  mix-blend-mode:screen}
-.dlst .stat.risk .stat-num{color:#FFFFFF;font-style:italic;font-weight:600;text-shadow:0 1px 1px rgba(120,30,20,.45),0 0 6px rgba(255,255,255,.35)}
-.dlst .stat.risk .stat-lab{color:#FFFFFF;font-family:var(--font-display);font-style:italic;font-weight:600;
-  font-size:12px;letter-spacing:.04em;text-transform:uppercase;text-shadow:0 1px 1px rgba(120,30,20,.4)}
-.dlst .stat.risk .stat-sub{color:rgba(255,255,255,.92);font-style:italic;font-weight:600;text-shadow:0 1px 1px rgba(120,30,20,.35)}
-.dlst .stat.dark{
-  box-shadow:inset 0 2px 1px rgba(255,255,255,.18), inset 0 -3px 6px rgba(0,0,0,.55), inset 2px 0 4px rgba(255,255,255,.08), 0 8px 22px rgba(10,10,14,.28);
-  background:
-    radial-gradient(120% 80% at 22% 8%, rgba(120,124,140,.55), transparent 56%),
-    radial-gradient(100% 90% at 88% 14%, rgba(40,40,52,.9), transparent 60%),
-    linear-gradient(162deg,#34333E 0%,#1B1A22 46%,#0C0B11 100%)}
-.dlst .stat.dark::before{content:"";position:absolute;inset:0;z-index:0;border-radius:inherit;pointer-events:none;
-  background:linear-gradient(134deg,rgba(255,255,255,.28) 0%,rgba(255,255,255,.05) 26%,transparent 50%);
-  mix-blend-mode:screen}
-.dlst .stat.dark .stat-num{color:#F4F3EF;font-style:italic;font-weight:600}
-.dlst .stat.dark .stat-lab{color:#F4F3EF;font-family:var(--font-display);font-style:italic;font-weight:600;font-size:12px;letter-spacing:.04em;text-transform:uppercase}
-.dlst .stat.dark .stat-sub{color:rgba(244,243,239,.78);font-style:italic;font-weight:600}
+/* 3 stat kartı da opal-cam (uygulama diliyle birebir) — tür ayrımı yalnız küçük renkli nokta + risk sayısı tonu */
+.dlst .stat-lab{display:flex;align-items:center;gap:7px}
+.dlst .stat-lab::before{content:"";width:7px;height:7px;border-radius:50%;flex:none;background:var(--ink-faint)}
+.dlst .stat.active .stat-lab::before{background:var(--viz-a)}
+.dlst .stat.risk .stat-lab::before{background:#C85A46}
+.dlst .stat.risk .stat-num{color:#B0473C}
+.dlst .stat.dark .stat-lab::before{background:var(--violet)}
 
 /* ===================================================================
    TOOLBAR + FILTERS
@@ -304,7 +272,7 @@
 /* ===================================================================
    CLIENT CARD / ROW
    =================================================================== */
-.dlst .list{display:flex;flex-direction:column;gap:10px}
+.dlst .list{display:flex;flex-direction:column;gap:8px}
 .dlst .list.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
 
 .dlst .cli{position:relative;overflow:hidden;isolation:isolate;border-radius:var(--r-card);
@@ -319,10 +287,10 @@
 
 /* LIST layout */
 .dlst .list:not(.grid) .cli{display:grid;grid-template-columns:minmax(190px,1.4fr) auto 1fr auto auto;
-  align-items:center;gap:26px;padding:20px 24px}
+  align-items:center;gap:26px;padding:0 22px;height:86px}
 
 .dlst .cli-id{display:flex;flex-direction:column;gap:4px;min-width:0}
-.dlst .cli-name{font-size:18px;font-weight:600;letter-spacing:-.018em;color:var(--ink-strong);line-height:1.1;
+.dlst .cli-name{font-size:16px;font-weight:600;letter-spacing:-.018em;color:var(--ink-strong);line-height:1.1;
   display:flex;align-items:center;gap:10px}
 .dlst .cli-no{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.06em;color:var(--ink-mute);font-weight:600}
 .dlst .cli-tags{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:2px}
@@ -354,8 +322,8 @@
 .dlst .cli-status.risk{color:#A23B2E;background:rgba(204,90,70,.15)}
 .dlst .cli-status.risk i{background:#CC5A46}
 
-.dlst .cli-acts{display:flex;gap:8px;flex:none}
-.dlst .act{width:42px;height:42px;border-radius:var(--r-pill);display:grid;place-items:center;cursor:pointer;
+.dlst .cli-acts{display:flex;gap:8px;flex:none;align-items:center}
+.dlst .act{width:36px;height:36px;border-radius:var(--r-pill);display:grid;place-items:center;cursor:pointer;
   border:1px solid rgba(255,255,255,.7);background:rgba(255,255,255,.55);transition:.2s;
   box-shadow:inset 1px 1px 0 rgba(255,255,255,.6)}
 .dlst .act:hover{background:#fff;transform:translateY(-2px);box-shadow:var(--sh-soft)}

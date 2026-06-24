@@ -54,6 +54,8 @@ export async function GET(req: NextRequest) {
     authed: !!user,
     user: user ? toSafe(user) : null,
     providers: enabledProviders(),
+    // Geçici: AUTH_PASSWORDLESS=1 iken /giris e-posta-only çalışır (canlı test kolaylığı).
+    passwordless: process.env.AUTH_PASSWORDLESS === '1',
   });
 }
 
@@ -112,6 +114,29 @@ export async function POST(req: NextRequest) {
     recordLogin(user.id);
     const res = NextResponse.json({ ok: true, user: toSafe(user) });
     setSession(res, user, !!body.remember);
+    return res;
+  }
+
+  // ── ŞİFRESİZ GİRİŞ (GEÇİCİ — canlı test) — AUTH_PASSWORDLESS=1 ile etkin ──
+  // E-posta ile bul-ya-da-oluştur, şifre sorulmaz, oturum aç. Beta öncesi kapatılmalı.
+  if (action === 'passwordless') {
+    if (process.env.AUTH_PASSWORDLESS !== '1') {
+      return NextResponse.json({ ok: false, error: 'Şifresiz giriş kapalı.' }, { status: 403 });
+    }
+    const email = String(body.email ?? '').trim();
+    if (!isValidEmail(email)) return NextResponse.json({ ok: false, error: 'Geçerli bir e-posta gir.' }, { status: 400 });
+    let user = findUserByEmail(email);
+    if (!user) {
+      const name = String(body.name ?? '').trim() || email.split('@')[0];
+      try {
+        user = createAccount({ email, name, via: 'email', emailVerified: true });
+      } catch (e) {
+        return NextResponse.json({ ok: false, error: (e as Error).message || 'Hesap oluşturulamadı.' }, { status: 409 });
+      }
+    }
+    recordLogin(user.id);
+    const res = NextResponse.json({ ok: true, user: toSafe(user) });
+    setSession(res, user, body.remember !== false);
     return res;
   }
 

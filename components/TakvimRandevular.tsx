@@ -83,7 +83,7 @@ const DOCK_THEMES = [
   { id: 'clay', dot: '#D78C66' }, { id: 'rose', dot: '#C97FA0' },
 ];
 
-const HSTART = 9 * 60, HEND = 22 * 60, HPX = 60;
+const HSTART = 9 * 60, HEND = 22 * 60, HPX = 45;
 const DROP_FROM = 20 * 60; // 20:00 sonrası = iptal / erteleme alanı
 
 export default function TakvimRandevular(props: TakvimRandevularProps) {

@@ -999,6 +999,38 @@ export function getDb(): Database.Database {
       try { db.exec(`ALTER TABLE sms_log ADD COLUMN ip TEXT`); } catch {}
       db.pragma('user_version = 36');
     }
+
+    if (version < 37) {
+      // ── app_settings'in PER-USER kısmını izole et (v35'te bilerek ertelenen adım) ──
+      // Terapist profili + Netgsm/Gmail kimlikleri + todayIntent artık kullanıcıya özel,
+      // ayrı `user_settings (owner_id, key)` tablosunda. app_settings'te yalnız GERÇEKTEN
+      // global olanlar kalır (admin_pw_hash, admin_secret, tags_seeded, auth_*).
+      db.exec(`CREATE TABLE IF NOT EXISTS user_settings (
+        owner_id TEXT NOT NULL,
+        key      TEXT NOT NULL,
+        value    TEXT,
+        PRIMARY KEY (owner_id, key)
+      )`);
+      const PER_USER_KEYS = [
+        'therapistName', 'therapistTitle', 'therapistAbout', 'therapistLocation', 'therapistEmail',
+        'therapistPhone', 'therapistSchools', 'smsWebhookUrl', 'netgsmUser', 'netgsmPassword',
+        'netgsmHeader', 'smsAutoAppointmentReminder', 'smsAutoWorkshopSignup', 'smsDayOfReminder',
+        'noShowTracking', 'gmailUser', 'gmailAppPassword', 'gmailImapHost', 'gmailImapPort', 'todayIntent',
+      ];
+      // Mevcut (tek-kullanıcı dönemi) ayarları legacy sahibe taşı — v35 ile aynı sahip çözümü.
+      const owner = db.prepare(
+        `SELECT id FROM app_users ORDER BY (created_via = 'legacy') DESC, created_at ASC LIMIT 1`
+      ).get() as { id: string } | undefined;
+      if (owner?.id) {
+        const ins = db.prepare('INSERT OR IGNORE INTO user_settings (owner_id, key, value) VALUES (?, ?, ?)');
+        const sel = db.prepare('SELECT value FROM app_settings WHERE key = ?');
+        for (const k of PER_USER_KEYS) {
+          const row = sel.get(k) as { value: string } | undefined;
+          if (row && row.value != null && row.value !== '') ins.run(owner.id, k, row.value);
+        }
+      }
+      db.pragma('user_version = 37');
+    }
   }
   return db;
 }

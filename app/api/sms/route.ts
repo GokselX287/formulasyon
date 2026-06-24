@@ -1,4 +1,4 @@
-import { getAllSms, createSms, updateSms, getAllSettings } from '@/lib/queries';
+import { getAllSms, createSms, updateSms, getOwnerSettings } from '@/lib/queries';
 import { sendNetgsmSms } from '@/lib/netgsm';
 import { ownerOr401 } from '@/lib/tenant';
 import { NextRequest, NextResponse } from 'next/server';
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
   const ip = (request.headers.get('x-forwarded-for') || '').split(',')[0].trim()
     || request.headers.get('x-real-ip') || 'local';
   const id = createSms(data, uid, ip);
-  const settings = getAllSettings();
+  const settings = getOwnerSettings(uid);
 
   // 1) Netgsm doğrudan API (öncelikli). Bilgiler env veya yerel ayarlardan okunur.
   const usercode = process.env.NETGSM_USERCODE || settings['netgsmUser'] || '';

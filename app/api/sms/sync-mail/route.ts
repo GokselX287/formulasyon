@@ -11,7 +11,7 @@
  *   gmailImapPort    — Varsayılan: 993
  */
 
-import { getAllSettings, getAllSms, updateSms } from '@/lib/queries';
+import { getOwnerSettings, getAllSms, updateSms } from '@/lib/queries';
 import { ownerOr401 } from '@/lib/tenant';
 import { NextRequest, NextResponse } from 'next/server';
 import { ImapFlow } from 'imapflow';
@@ -61,7 +61,7 @@ function parseDeliveryReport(subject: string, text: string): {
 
 export async function GET(request: NextRequest) {
   const uid = ownerOr401(request); if (uid instanceof NextResponse) return uid;
-  const settings = getAllSettings();
+  const settings = getOwnerSettings(uid);
   const gmailUser = settings['gmailUser'] ?? '';
   const gmailAppPassword = settings['gmailAppPassword'] ?? '';
   const gmailImapHost = settings['gmailImapHost'] ?? 'imap.gmail.com';
