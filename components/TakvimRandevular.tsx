@@ -426,6 +426,7 @@ export default function TakvimRandevular(props: TakvimRandevularProps) {
         onPointerUp={(e) => evUp(a, e)}>
         <div className="ev-n">{a.name}</div>
         {h > 54 ? tag : null}
+        <div className="ev-t">{hhmm(a.start)} – {hhmm(a.end)}</div>
       </div>
     );
   };

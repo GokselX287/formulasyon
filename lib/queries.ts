@@ -1,4 +1,5 @@
 import { getDb } from './db';
+import { compileLongitudinal } from './anamnez';
 
 export interface Client {
   id: number;
@@ -38,6 +39,7 @@ export interface Formulation {
   ara_inanclar: string | null;
   basa_cikma: string | null;
   otomatik_dusunceler: string | null;
+  erken_yasam: string | null;
   duygu_bedensel: string | null;
   davranislar: string | null;
   smart_spesifik: string | null;
@@ -54,6 +56,7 @@ export interface Formulation {
   act_yaratici_caresizlik: string | null;
   benlik_algisi_json: string | null;
   danisan_hedefleri_json: string | null;
+  longitudinal_seeded: number | null;
   updated_at: string;
 }
 
@@ -234,6 +237,7 @@ export function updateFormulation(id: number, data: Partial<Formulation>, ownerI
     'presenting_problem', 'client_goal', 'therapist_goal', 'narrative', 'clinical_notes', 'rupture_notes',
     'predispozan', 'presipitan', 'perpetuan', 'protektif',
     'temel_inanclar', 'ara_inanclar', 'basa_cikma', 'otomatik_dusunceler',
+    'erken_yasam', 'longitudinal_seeded',
     'duygu_bedensel', 'davranislar', 'smart_spesifik', 'smart_olculebilir',
     'smart_zaman', 'ana_sikayetler', 'yonlendirme_nedeni',
     'act_kabul', 'act_defuzyon', 'act_simdi', 'act_baglam', 'act_degerler', 'act_eylem', 'act_yaratici_caresizlik',
@@ -261,6 +265,35 @@ export function updateFormulationByClient(clientId: number, data: Partial<Formul
   const f = getFormulationByClient(clientId, ownerId);
   if (!f) return;
   updateFormulation(f.id, data, ownerId);
+}
+
+// ─── Uzunlamasına formülasyon: tek seferlik tohumlama ────────────────────────
+// Anamnez sinyallerini BOŞ uzunlamasına yuvalara BİR KEZ yazar (compileAile ile
+// aynı "sinyali yakala → derle" felsefesi). longitudinal_seeded bayrağı dikilince
+// bir daha dokunmaz → "bir kez tohumla, sonra bağımsız" kararı. Anamnezde henüz
+// içerik yoksa bayrağı dikmez; anamnez doldurulunca tekrar dener. Dolu yuvaya
+// (terapist yazmış olabilir) asla dokunmaz. Panel okunmadan önce çağrılır.
+export function seedLongitudinalOnce(clientId: number, ownerId: string): void {
+  const f = getFormulationByClient(clientId, ownerId);
+  if (!f || (f.longitudinal_seeded ?? 0)) return;
+
+  const row = getDb()
+    .prepare('SELECT anamnez_json FROM clients WHERE id = ? AND owner_id = ?')
+    .get(clientId, ownerId) as { anamnez_json?: string | null } | undefined;
+  if (!row?.anamnez_json) return;
+
+  let anamnez: unknown;
+  try { anamnez = JSON.parse(row.anamnez_json); } catch { return; }
+
+  const seed = compileLongitudinal(anamnez);
+  if (!seed.erken_yasam && !seed.basa_cikma) return; // tohumlanacak içerik yok → bayrak dikme
+
+  const empty = (s: string | null) => !s || !s.trim();
+  const patch: Partial<Formulation> = { longitudinal_seeded: 1 };
+  if (seed.erken_yasam && empty(f.erken_yasam)) patch.erken_yasam = seed.erken_yasam;
+  if (seed.basa_cikma && empty(f.basa_cikma)) patch.basa_cikma = seed.basa_cikma;
+
+  updateFormulation(f.id, patch, ownerId);
 }
 
 // ─── Formulation Items ───────────────────────────────────────────────────────

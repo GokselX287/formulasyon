@@ -95,6 +95,47 @@ export function compileAile(aile: any): { rows: DerivedRow[]; hash: string } {
   return { rows, hash: aileSnapshotHash(a) };
 }
 
+// ──────────────────────────────────────────────────────────────────────────
+// Uzunlamasına (gelişimsel) formülasyon TOHUMU. compileAile ile AYNI felsefe:
+// anamnezin gelişim/aile/travma + bağlanma sinyallerinden uzunlamasına yuvaları
+// derler. Yalnızca anamnezin TEMİZ eşlendiği yuvalar doldurulur:
+//   • erken_yasam ← çocukluk/ergenlik/destek/yaşam olayları + aile satırları + travma
+//   • basa_cikma  ← bağlanma stili + ilişki örüntüleri
+// Çekirdek/ara inançlar terapist kurar (seans içinde evrilir) → BOŞ bırakılır.
+// Bu yalnız tek seferlik tohumdur; tohumlandıktan sonra formülasyon bağımsızdır.
+// Alan adları AnamnezV2 SCHEMA ile birebir (AnamnezData tipi değil — şema farklı).
+// ──────────────────────────────────────────────────────────────────────────
+export type LongitudinalSeed = { erken_yasam: string; basa_cikma: string };
+
+export function compileLongitudinal(anamnez: any): LongitudinalSeed {
+  const a = anamnez || {};
+  const gelisim = a.gelisim || {};
+  const iliskiler = a.iliskiler || {};
+  const travma = a.travma || {};
+
+  // Erken yaşantılar — gelişimsel anlatı + aile satırları + (varsa) travma
+  const aileRows = compileAile(a.aile).rows.map((r) => `${r.l}: ${r.v}`);
+  const erkenParts = [
+    dtx(gelisim.cocuklukTarif) && `Çocukluk: ${dtx(gelisim.cocuklukTarif)}`,
+    dtx(gelisim.ergenlikTarif) && `Ergenlik: ${dtx(gelisim.ergenlikTarif)}`,
+    dtx(gelisim.erkenDestek) && `O dönemki destek: ${dtx(gelisim.erkenDestek)}`,
+    dtx(gelisim.yasamOlaylari) && `Önemli yaşam olayları: ${dtx(gelisim.yasamOlaylari)}`,
+    ...aileRows,
+    dtx(travma.travmaNot) && `Travma: ${dtx(travma.travmaNot)}`,
+  ].filter(Boolean) as string[];
+
+  // Başa çıkma / örüntü — bağlanma stili + ilişki örüntüleri
+  const basaParts = [
+    dtx(iliskiler.baglanmaStili) && `Bağlanma stili: ${dtx(iliskiler.baglanmaStili)}`,
+    dtx(iliskiler.baglanma) && `İlişki örüntüleri: ${dtx(iliskiler.baglanma)}`,
+  ].filter(Boolean) as string[];
+
+  return {
+    erken_yasam: erkenParts.join('\n'),
+    basa_cikma: basaParts.join('\n'),
+  };
+}
+
 function phq9Class(s: number): string {
   if (s < 5) return 'Minimal';
   if (s < 10) return 'Hafif';

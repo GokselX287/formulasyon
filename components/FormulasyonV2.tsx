@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import './FormulasyonV2.css';
 import type { FourP, Hexaflex } from '@/lib/types';
 import DanisanSayfasiModal from './DanisanSayfasiModal';
+import type { LongitudinalOzet } from './DanisanOzetIcerik';
 import { DEFAULT_HEX_SCALE, type HexGroup } from '@/lib/hexaflexScale';
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -18,6 +19,7 @@ export type FormulasyonV2Props = {
   client?: { id?: string; name?: string; issue?: string };
   clientPhone?: string;
   fourP?: FourP;
+  longitudinal?: LongitudinalOzet;
   hexaflex?: Hexaflex;
   summary?: string;
   maturity?: number;
@@ -540,6 +542,7 @@ export default function FormulasyonV2(props: FormulasyonV2Props) {
         clientId={client?.id}
         clientPhone={clientPhone}
         fourP={props.fourP}
+        longitudinal={props.longitudinal}
         summary={props.summary}
         interventionsPlanned={props.interventionsPlanned}
       />

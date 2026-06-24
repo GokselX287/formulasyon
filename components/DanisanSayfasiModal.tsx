@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import type { FourP } from '@/lib/types';
-import DanisanOzetIcerik, { buildOzetPrintHtml, hasOzetContent, danisanKodu, type CycleNode } from './DanisanOzetIcerik';
+import DanisanOzetIcerik, { buildOzetPrintHtml, hasOzetContent, danisanKodu, type CycleNode, type LongitudinalOzet } from './DanisanOzetIcerik';
 
 // ──────────────────────────────────────────────────────────────────────────
 // Danışan Sayfası — danışana sunulacak sade özetin modal görünümü.
@@ -18,6 +18,7 @@ export type DanisanSayfasiModalProps = {
   clientId?: string;
   clientPhone?: string;
   fourP?: FourP;
+  longitudinal?: LongitudinalOzet;
   summary?: string;
   interventionsPlanned?: string[];
 };
@@ -27,7 +28,7 @@ const SOFT = '#6B7280';
 const LINE = '#E5E7EB';
 
 export default function DanisanSayfasiModal(props: DanisanSayfasiModalProps) {
-  const { open, onClose, clientName, clientId, clientPhone, fourP, summary, interventionsPlanned = [] } = props;
+  const { open, onClose, clientName, clientId, clientPhone, fourP, longitudinal, summary, interventionsPlanned = [] } = props;
   const [phone, setPhone] = useState(clientPhone ?? '');
   const [smsState, setSmsState] = useState<'' | 'sending' | 'sent' | 'error'>('');
   const [smsMsg, setSmsMsg] = useState('');
@@ -44,7 +45,7 @@ export default function DanisanSayfasiModal(props: DanisanSayfasiModalProps) {
   if (!open) return null;
   const name = clientName?.trim() || 'Danışan';
   const kod = danisanKodu(name);
-  const data = { name, summary, fourP, interventionsPlanned, cycle };
+  const data = { name, summary, fourP, longitudinal, interventionsPlanned, cycle };
 
   const printPdf = () => {
     const w = window.open('', '_blank', 'width=820,height=900');

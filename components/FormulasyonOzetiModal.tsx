@@ -25,6 +25,7 @@ type Formulation = {
   perpetuan?: string; protektif?: string;
   temelInanclar?: string; araInanclar?: string;
   basaCikma?: string; otomatikDusunceler?: string;
+  erkenYasam?: string;
   duyguBedensel?: string; davranislar?: string;
   smartSpesifik?: string; smartOlculebilir?: string; smartZaman?: string;
 };
@@ -204,9 +205,10 @@ export default function FormulasyonOzetiModal({ patient, formulation, patientId,
     }
 
     // Bilişsel Yapı
-    const hasCog = f?.temelInanclar || f?.araInanclar || f?.basaCikma || f?.otomatikDusunceler || f?.duyguBedensel || f?.davranislar;
+    const hasCog = f?.erkenYasam || f?.temelInanclar || f?.araInanclar || f?.basaCikma || f?.otomatikDusunceler || f?.duyguBedensel || f?.davranislar;
     if (hasCog) {
       rows.push('<div class="section-wrap"><p class="section-title">Bilişsel Yapı</p></div>');
+      rows.push(field('Erken Yaşantılar', f?.erkenYasam));
       rows.push(field('Temel İnançlar', f?.temelInanclar));
       rows.push(field('Ara İnançlar / Varsayımlar', f?.araInanclar));
       rows.push(field('Başa Çıkma Stratejileri', f?.basaCikma));
@@ -333,9 +335,10 @@ export default function FormulasyonOzetiModal({ patient, formulation, patientId,
           )}
 
           {/* ── Bilişsel Yapı ── */}
-          {(f?.temelInanclar || f?.araInanclar || f?.basaCikma || f?.otomatikDusunceler || f?.duyguBedensel || f?.davranislar) && (
+          {(f?.erkenYasam || f?.temelInanclar || f?.araInanclar || f?.basaCikma || f?.otomatikDusunceler || f?.duyguBedensel || f?.davranislar) && (
             <>
               <Section title="Bilişsel Yapı" color="indigo" />
+              <Field label="Erken Yaşantılar"           value={f?.erkenYasam} />
               <Field label="Temel İnançlar"             value={f?.temelInanclar} />
               <Field label="Ara İnançlar / Varsayımlar" value={f?.araInanclar} />
               <Field label="Başa Çıkma Stratejileri"    value={f?.basaCikma} />

@@ -1031,6 +1031,17 @@ export function getDb(): Database.Database {
       }
       db.pragma('user_version = 37');
     }
+
+    if (version < 38) {
+      // ── Uzunlamasına formülasyon: anamnezden tek seferlik tohumlama ──────
+      // `erken_yasam` panel API'sinde okunuyordu ama kolon yoktu (hep boştu).
+      // Şimdi gerçek kolon + tohum bayrağı: anamnez sinyalleri (gelişim/aile/
+      // travma → erken yaşantılar, bağlanma → başa çıkma) boş uzunlamasına
+      // yuvalara BİR KEZ yazılır; sonra terapist bağımsız düzenler (independent).
+      try { db.exec(`ALTER TABLE formulations ADD COLUMN erken_yasam TEXT`); } catch {}
+      try { db.exec(`ALTER TABLE formulations ADD COLUMN longitudinal_seeded INTEGER DEFAULT 0`); } catch {}
+      db.pragma('user_version = 38');
+    }
   }
   return db;
 }

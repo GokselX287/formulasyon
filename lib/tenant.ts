@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { getDb } from './db';
-import { currentUserId } from './auth';
+import { currentUserId, passwordlessFallbackUid } from './auth';
 import { getSessionUid, SESSION_COOKIE } from './session';
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -21,7 +21,7 @@ export function currentOwnerId(req: NextRequest): string | null {
 // Server Component / sayfa yükleyicileri için (req yok) — çerezden çözer.
 export async function currentOwnerIdRSC(): Promise<string | null> {
   const store = await cookies();
-  return getSessionUid(store.get(SESSION_COOKIE)?.value);
+  return getSessionUid(store.get(SESSION_COOKIE)?.value) ?? passwordlessFallbackUid();
 }
 
 // Giriş yoksa 401 Response; varsa uid (string).

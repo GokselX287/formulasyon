@@ -188,9 +188,18 @@ export function consumeAuthToken(raw: string, kind: 'verify' | 'reset'): string 
   return row.user_id;
 }
 
+// ── Passwordless tek-kullanıcı fallback (AUTH_PASSWORDLESS=1 · canlı test) ──
+// Oturum yokken uygulama boş kalmasın diye en eski (sahip) hesaba otomatik düşer.
+// Yalnız bayrak açıkken; production'da (bayrak kapalı) null → katı auth korunur.
+export function passwordlessFallbackUid(): string | null {
+  if (process.env.AUTH_PASSWORDLESS !== '1') return null;
+  const row = getDb().prepare('SELECT id FROM app_users ORDER BY created_at ASC LIMIT 1').get() as { id: string } | undefined;
+  return row?.id ?? null;
+}
+
 // ── oturumdan kullanıcı çözme ───────────────────────────────────────────────
 export function currentUserId(req: NextRequest): string | null {
-  return getSessionUid(req.cookies.get(SESSION_COOKIE)?.value);
+  return getSessionUid(req.cookies.get(SESSION_COOKIE)?.value) ?? passwordlessFallbackUid();
 }
 export function currentUser(req: NextRequest): AppUser | null {
   const id = currentUserId(req);

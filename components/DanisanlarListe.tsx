@@ -24,7 +24,6 @@ export type DanisanlarListeProps = {
   onSms?(id: string): void;
 };
 
-type View = 'list' | 'grid';
 type StatusFilter = 'all' | Status;
 type CatFilter = 'all' | 'ergen' | 'yetiskin' | 'cocuk';
 type Sort = 'next' | 'recent' | 'name' | 'progress';
@@ -49,8 +48,6 @@ const clientNo = (c: Client) => { const n = Number(c.id); return Number.isFinite
 
 /* ─── İkonlar ─────────────────────────────────────────────────────────── */
 const IcoSearch = () => <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" strokeLinecap="round" /></svg>;
-const IcoList = () => <svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01" strokeLinecap="round" /></svg>;
-const IcoGrid = () => <svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5" /><rect x="13.5" y="3.5" width="7" height="7" rx="1.5" /><rect x="3.5" y="13.5" width="7" height="7" rx="1.5" /><rect x="13.5" y="13.5" width="7" height="7" rx="1.5" /></svg>;
 const IcoMail = () => <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5" /><path d="M4 7l8 6 8-6" strokeLinecap="round" /></svg>;
 const IcoSms = () => <svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-12 7.6L3 21l1.9-6A8.4 8.4 0 1 1 21 11.5z" strokeLinejoin="round" /></svg>;
 
@@ -63,7 +60,6 @@ export default function DanisanlarListe(props: DanisanlarListeProps) {
   const [cat, setCat] = useState<CatFilter>('all');
   const [tag, setTag] = useState<string | null>(null);
   const [sort, setSort] = useState<Sort>('next');
-  const [view, setView] = useState<View>(() => { const v = lsGet('dlst_view'); return v === 'grid' || v === 'list' ? (v as View) : 'list'; });
   const [loading, setLoading] = useState(true);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [sms, setSms] = useState<Client | null>(null);
@@ -77,7 +73,6 @@ export default function DanisanlarListe(props: DanisanlarListeProps) {
   useEffect(() => { const saved = lsGet('calmie-theme'); if (saved && THEMES.some((t) => t.id === saved)) setTheme(saved); }, []);
 
   const applyTheme = (id: string) => { setTheme(id); lsSet('calmie-theme', id); };
-  const setViewPersist = (v: View) => { setView(v); lsSet('dlst_view', v); };
 
   const stats = useMemo(() => computeStats(clients), [clients]);
 
@@ -147,7 +142,7 @@ export default function DanisanlarListe(props: DanisanlarListeProps) {
     { v: 'all', label: 'Tümü' }, { v: 'active', label: 'Aktif' }, { v: 'passive', label: 'Pasif' }, { v: 'risk', label: 'Riskli' },
   ];
 
-  const skelCount = view === 'grid' ? 6 : 7;
+  const skelCount = 7;
 
   return (
     <>
@@ -220,10 +215,6 @@ export default function DanisanlarListe(props: DanisanlarListeProps) {
                   </select>
                   <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" /></svg>
                 </div>
-                <div className="viewtog" role="group" aria-label="Görünüm">
-                  <button type="button" className={view === 'list' ? 'on' : ''} aria-label="Liste görünümü" onClick={() => setViewPersist('list')}><IcoList /></button>
-                  <button type="button" className={view === 'grid' ? 'on' : ''} aria-label="Kart görünümü" onClick={() => setViewPersist('grid')}><IcoGrid /></button>
-                </div>
               </div>
               <div className="tb-filters">
                 <div className="fgroup">
@@ -260,8 +251,8 @@ export default function DanisanlarListe(props: DanisanlarListeProps) {
 
             {/* ───────── LIST / SKELETON / EMPTY ───────── */}
             {loading ? (
-              <div className={'skel show' + (view === 'grid' ? ' grid' : '')}>
-                {Array.from({ length: skelCount }).map((_, i) => <div key={i} className="skrow" style={view === 'grid' ? { height: 220 } : undefined} />)}
+              <div className="skel show">
+                {Array.from({ length: skelCount }).map((_, i) => <div key={i} className="skrow" />)}
               </div>
             ) : clients.length === 0 ? (
               <div className="empty show">
@@ -278,7 +269,7 @@ export default function DanisanlarListe(props: DanisanlarListeProps) {
                 <button className="btn btn-ghost" onClick={clearFilters}>Filtreleri temizle</button>
               </div>
             ) : (
-              <div className={'list' + (view === 'grid' ? ' grid' : '')} aria-live="polite">
+              <div className="list" aria-live="polite">
                 {visible.map((c) => (
                   <ClientCard key={c.id} c={c} today={today} onOpen={open} onPrefetch={props.onPrefetchClient} onMail={doMail} onSms={doSms} />
                 ))}
@@ -327,8 +318,8 @@ function ClientCard({ c, today, onOpen, onPrefetch, onMail, onSms }: {
   const prog = Math.max(0, Math.min(100, Math.round(c.continuityPct || 0)));
   const hasMail = !!c.email?.trim();
   const hasTel = !!c.telefon?.trim();
-  const StatusBadge = ({ extra }: { extra: string }) => (
-    <span className={`cli-status ${st} ${extra}`}><i />{statusLabel[st]}</span>
+  const StatusBadge = () => (
+    <span className={`cli-status ${st}`}><i />{statusLabel[st]}</span>
   );
   return (
     <article className="cli" role="button" tabIndex={0} aria-label={`${c.name} dosyasını aç`}
@@ -344,7 +335,6 @@ function ClientCard({ c, today, onOpen, onPrefetch, onMail, onSms }: {
               : <span className="cli-issue">{tagText(c)}</span>}
           </span>
         </div>
-        <StatusBadge extra="cli-grid-only" />
       </div>
 
       <div className="cli-dates">
@@ -357,7 +347,7 @@ function ClientCard({ c, today, onOpen, onPrefetch, onMail, onSms }: {
         <div className="cli-prog-track"><div className="cli-prog-fill" style={{ width: `${prog}%` }} /></div>
       </div>
 
-      <StatusBadge extra="cli-list-only" />
+      <StatusBadge />
 
       <div className="cli-foot">
         <div className="cli-acts">

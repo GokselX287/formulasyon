@@ -46,6 +46,8 @@ const SUGG: Record<string, string[]> = {
   meslek: ['Yazılımcı', 'Öğretmen', 'Mühendis', 'Hemşire', 'Avukat', 'Esnaf', 'Öğrenci', 'Muhasebeci'],
   sehir: ['İstanbul', 'Ankara', 'İzmir', 'Bursa', 'Antalya', 'Adana', 'Konya', 'Gaziantep'],
   ilce: ['Kadıköy', 'Beşiktaş', 'Çankaya', 'Konak', 'Nilüfer', 'Muratpaşa'],
+  bilisselHatalar: ['Felaketleştirme', 'Zihin Okuma', 'Falcılık', 'Olumluyu Görmezden Gelme', 'Ya Hep Ya Hiç Düşüncesi', 'Duygusal Muhakeme', 'Etiketleme', 'Kişiselleştirme', 'Seçici Soyutlama', '"Olmalı/Gerekir" İfadeleri', 'Büyütme / Küçümseme'],
+  baskinDuygular: ['Kaygı', 'Üzüntü', 'Öfke', 'Korku', 'Suçluluk', 'Utanç', 'Kıskançlık', 'Yalnızlık', 'Umutsuzluk', 'Panik', 'İsteksizlik', 'Boşluk'],
 };
 
 const SCHEMA: Section[] = [
@@ -68,6 +70,7 @@ const SCHEMA: Section[] = [
     { l: 'Şikâyet süresi / başlangıcı', p: 'sikayet.baslangic', t: 'textarea', full: true },
     { l: 'Vurucu olay', p: 'sikayet.vurucuOlay', t: 'textarea', full: true },
     { l: 'Tetikleyiciler', p: 'sikayet.tetikleyicilerNot', t: 'textarea', full: true, req: true },
+    { l: 'Şikâyet yoğunluğu', p: 'sikayet.siddet', t: 'scale', full: true },
   ] },
   { id: 'psikiyatrik', no: '03', title: 'Psikiyatrik & tıbbi', eye: 'öykü', fields: [
     { l: 'Önceki psikolojik başvuru', p: 'psikiyatrik.oncekiBasvuru', t: 'radio', o: ['Var', 'Yok'] },
@@ -107,23 +110,37 @@ const SCHEMA: Section[] = [
     { l: 'Sosyal destek ve arkadaş ilişkileri', p: 'isSosyal.destekNot', t: 'chipsadd', sug: 'destekNot', full: true },
     { l: 'İlişkide sorun puanı', p: 'isSosyal.iliskiSorunPuan', t: 'scale', full: true },
   ] },
-  { id: 'travma', no: '08', title: 'Travma', eye: 'yük', fields: [
+  { id: 'bilisdavranis', no: '08', title: 'Bilişsel-davranışsal profil', eye: 'biliş-davranış', fields: [
+    { l: 'Otomatik düşünceler', p: 'bdt.otomatikDusunce', t: 'textarea', full: true },
+    { l: 'Ben inancı', p: 'bdt.benInanci', t: 'text' },
+    { l: 'Dünya inancı', p: 'bdt.dunyaInanci', t: 'text' },
+    { l: 'Gelecek inancı', p: 'bdt.gelecekInanci', t: 'text' },
+    { l: 'Bilişsel hatalar', p: 'bdt.bilisselHatalar', t: 'chipsadd', sug: 'bilisselHatalar', full: true },
+    { l: 'Kaçınılan durumlar', p: 'bdt.kacinanDurumlar', t: 'textarea', full: true },
+    { l: 'Güvenlik davranışları', p: 'bdt.guvenlikDavranislari', t: 'textarea', full: true },
+    { l: 'Baskın duygular', p: 'bdt.baskinDuygular', t: 'chipsadd', sug: 'baskinDuygular', full: true },
+    { l: 'Duygu tetikleyicileri', p: 'bdt.duyguTetikleyicileri', t: 'textarea', full: true },
+    { l: 'Duygu düzenleme becerisi', p: 'bdt.duyguDuzenleme', t: 'textarea', full: true },
+    { l: 'Günlük yaşama / işlevselliğe etkisi', p: 'bdt.gunlukEtki', t: 'textarea', full: true },
+  ] },
+  { id: 'travma', no: '09', title: 'Travma', eye: 'yük', fields: [
     { l: 'Travma öyküsü', p: 'travma.travmaVar', t: 'radio', o: ['Var', 'Yok'] },
     { l: 'Açıklama', p: 'travma.travmaNot', t: 'textarea', full: true },
   ] },
-  { id: 'risk', no: '09', title: 'Risk değerlendirme', eye: 'güvenlik', danger: true, fields: [
+  { id: 'risk', no: '10', title: 'Risk değerlendirme', eye: 'güvenlik', danger: true, fields: [
     { l: 'İntihar düşüncesi', p: 'risk.intihar', t: 'radio', o: ['Var', 'Yok'] },
     { l: 'Plan / niyet', p: 'risk.planNiyet', t: 'radio', o: ['Var', 'Yok'] },
     { l: 'Kendine zarar verme', p: 'risk.zarar', t: 'radio', o: ['Aktif', 'Yok'] },
     { l: 'Başkasına zarar riski', p: 'risk.baskasi', t: 'radio', o: ['Risk', 'Yok'] },
     { l: 'Genel risk düzeyi', p: 'risk.seviye', t: 'select', o: ['Düşük', 'Orta', 'Yüksek'] },
   ] },
-  { id: 'hedefler', no: '10', title: 'Hedefler', eye: 'yön', fields: [
+  { id: 'hedefler', no: '11', title: 'Hedefler', eye: 'yön', fields: [
     { l: 'Terapi hedefleri', p: 'hedefler.hedeflerNot', t: 'textarea', full: true },
     { l: 'Beklenti / motivasyon', p: 'hedefler.beklenti', t: 'textarea', full: true },
+    { l: 'Güçlü yönler / kaynaklar', p: 'hedefler.gucluYonler', t: 'textarea', full: true },
   ] },
-  { id: 'olcekler', no: '11', title: 'Ölçekler', eye: 'ön-form', special: 'olcek' },
-  { id: 'klinisyen', no: '12', title: 'Klinisyen notu', eye: 'sentez', fields: [
+  { id: 'olcekler', no: '12', title: 'Ölçekler', eye: 'ön-form', special: 'olcek' },
+  { id: 'klinisyen', no: '13', title: 'Klinisyen notu', eye: 'sentez', fields: [
     { l: 'Çalışılacak konular', p: 'klinisyenNotu', t: 'textarea', full: true, ph: 'Değersizlik inancını sınama\nKaçınmayı azaltma\nDuygu düzenleme' },
   ] },
 ];

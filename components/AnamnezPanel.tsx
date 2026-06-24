@@ -27,8 +27,19 @@ export type AnamnezData = {
   basvuru?: { sebep?: string; yonlendiren?: string; hedef?: string; gorusmeSekli?: 'Yüz yüze' | 'Online' | 'Hibrit' };
   sikayet?: {
     baslangic?: string; seyir?: string;
+    siddet?: number;             // şikayet yoğunluğu 1–10 (BDT formundan taşındı)
     siddetSerisi?: number[];
     tetikleyiciler?: string[];
+    vurucuOlay?: string; tetikleyicilerNot?: string;
+  };
+  // BDT bilişsel-davranışsal-duygusal profil (eski AnamnezForm'dan birleştirildi).
+  bdt?: {
+    otomatikDusunce?: string;
+    benInanci?: string; dunyaInanci?: string; gelecekInanci?: string;
+    bilisselHatalar?: string[];
+    kacinanDurumlar?: string; guvenlikDavranislari?: string;
+    baskinDuygular?: string[]; duyguTetikleyicileri?: string; duyguDuzenleme?: string;
+    gunlukEtki?: string;
   };
   psikiyatrik?: {
     tanilar?: string[];
@@ -50,7 +61,7 @@ export type AnamnezData = {
     seviye?:  RiskLevel;
     notu?:    string;
   };
-  hedefler?: { beklenti?: string; hedefler3?: string[]; birYil?: string };
+  hedefler?: { beklenti?: string; hedefler3?: string[]; birYil?: string; gucluYonler?: string };
   olcekler?: {
     phq9?: { skor: number; sinif: string; tarih: string; importedFromPreForm?: boolean };
     gad7?: { skor: number; sinif: string; tarih: string; importedFromPreForm?: boolean };

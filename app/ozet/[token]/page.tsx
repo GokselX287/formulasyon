@@ -18,11 +18,12 @@ export default function OzetPage({ params }: PageProps) {
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error('404'))))
       .then((meta) => {
         const p = meta?.payload;
-        if (p && (meta.formTipi === 'danisan-ozet' || p.fourP || p.summary || p.interventionsPlanned)) {
+        if (p && (meta.formTipi === 'danisan-ozet' || p.fourP || p.longitudinal || p.summary || p.interventionsPlanned)) {
           setData({
             name: p.name ?? meta.clientName,
             summary: p.summary,
             fourP: p.fourP,
+            longitudinal: p.longitudinal,
             interventionsPlanned: p.interventionsPlanned,
           });
           setState('ok');

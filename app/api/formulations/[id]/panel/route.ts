@@ -1,6 +1,7 @@
 import { getDb } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 import { ownerOr401, ownsClient, notFound } from '@/lib/tenant';
+import { seedLongitudinalOnce } from '@/lib/queries';
 
 // ── helpers ──────────────────────────────────────────────────────────────
 
@@ -38,6 +39,10 @@ export async function GET(
   const db = getDb();
   const clientId = parseInt(id, 10);
 
+  // Uzunlamasına yuvaları anamnezden TEK KEZ tohumla (okumadan önce). İçerik
+  // yoksa / zaten tohumlanmışsa no-op; dolu yuvalara dokunmaz.
+  seedLongitudinalOnce(clientId, uid);
+
   // ── Formulation row ─────────────────────────────────────────────────
   const f = db
     .prepare('SELECT * FROM formulations WHERE client_id = ? AND owner_id = ? LIMIT 1')
@@ -47,6 +52,7 @@ export async function GET(
     return Response.json({
       fourP:    { predisposing: [], precipitating: [], perpetuating: [], protective: [] },
       beck:     { earlyLife: '', coreBelief: '', rules: '', automaticThoughts: [] },
+      longitudinal: { earlyExperiences: [], coreBeliefs: [], intermediateBeliefs: [], copingStrategies: [] },
       hexaflex: null,
       summary:  null,
       maturity: 0,
@@ -90,6 +96,14 @@ export async function GET(
     coreBelief:        (f.temel_inanclar as string) ?? '',
     rules:             (f.ara_inanclar as string) ?? '',
     automaticThoughts: splitField(f.otomatik_dusunceler as string),
+  };
+
+  // ── Uzunlamasına (gelişimsel) — danışan sunumu için dizi biçiminde ───
+  const longitudinal = {
+    earlyExperiences:    splitField(f.erken_yasam as string),
+    coreBeliefs:         splitField(f.temel_inanclar as string),
+    intermediateBeliefs: splitField(f.ara_inanclar as string),
+    copingStrategies:    splitField(f.basa_cikma as string),
   };
 
   // ── Hexaflex — from flexibility_scores ───────────────────────────────
@@ -185,6 +199,7 @@ export async function GET(
   return Response.json({
     fourP,
     beck,
+    longitudinal,
     hexaflex,
     summary,
     maturity: computeMaturity(f, nodeCount),
