@@ -74,7 +74,7 @@ type DGroup = { band: 'anamnez' | 'formulasyon'; title: string; to: string; tera
 
 function buildDataGroups(id: string, an: any, p: any): DGroup[] {
   an = an || {}; p = p || {};
-  const sec = p.sections || {}, fourP = p.fourP || {}, beck = p.beck || {};
+  const sec = p.sections || {}, fourP = p.fourP || {}, beck = p.beck || {}, long = p.longitudinal || {};
   const anam = `/clients/${id}/anamnez`;
   const form = `/uygulama?tab=formulation&client=${id}`;
   return [
@@ -161,6 +161,12 @@ function buildDataGroups(id: string, an: any, p: any): DGroup[] {
       { label: 'Otomatik düşünceler', val: beck.automaticThoughts },
       { label: 'Formülasyon özeti', val: p.summary },
     ] },
+    { band: 'formulasyon', title: 'Uzunlamasına formülasyon', to: form, fields: [
+      { label: 'Erken yaşantılar', val: long.earlyExperiences },
+      { label: 'Temel inançlar', val: long.coreBeliefs },
+      { label: 'Ara inançlar', val: long.intermediateBeliefs },
+      { label: 'Başa çıkma stratejileri', val: long.copingStrategies },
+    ] },
   ];
 }
 
@@ -217,6 +223,7 @@ export default function DanisanDosyasiAcilis({ params }: { params: Promise<{ id:
   const [anamnez, setAnamnez] = useState<any>(null);
   const [panel, setPanel] = useState<any>(null);
   const [cycles, setCycles] = useState<any[]>([]);
+  const [seanslar, setSeanslar] = useState<any[]>([]);
   const [flags, setFlags] = useState({ anamnez: false, degerlendirme: false, dongu: false, gorusmeler: false, ilerleme: false });
 
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -236,17 +243,19 @@ export default function DanisanDosyasiAcilis({ params }: { params: Promise<{ id:
     let alive = true;
     (async () => {
       try {
-        const [cl, a, p, cyc] = await Promise.all([
+        const [cl, a, p, cyc, ss] = await Promise.all([
           fetch(`/api/clients/${id}`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
           fetch(`/api/anamnez/${id}`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
           fetch(`/api/formulations/${id}/panel`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
           fetch(`/api/danisan-dongu?clientId=${id}`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+          fetch(`/api/seanslar?clientId=${id}`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
         ]);
         if (!alive) return;
         setClient(cl && !cl.error ? cl : null);
         setAnamnez(a && typeof a === 'object' && !a.error ? a : null);
         setPanel(p && typeof p === 'object' ? p : null);
         setCycles(Array.isArray(cyc) ? cyc : []);
+        setSeanslar(Array.isArray(ss) ? ss : []);
         const anamnezDone = !!(a && typeof a === 'object' && Object.values(a).some((v) =>
           (typeof v === 'string' && v.trim()) || (Array.isArray(v) && v.length) ||
           (v && typeof v === 'object' && Object.values(v).some((x) =>
@@ -290,13 +299,35 @@ export default function DanisanDosyasiAcilis({ params }: { params: Promise<{ id:
     return { id: c.id, type: c.type, label: c.label as string | null, fields: f && typeof f === 'object' ? f : {} };
   }), [cycles]);
 
+  // seans kayıtları — derlenmiş (en yeni üstte)
+  const seansKayit = useMemo(() => {
+    return (seanslar || [])
+      .slice()
+      .sort((a, b) => String(b.tarih ?? '').localeCompare(String(a.tarih ?? '')))
+      .map((s, i) => {
+        const n = s.seansNotu ?? {}; const d = s.detay ?? {};
+        const tek = Array.isArray(n.kullanilanTeknikler) ? n.kullanilanTeknikler
+          : Array.isArray(n.teknikler) ? n.teknikler : [];
+        return {
+          no: s.no ?? (i + 1),
+          tip: s.tip ?? 'seans',
+          date: fmtDate(s.tarih),
+          durum: ['katildi', 'katilmadi', 'ertelendi', 'iptal'].includes(s.durum) ? s.durum : 'katildi',
+          title: n.seansOdagi || (s.tip === 'anamnez' ? 'Anamnez görüşmesi' : `Seans ${s.no ?? i + 1}`),
+          summary: d.seansOzeti || n.gelisimGozlemi || n.gundemMaddeleri || n.terapistNotu || n.notlar || '—',
+          teknikler: tek.filter((t: any) => typeof t === 'string' && t.trim()),
+        };
+      });
+  }, [seanslar]);
+
   // section nav
   const RAIL = useMemo(() => {
     const base = [
       { id: 'durum', label: 'Durum' },
-      { id: 'anamnez', label: 'Anamnez' }, { id: 'dongu', label: 'Sorun döngüsü' },
+      { id: 'temel', label: 'Temel bilgiler & hikâye' },
+      { id: 'formulasyon', label: 'Formülasyon' },
     ];
-    return danisan ? base : [...base, { id: 'formulasyon', label: 'Formülasyon' }];
+    return danisan ? base : [...base, { id: 'seanslar', label: 'Seanslar' }];
   }, [danisan]);
   const scrollToSec = (sid: string) => {
     const root = bodyRef.current;
@@ -394,18 +425,18 @@ export default function DanisanDosyasiAcilis({ params }: { params: Promise<{ id:
                 </dl>
               </section>
 
-              {/* ANAMNEZ */}
-              <section className="dfx-sec" id="anamnez">
-                <SecHead kicker="Danışan" title="Anamnez"
+              {/* 1 · TEMEL BİLGİLER & HİKÂYE (anamnez derlemesi) */}
+              <section className="dfx-sec" id="temel">
+                <SecHead kicker="1 · Danışan" title="Temel bilgiler & hikâye"
                   right={<span className={`dfx-tag ${anamnezGroups.some((g) => g.fields.some((f) => isEmptyVal(f.val))) ? 'warn' : 'ok'}`}>
                     {anamnezGroups.reduce((a, g) => a + g.fields.filter((f) => isEmptyVal(f.val)).length, 0)} eksik
                   </span>} />
                 {anamnezGroups.map((g) => <DataGroup key={g.title} g={g} onFill={(to) => router.push(to)} />)}
               </section>
 
-              {/* SORUN DÖNGÜSÜ — görselleştirilmiş */}
-              <section className="dfx-sec" id="dongu">
-                <SecHead kicker="Formülasyonun çekirdeği" title="Sorun döngüsü" />
+              {/* 2 · FORMÜLASYON (sorun döngüsü çekirdek + 4P/bilişsel) */}
+              <section className="dfx-sec" id="formulasyon">
+                <SecHead kicker="2 · Klinik" title="Formülasyon" />
                 {parsedCycles.length > 0 ? (
                   parsedCycles.map((c) => (
                     <div className="dfx-cycle" key={c.id}>
@@ -421,12 +452,39 @@ export default function DanisanDosyasiAcilis({ params }: { params: Promise<{ id:
                     </button>
                   </div>
                 )}
+                <div className="terapist-only">
+                  {formGroups.map((g) => <DataGroup key={g.title} g={g} onFill={(to) => router.push(to)} />)}
+                </div>
               </section>
 
-              {/* FORMÜLASYON — yalnız terapist */}
-              <section className="dfx-sec terapist-only" id="formulasyon">
-                <SecHead kicker="Klinik" title="Formülasyon" />
-                {formGroups.map((g) => <DataGroup key={g.title} g={g} onFill={(to) => router.push(to)} />)}
+              {/* 3 · SEANSLAR (derlenmiş) — yalnız terapist */}
+              <section className="dfx-sec terapist-only" id="seanslar">
+                <SecHead kicker="3 · Süreç" title="Seanslar"
+                  right={<span className="dfx-tag ok">{seansKayit.length} seans</span>} />
+                {seansKayit.length > 0 ? (
+                  <div className="dfx-seslist">
+                    {seansKayit.slice(0, 8).map((s, i) => (
+                      <div className="dfx-ses" key={i}>
+                        <span className={`dfx-ses-no${s.tip === 'anamnez' ? ' anam' : ''}`}>{s.tip === 'anamnez' ? 'A' : `S${s.no}`}</span>
+                        <div className="dfx-ses-b">
+                          <div className="dfx-ses-h"><b>{s.title}</b><span>{s.date}</span></div>
+                          {s.summary && s.summary !== '—' && <p>{s.summary}</p>}
+                          {s.teknikler.length > 0 && <div className="dfx-ses-chips">{s.teknikler.map((t: string, k: number) => <span key={k}>{t}</span>)}</div>}
+                        </div>
+                      </div>
+                    ))}
+                    <button className="dfx-fill" type="button" onClick={() => router.push(`/profil/${id}?focus=seanslar`)}>
+                      Tüm seansları yönet <Arrow />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="dfx-empty">
+                    <p>Henüz seans kaydı yok.</p>
+                    <button className="dfx-fill solid" type="button" onClick={() => router.push(`/profil/${id}?focus=seanslar`)}>
+                      Seanslara git <Arrow />
+                    </button>
+                  </div>
+                )}
               </section>
 
             </div>

@@ -176,6 +176,19 @@
 .dfx-cycle { margin-bottom: 18px; padding: 20px; border: 1px solid var(--line); border-radius: var(--r); background: #fcfcfb; }
 .dfx-cycle:last-child { margin-bottom: 0; }
 .dfx-cycle h4 { font-family: var(--serif); font-weight: 600; font-size: 15px; margin: 0 0 14px; color: var(--ink); }
+
+/* seans listesi (derlenmiş) */
+.dfx-seslist { display: flex; flex-direction: column; gap: 10px; }
+.dfx-ses { display: flex; gap: 13px; padding: 14px 16px; border-radius: var(--r); background: #fff; box-shadow: inset 0 0 0 1px var(--line); }
+.dfx-ses-no { flex: none; width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; font-family: var(--mono); font-size: 12px; font-weight: 700; color: #fff; background: #161616; }
+.dfx-ses-no.anam { background: var(--accent); }
+.dfx-ses-b { min-width: 0; flex: 1; }
+.dfx-ses-h { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.dfx-ses-h b { font-family: var(--serif); font-weight: 600; font-size: 15px; letter-spacing: -.01em; color: var(--ink); }
+.dfx-ses-h span { flex: none; font-family: var(--mono); font-size: 11px; color: var(--ink-mute); }
+.dfx-ses-b p { font-size: 13.5px; line-height: 1.5; color: var(--ink-soft); margin: 5px 0 0; }
+.dfx-ses-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+.dfx-ses-chips span { font-size: 11.5px; font-weight: 600; color: var(--ink-soft); background: #f4f4f6; border-radius: var(--r-pill); padding: 3px 11px; }
 .dfx-empty { text-align: center; padding: 38px 24px; border: 1px dashed var(--line); border-radius: var(--r); }
 .dfx-empty p { font-size: 14px; color: var(--ink-mute); margin: 0 0 18px; }
 
