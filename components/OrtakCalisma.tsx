@@ -40,6 +40,8 @@ const initials = (s: string) => (s || '?').trim().split(/\s+/).map((w) => w[0]).
 
 export default function OrtakCalisma({ therapistName = 'Sen', onBack, onNav }: OrtakCalismaProps) {
   const [doc, setDoc] = useState<Doc>(EMPTY);
+  const [theme, setTheme] = useState('sage');
+  useEffect(() => { try { setTheme(localStorage.getItem('calmie-theme') || 'sage'); } catch { /* yoksay */ } }, []);
   const [selWork, setSelWork] = useState<string | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -102,7 +104,9 @@ export default function OrtakCalisma({ therapistName = 'Sen', onBack, onNav }: O
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
       <link href={FONTS} rel="stylesheet" />
 
-      <div className="oc2">
+      <div className="oc2" data-theme={theme}>
+        <div className="scene" aria-hidden="true" />
+        <div className="grain" aria-hidden="true" />
         <div className="shell">
           <div className="topbar">
             <div className="tb-left">

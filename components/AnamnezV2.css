@@ -239,3 +239,8 @@
 @media (max-width:1080px){.anx .nav-links{display:none}}
 @media (max-width:960px){.anx .menu-btn{display:flex}.anx .nav-prof .np-col{display:none}.anx .ana .wrap{grid-template-columns:1fr}.anx .srail{position:static;flex-direction:row;flex-wrap:wrap;gap:6px;top:auto}.anx .srail-h{width:100%;padding:4px 8px 8px}.anx .sr-item{flex:0 0 auto}.anx .sr-lab{display:none}.anx .foot-grid{grid-template-columns:1fr 1fr;gap:32px}}
 @media (max-width:620px){.anx .fgrid{grid-template-columns:1fr}.anx .olc{grid-template-columns:1fr}.anx .foot-grid{grid-template-columns:1fr}.anx .top-right{align-items:flex-start}}
+
+/* formülasyon önizleme — gömülü döngü + uzunlamasına şema (read-only) */
+.anx .fcyc{background:rgba(255,255,255,.42);border:1px solid var(--line);border-radius:var(--r-md);padding:14px 16px 8px;margin-bottom:16px}
+.anx .fcyc:last-child{margin-bottom:0}
+.anx .fcyc-h{font-family:var(--font-mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-mute);margin-bottom:8px}

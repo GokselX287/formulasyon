@@ -45,7 +45,7 @@ const DOCK = [
 ];
 
 export default function BuHaftaPanel({ data, onNav, onBack, onOpenClient, onOpenTakvim, onEditMissingFees, onOpenDanisanlar }: BuHaftaPanelProps) {
-  const [theme] = useState<string>(() => lsGet('calmie_home_bgtheme') || 'default');
+  const [theme] = useState<string>(() => lsGet('calmie-theme') || 'sage');
   const [bgPhoto] = useState<string | null>(() => lsGet('siyi_home_bg_v1'));
 
   const intMax = Math.max(1, ...data.weekBars.map((b) => b.v));
@@ -105,7 +105,7 @@ export default function BuHaftaPanel({ data, onNav, onBack, onOpenClient, onOpen
   const prepOthers = data.prepToday.slice(1);
 
   return (
-    <div className="bhf cchrome" data-bg={theme === 'default' ? undefined : theme}>
+    <div className="bhf cchrome" data-theme={theme}>
       {/* tema mesh/foto zemin */}
       <div className="app-bg" aria-hidden="true">
         <span className="hb-mesh" />

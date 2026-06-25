@@ -21,6 +21,8 @@ export default function AnamnezPage({
   const [data, setData] = useState<AnamnezData>({});
   const [, setSavedAt] = useState<string | undefined>();
   const [preForm, setPreForm] = useState<PreFormResponse[]>([]);
+  const [cycles, setCycles] = useState<any[]>([]);          // gömülü sorun döngüsü önizlemesi
+  const [longitudinal, setLongitudinal] = useState<any>(null); // uzunlamasına formülasyon şeması
   // İlk GET yüklemesi oto-kaydı tetiklemesin; yalnız kullanıcı düzenleyince kaydet.
   const dirty = useRef(false);
 
@@ -60,6 +62,16 @@ export default function AnamnezPage({
         setPreForm(flat);
       })
       .catch(() => setPreForm([]));
+
+    // Formülasyon önizlemesi: sorun döngüleri + uzunlamasına şema (read-only)
+    fetch(`/api/danisan-dongu?clientId=${id}`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((d) => setCycles(Array.isArray(d) ? d : []))
+      .catch(() => setCycles([]));
+    fetch(`/api/formulations/${id}/panel`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((p) => setLongitudinal(p?.longitudinal ?? null))
+      .catch(() => setLongitudinal(null));
   }, [id]);
 
   // Debounced autosave — HER düzenlemede kaydet (veri asla kaybolmasın).
@@ -92,6 +104,8 @@ export default function AnamnezPage({
       clientName={data.demografik?.adSoyad}
       clientNo={`#${id}`}
       hasPreForm={preForm.length > 0}
+      cycles={cycles}
+      longitudinal={longitudinal}
       onChange={(s, v) => { dirty.current = true; setData((d) => ({ ...d, [s]: v })); }}
       onBack={() => router.push(`/uygulama?tab=calisma-alani&room=danisanlar`)}
       onNav={(target) => router.push(`/uygulama?tab=${target}`)}

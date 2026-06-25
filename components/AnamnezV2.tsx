@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import './AnamnezV2.css';
 import type { AnamnezData } from './AnamnezPanel';
+import { DiagramViewer, type DiagramType } from './BozuklukDongusu';
 
 // ──────────────────────────────────────────────────────────────────────────
 // Anamnez editörü — landing uyumlu ("mesh + opal cam") tasarım.
@@ -18,6 +19,8 @@ export type AnamnezV2Props = {
   clientName?: string;
   clientNo?: string;
   hasPreForm?: boolean;
+  cycles?: any[];          // gömülü sorun döngüsü diyagramları (read-only önizleme)
+  longitudinal?: any;      // uzunlamasına formülasyon şeması (panel.longitudinal)
   onChange<K extends keyof AnamnezData>(section: K, value: AnamnezData[K]): void;
   onBack?(): void;
   onNav?(target: string): void;
@@ -193,7 +196,19 @@ function AutoTextarea({ value, placeholder, onChange }: { value: string; placeho
 }
 
 export default function AnamnezV2(props: AnamnezV2Props) {
-  const { data, clientName, clientNo, hasPreForm, onChange, onBack, onNav, onAiFill, onImportPreForm, onSave, onOpenDongu, onValidityChange } = props;
+  const { data, clientName, clientNo, hasPreForm, cycles, longitudinal, onChange, onBack, onNav, onAiFill, onImportPreForm, onSave, onOpenDongu, onValidityChange } = props;
+
+  /* formülasyon önizlemesi — sorun döngüsü + uzunlamasına şema (read-only, veri varsa) */
+  const cyc = cycles ?? [];
+  const lng = (longitudinal || {}) as any;
+  const lngFields: Record<string, string> = {
+    lng_erken: (lng.earlyExperiences || []).join('\n'),
+    lng_temel: (lng.coreBeliefs || []).join('\n'),
+    lng_ara: (lng.intermediateBeliefs || []).join('\n'),
+    lng_basa: (lng.copingStrategies || []).join('\n'),
+  };
+  const lngHas = Object.values(lngFields).some((v) => v.trim());
+  const showFormul = cyc.length > 0 || lngHas;
 
   const [theme, setTheme] = useState('rose');
   const [active, setActive] = useState('demografik');
@@ -496,6 +511,19 @@ export default function AnamnezV2(props: AnamnezV2Props) {
                 {s.special === 'olcek' ? renderOlcek() : <div className="fgrid">{s.fields!.map(renderField)}</div>}
               </section>
             ))}
+
+            {/* FORMÜLASYON ÖNİZLEME — sorun döngüsü + uzunlamasına şema (read-only) */}
+            {showFormul && (
+              <section className="acard" id="anx-sec-formul">
+                <div className="ac-head"><span className="ac-no">★</span><h2 className="ac-title">Formülasyon önizleme</h2><span className="ac-eye">şema</span></div>
+                {cyc.map((c) => {
+                  let f: Record<string, string> = {};
+                  try { f = JSON.parse(c.fields_json || '{}'); } catch { /* yok */ }
+                  return <div key={c.id} className="fcyc"><div className="fcyc-h">Sorun döngüsü — {c.label || c.type}</div><DiagramViewer type={c.type as DiagramType} fields={f} readOnly /></div>;
+                })}
+                {lngHas && <div className="fcyc"><div className="fcyc-h">Uzunlamasına formülasyon — erken yaşantılardan başa çıkmaya</div><DiagramViewer type="uzunlamasina" fields={lngFields} readOnly /></div>}
+              </section>
+            )}
           </div>
         </div>
       </section>

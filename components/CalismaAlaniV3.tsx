@@ -86,10 +86,8 @@ const AV_TONES = [
 const toneFor = (name: string) => { let h = 0; for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0; return AV_TONES[h % AV_TONES.length]; };
 const initials = (n: string) => n.trim().split(/\s+/).map((w) => w[0] || '').join('').slice(0, 2).toUpperCase();
 
-const RAIL = [{ id: 'ca-hub', l: 'Bölümler' }, { id: 'ca-konum', l: 'Konumlar' }, { id: 'ca-kaynak', l: 'Kaynak' }];
+const RAIL = [{ id: 'ca-hub', l: 'Bölümler' }];
 
-type City = { city: string; n: number };
-type Channel = { key: string; label: string; sub: string; color: string; n: number };
 
 export default function CalismaAlaniV3(props: CalismaAlaniV3Props) {
   const { therapistName = 'Göksel Akkaya', roomMeta = {}, weekBars = [],
@@ -119,22 +117,6 @@ export default function CalismaAlaniV3(props: CalismaAlaniV3Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mounted]);
 
-  // ── §02 Konum (anamnez demografik şehir → /api/danisan-konum) ──
-  const [cities, setCities] = useState<City[] | null>(null);
-  useEffect(() => {
-    fetch('/api/danisan-konum').then((r) => r.json()).then((d) => {
-      const arr: City[] = Array.isArray(d?.iller) ? d.iller.map((i: any) => ({ city: i.sehir, n: i.count })) : [];
-      if (d?.bilinmeyen > 0) arr.push({ city: 'Diğer', n: d.bilinmeyen });
-      setCities(arr);
-    }).catch(() => setCities([]));
-  }, []);
-
-  // ── §03 Kaynak (anamnez nasilBuldu → /api/kazanim-kanali) ──
-  const [channels, setChannels] = useState<Channel[] | null>(null);
-  useEffect(() => {
-    fetch('/api/kazanim-kanali').then((r) => r.json()).then((d) => setChannels(Array.isArray(d?.channels) ? d.channels : [])).catch(() => setChannels([]));
-  }, []);
-
   // ── railnav scroll-spy ──
   const [activeSec, setActiveSec] = useState('ca-hub');
   useEffect(() => {
@@ -143,7 +125,7 @@ export default function CalismaAlaniV3(props: CalismaAlaniV3Props) {
     const io = new IntersectionObserver(
       (es) => es.forEach((e) => { if (e.isIntersecting) setActiveSec((e.target as HTMLElement).id); }),
       { rootMargin: '-30% 0px -60% 0px', threshold: 0 });
-    ['ca-hub', 'ca-konum'].forEach((id) => { const el = root.querySelector('#' + id); if (el) io.observe(el); });
+    ['ca-hub'].forEach((id) => { const el = root.querySelector('#' + id); if (el) io.observe(el); });
     return () => io.disconnect();
   }, [mounted]);
   const scrollTo = (id: string) => { const el = rootRef.current?.querySelector('#' + id) as HTMLElement | null; if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 80, behavior: 'smooth' }); };
@@ -183,19 +165,6 @@ export default function CalismaAlaniV3(props: CalismaAlaniV3Props) {
   const barMax = Math.max(1, ...bars);
   const allZero = bars.every((b) => b === 0);
 
-  // §02 türev
-  const cityTotal = cities ? cities.reduce((a, c) => a + c.n, 0) : 0;
-  const cityMax = cities && cities.length ? Math.max(...cities.map((c) => c.n)) : 1;
-
-  // §03 türev (donut)
-  const chTotal = channels ? channels.reduce((a, c) => a + c.n, 0) : 0;
-  const R = 78, CIRC = 2 * Math.PI * R;
-  const donut = (() => {
-    if (!channels || chTotal === 0) return [] as { color: string; dash: string; off: string }[];
-    let off = 0;
-    return channels.map((c) => { const len = CIRC * (c.n / chTotal); const seg = { color: c.color, dash: `${len.toFixed(2)} ${(CIRC - len).toFixed(2)}`, off: (-off).toFixed(2) }; off += len; return seg; });
-  })();
-  const topCh = channels && channels.length ? channels.reduce((a, b) => (b.n > a.n ? b : a), channels[0]) : null;
 
   return (
     <>
@@ -272,62 +241,6 @@ export default function CalismaAlaniV3(props: CalismaAlaniV3Props) {
               </div>
             </section>
 
-            {/* ───────── §02 KONUM + §03 KAYNAK ───────── */}
-            <section id="ca-konum" style={{ marginTop: 'clamp(44px,6vh,72px)' }}>
-              <div className="dual">
-                {/* §02 Konumlar */}
-                <div className="dual-col">
-                  <div className="hub-head"><div className="l"><span className="eyebrow" data-no="02">Konumlar</span><h2 className="hub-title">Danışanların <em>nereden</em> geliyor?</h2></div></div>
-                  {cities === null ? (
-                    <div className="geo-list reveal"><div className="geo-empty">Konum verisi yükleniyor…</div></div>
-                  ) : cities.length === 0 ? (
-                    <div className="geo-list reveal"><div className="geo-empty">Henüz konum verisi yok — danışan anamnezine şehir girilince burada görünür.</div></div>
-                  ) : (
-                    <div className="geo-list reveal">
-                      {cities.map((c) => (
-                        <div key={c.city} className="gl-row">
-                          <span className="gl-city">{c.city}</span>
-                          <span className="gl-track"><span className="gl-fill" style={{ width: `${Math.round((c.n / cityMax) * 100)}%` }} /></span>
-                          <span className="gl-n">{c.n}</span>
-                        </div>
-                      ))}
-                      <div className="geo-foot"><span>Toplam</span><span><b>{cityTotal}</b> danışan</span></div>
-                    </div>
-                  )}
-                </div>
-                {/* §03 Kaynak */}
-                <div className="dual-col" id="ca-kaynak">
-                  <div className="hub-head"><div className="l"><span className="eyebrow" data-no="03">Kaynak</span><h2 className="hub-title">Danışanların seni <em>nasıl</em> buluyor?</h2></div></div>
-                  {channels === null ? (
-                    <div className="acq-wrap reveal" style={{ display: 'block' }}><div className="geo-empty">Kaynak verisi yükleniyor…</div></div>
-                  ) : channels.length === 0 ? (
-                    <div className="acq-wrap reveal" style={{ display: 'block' }}><div className="geo-empty">Henüz kaynak verisi yok — anamnezdeki "Bizi nasıl buldu?" doldurulunca burada görünür.</div></div>
-                  ) : (
-                    <div className="acq-wrap reveal">
-                      <div className="acq-donut">
-                        <svg viewBox="0 0 200 200" aria-hidden="true">
-                          <circle cx="100" cy="100" r="78" fill="none" stroke="rgba(35,34,42,.06)" strokeWidth="22" />
-                          {donut.map((d, i) => <circle key={i} cx="100" cy="100" r="78" fill="none" stroke={d.color} strokeWidth="22" strokeDasharray={d.dash} strokeDashoffset={d.off} transform="rotate(-90 100 100)" />)}
-                        </svg>
-                        <div className="acq-center"><b>{chTotal}</b><span>danışan</span></div>
-                      </div>
-                      <div className="acq-list">
-                        {channels.map((c) => (
-                          <div key={c.key} className="ac-row">
-                            <span className="ac-key"><span className="ac-dot" style={{ background: c.color }} />{c.label}</span>
-                            <span className="ac-sub">{c.sub}</span>
-                            <span className="ac-pct">{Math.round((c.n / (chTotal || 1)) * 100)}%</span>
-                            <span className="ac-n">{c.n}</span>
-                          </div>
-                        ))}
-                        {topCh && <div className="acq-note"><span className="ac-dot" style={{ background: topCh.color }} /> En çok kazanım: <b>{topCh.label}</b> · %{Math.round((topCh.n / (chTotal || 1)) * 100)}</div>}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </section>
-
           </div>
         </main>
 
@@ -357,7 +270,7 @@ export default function CalismaAlaniV3(props: CalismaAlaniV3Props) {
         {/* ───────── RAILNAV ───────── */}
         <nav className="railnav" aria-label="Bölümler">
           {RAIL.map((r) => (
-            <a key={r.id} className={'rn-item' + (activeSec === r.id || (r.id === 'ca-kaynak' && activeSec === 'ca-konum') ? ' active' : '')} onClick={() => scrollTo(r.id)}>
+            <a key={r.id} className={'rn-item' + (activeSec === r.id ? ' active' : '')} onClick={() => scrollTo(r.id)}>
               <span className="rn-label">{r.l}</span><span className="rn-tick" />
             </a>
           ))}

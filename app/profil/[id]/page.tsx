@@ -252,6 +252,7 @@ export default function DanisanProfilPage({ params }: { params: Promise<{ id: st
         relationship,
         actMatrix,
         values,
+        longitudinal: fd?.longitudinal ?? null,
       });
     });
   }, [id]);

@@ -1,9 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import './DanisanOzetSunum.css';   // landing-uyumlu "mesh + opal cam" özet/sunum dili (.ozx)
 import { PROFIL_DATA as DEFAULT_DATA } from './danisanRaporuData';
 import { DiagramViewer, type DiagramType } from './BozuklukDongusu';
+import SeansPlanlayiciV2 from './SeansPlanlayiciV2';   // "Sıradaki seansa hazırlık" — gömülü (embedded)
+import type { Intervention } from '@/lib/types';
 import { compileAile } from '@/lib/anamnez';
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -49,6 +51,8 @@ export function DanisanOzetSunum(props: DanisanRaporuProps) {
   const [cycles, setCycles] = useState<any[]>([]);
   const [anamnez, setAnamnez] = useState<any>(null);
   const [theme, setTheme] = useState('rose');
+  const [beliefTags, setBeliefTags] = useState<string[]>([]);
+  const [library, setLibrary] = useState<Intervention[]>([]);   // müdahale kütüphanesi (gömülü planlayıcı için)
 
   useEffect(() => {
     try { const t = ozsLs('calmie-theme'); if (t && THEMES.some(([x]) => x === t)) setTheme(t); } catch {}
@@ -68,6 +72,40 @@ export function DanisanOzetSunum(props: DanisanRaporuProps) {
       .catch(() => {});
   }, [props.clientId]);
 
+  // Temel inanç havuzu = uygulamanın kendi terimleri (clinical_tags · temel_inanclar).
+  // Terapistler döngü/formülasyon doldururken bu havuz büyür; biz salt okuruz.
+  useEffect(() => {
+    fetch('/api/tags')
+      .then((r) => (r.ok ? r.json() : []))
+      .then((d) => {
+        const list = Array.isArray(d)
+          ? d.filter((t: any) => t?.category === 'temel_inanclar' && typeof t?.label === 'string')
+              .map((t: any) => t.label.trim())
+              .filter(Boolean)
+          : [];
+        setBeliefTags(Array.from(new Set(list)));
+      })
+      .catch(() => {});
+  }, []);
+
+  // Müdahale kütüphanesi — gömülü "Sıradaki seansa hazırlık" planlayıcısı için.
+  useEffect(() => {
+    fetch('/api/interventions')
+      .then((r) => (r.ok ? r.json() : []))
+      .then((d) => setLibrary(Array.isArray(d) ? d : []))
+      .catch(() => {});
+  }, []);
+
+  // Seans planını kaydet → SessionPlan (next_focus = seans hedefi).
+  const saveNextPlan = (args: { goal: string; items: { interventionId: string; durationMinutes: number; order: number; block: 'main' }[] }) => {
+    if (!props.clientId) return;
+    fetch('/api/session-plans', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientId: props.clientId, sessionLength: 50, items: args.items, nextFocus: args.goal }),
+    }).catch(() => {});
+  };
+
   const tx = (s: any): string => (typeof s === 'string' ? s.trim() : '');
 
   // ── Klinik dikkat: yatış öyküsü / psikiyatrik ilaç / ailede istismar ──
@@ -82,6 +120,31 @@ export function DanisanOzetSunum(props: DanisanRaporuProps) {
   if (yatisVar) attnItems.push({ k: 'Yatış öyküsü var' });
   if (psikIlac) attnItems.push({ k: 'Psikiyatrik ilaç', v: psikIlac });
   if (istismarVar) attnItems.push({ k: 'Ailede istismar / eşitsizlik', v: istismarNot || undefined });
+
+  // ── Temel inanç adayları: havuzdaki terimleri klinik sinyallere göre vurgula ──
+  const bNorm = (s: string) => s.toLowerCase().replace(/i̇/g, 'i');
+  const BELIEF_THEMES: Record<string, string[]> = {
+    yetersizlik: ['yeter', 'çaresiz', 'caresiz', 'başar', 'basar', 'güçsüz', 'gucsuz', 'zayıf', 'zayif', 'beceriksiz', 'aciz', 'yetenek'],
+    sevilmezlik: ['sevil', 'sevg', 'istenm', 'reddedil', 'yaln', 'terk', 'ilgisiz'],
+    degersizlik: ['değer', 'deger', 'kötü', 'kotu', 'kusur', 'suç', 'suc', 'utan', 'önemsiz', 'onemsiz', 'eziklik'],
+    guvensizlik: ['güven', 'guven', 'tehlike', 'savunmasız', 'savunmasiz', 'incin', 'zarar'],
+  };
+  const activeThemes = new Set<string>();
+  if (istismarVar) ['degersizlik', 'guvensizlik', 'sevilmezlik'].forEach((t) => activeThemes.add(t));
+  if (yatisVar) activeThemes.add('yetersizlik');
+  if (psikIlac) activeThemes.add('yetersizlik');
+  const signalBlob = bNorm([istismarNot, psikIlac].filter(Boolean).join(' '));
+  for (const [theme, roots] of Object.entries(BELIEF_THEMES)) {
+    if (roots.some((r) => signalBlob.includes(r))) activeThemes.add(theme);
+  }
+  const themesOf = (label: string): string[] => {
+    const n = bNorm(label);
+    return Object.entries(BELIEF_THEMES).filter(([, roots]) => roots.some((r) => n.includes(r))).map(([t]) => t);
+  };
+  const beliefList = beliefTags
+    .map((label) => ({ label, hot: showFlag && themesOf(label).some((t) => activeThemes.has(t)) }))
+    .sort((a, b) => (b.hot ? 1 : 0) - (a.hot ? 1 : 0) || a.label.localeCompare(b.label, 'tr'));
+  const showBeliefs = beliefList.length > 0;
 
   // ── Sosyal destek & ilişkiler + kendini tanımlama (anamnezden) ──
   const sosyalA = anamnez?.isSosyal || {};
@@ -187,6 +250,18 @@ export function DanisanOzetSunum(props: DanisanRaporuProps) {
       ? <div className="cyc-empty"><span className="mk">!</span><div><b>Sorun döngüsü henüz eklenmedi</b>Bu danışanın formülasyonu eksik. Döngüyü “Formülasyon adımları” ekranından ekleyin.</div></div>
       : <div className="cycwrap">{cycles.map((cy) => { let f: Record<string, string> = {}; try { f = JSON.parse(cy.fields_json || '{}'); } catch {}
           return <div key={cy.id} className="cyc-card"><div className="cyc-h">{cy.label || cy.type}</div><DiagramViewer type={cy.type as DiagramType} fields={f} readOnly /></div>; })}</div>
+  ) });
+
+  // Uzunlamasına (gelişimsel) formülasyon — döngü gibi ŞEMA (uzunlamasina bdx tipi).
+  const lng = (D.longitudinal || {}) as any;
+  const lngFields: Record<string, string> = {
+    lng_erken: (lng.earlyExperiences || []).join('\n'),
+    lng_temel: (lng.coreBeliefs || []).join('\n'),
+    lng_ara: (lng.intermediateBeliefs || []).join('\n'),
+    lng_basa: (lng.copingStrategies || []).join('\n'),
+  };
+  if (Object.values(lngFields).some((v) => v.trim())) secs.push({ t: 'Uzunlamasına formülasyon', eye: 'gelişimsel', node: (
+    <div className="cycwrap"><div className="cyc-card"><div className="cyc-h">Erken yaşantılardan başa çıkmaya</div><DiagramViewer type="uzunlamasina" fields={lngFields} readOnly /></div></div>
   ) });
 
   if (fourP.some((p) => T(p.body) || (p.chips && p.chips.length))) secs.push({ t: 'Koruyucu ve soruna yatkınlık yaratan faktörler', eye: 'dört pencere', node: (
@@ -359,6 +434,19 @@ export function DanisanOzetSunum(props: DanisanRaporuProps) {
 
   const today = new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
 
+  // ── Seans ilerlemelerinin ALTINA gömülü "Sıradaki seansa hazırlık" planlayıcısı ──
+  // Etkileşimli + yazdırmada gizli (read-only belgeye dahil değil). Yalnız gerçek dosyada.
+  const nextPrep = props.clientId ? (
+    <div className="ozs-next print-hide">
+      <SeansPlanlayiciV2
+        embedded
+        client={{ id: String(props.clientId), name }}
+        library={library}
+        onSave={saveNextPlan}
+      />
+    </div>
+  ) : null;
+
   return (
     <div className="ozx" data-theme={theme}>
       <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -383,16 +471,36 @@ export function DanisanOzetSunum(props: DanisanRaporuProps) {
       <main className="doc">
         <div className="wrap">
           <div className="doc-inner">
-            {/* KLİNİK DİKKAT */}
+            {/* KLİNİK DİKKAT + temel inanç adayları */}
             {showFlag && (
-              <section className="attn" role="alert">
-                <div className="attn-ic"><svg viewBox="0 0 24 24"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" /><path d="M12 9v4M12 17h.01" /></svg></div>
-                <div className="attn-b">
-                  <div className="lab">Klinik dikkat</div>
-                  <h3>Bu danışan için öncelikli klinik sinyaller var.</h3>
-                  <div className="attn-list">{attnItems.map((it, i) => <span key={i} className="attn-chip">{it.k}{it.v ? `: ${it.v}` : ''}</span>)}</div>
-                </div>
-              </section>
+              <div className={`attn-row${showBeliefs ? ' has-aside' : ''}`}>
+                <section className="attn" role="alert">
+                  <div className="attn-ic"><svg viewBox="0 0 24 24"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" /><path d="M12 9v4M12 17h.01" /></svg></div>
+                  <div className="attn-b">
+                    <div className="lab">Klinik dikkat</div>
+                    <h3>Bu danışan için öncelikli klinik sinyaller var.</h3>
+                    <div className="attn-list">{attnItems.map((it, i) => {
+                      const points = (it.v || '').split(/(?<=[.!?…])\s+/).map(s => s.trim()).filter(Boolean);
+                      return (
+                        <div key={i} className="attn-cat">
+                          <b>{it.k}</b>
+                          {points.length > 0 && <ul className="attn-points">{points.map((p, j) => <li key={j}>{p}</li>)}</ul>}
+                        </div>
+                      );
+                    })}</div>
+                  </div>
+                </section>
+                {showBeliefs && (
+                  <aside className="belief-box" aria-label="Temel inanç adayları">
+                    <div className="bb-lab">Uzunlamasına · Temel inanç</div>
+                    <h3 className="bb-title">Kendinle ilgili inançlar</h3>
+                    <p className="bb-sub">Havuzdaki terimler; klinik sinyallerle örtüşenler vurgulu.</p>
+                    <div className="bb-chips">{beliefList.map((b, i) => (
+                      <span key={i} className={`bb-chip${b.hot ? ' hot' : ''}`}>{b.label}</span>
+                    ))}</div>
+                  </aside>
+                )}
+              </div>
             )}
 
             {/* HERO */}
@@ -422,11 +530,17 @@ export function DanisanOzetSunum(props: DanisanRaporuProps) {
 
             {/* NUMARALI KOŞULLU BÖLÜMLER */}
             {secs.map((s, i) => (
-              <section key={i} className={`ozs-sec${s.className ? ' ' + s.className : ''}`}>
-                <div className="sec-head"><span className="ozs-no">{String(i + 1).padStart(2, '0')}</span><h2 className="sec-title">{s.t}</h2>{s.eye ? <span className="sec-eye">{s.eye}</span> : null}</div>
-                {s.node}
-              </section>
+              <Fragment key={i}>
+                <section className={`ozs-sec${s.className ? ' ' + s.className : ''}`}>
+                  <div className="sec-head"><span className="ozs-no">{String(i + 1).padStart(2, '0')}</span><h2 className="sec-title">{s.t}</h2>{s.eye ? <span className="sec-eye">{s.eye}</span> : null}</div>
+                  {s.node}
+                </section>
+                {/* Seans ilerlemelerinin (Seans kayıtları) hemen ALTINA gömülü planlayıcı */}
+                {s.t === 'Seans kayıtları' && nextPrep}
+              </Fragment>
             ))}
+            {/* Henüz seans kaydı yoksa "Seans kayıtları" bölümü çizilmez → planlayıcıyı sona ekle */}
+            {!records.length && nextPrep}
           </div>
 
           <div className="ozs-foot">

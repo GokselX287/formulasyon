@@ -19,6 +19,8 @@ export type OzetIncelemeProps = {
   onNav?(target: string): void;
   onSave?(payload: { mode: Mode; fields: Field[] }): void;
   onReExtract?(mode: Mode): Promise<Extract | null> | void;
+  /** Danışan dosyasına gömülü kullanım — kabuk/dock/railnav/geri çizmez (ebeveyn sağlar). */
+  embedded?: boolean;
 };
 
 const DOCK: { label: string; target: string; active?: boolean }[] = [
@@ -48,6 +50,8 @@ export default function OzetInceleme(props: OzetIncelemeProps) {
   const [saved, setSaved] = useState<number | null>(null);
   const [activeRail, setActiveRail] = useState<string>('grp-0');
   const [thumb, setThumb] = useState<{ left: number; width: number }>({ left: 4, width: 0 });
+  const [theme, setTheme] = useState('sage');
+  useEffect(() => { try { setTheme(localStorage.getItem('calmie-theme') || 'sage'); } catch { /* yoksay */ } }, []);
 
   const modalBodyRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
@@ -159,16 +163,20 @@ export default function OzetInceleme(props: OzetIncelemeProps) {
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
       <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600;1,700&display=swap" rel="stylesheet" />
 
-      <div className="oz">
+      <div className={'oz' + (props.embedded ? ' oz-embedded' : '')} data-theme={theme}>
+        {!props.embedded && <div className="oz-scene" aria-hidden="true" />}
+        {!props.embedded && <div className="oz-grain" aria-hidden="true" />}
         <div className="shell">
 
           {/* ÜST BAR */}
           <div className="topbar">
-            <button className="back" type="button" onClick={() => props.onBack?.()}>
-              <span className="chev">‹</span><span>Geri</span>
-            </button>
+            {!props.embedded && (
+              <button className="back" type="button" onClick={() => props.onBack?.()}>
+                <span className="chev">‹</span><span>Geri</span>
+              </button>
+            )}
             <div className="topbar-right">
-              <a className="print-link" href="#" onClick={(e) => { e.preventDefault(); if (typeof window !== 'undefined') window.print(); }}>Yazdır / PDF</a>
+              {!props.embedded && <a className="print-link" href="#" onClick={(e) => { e.preventDefault(); if (typeof window !== 'undefined') window.print(); }}>Yazdır / PDF</a>}
               <div className="audience" role="group" aria-label="Çıkarım modu">
                 <span className="thumb" style={{ left: thumb.left, width: thumb.width }} />
                 {(['seans', 'anamnez'] as Mode[]).map((m) => (
@@ -303,20 +311,24 @@ export default function OzetInceleme(props: OzetIncelemeProps) {
 
           </div>{/* /modal-body */}
 
-          <nav className="railnav" aria-label="Bölümler">
-            {railItems.map((it) => (
-              <a key={it.id} className={`rn-item${activeRail === it.id ? ' active' : ''}`} href={`#${it.id}`} onClick={(e) => { e.preventDefault(); scrollTo(it.id); }}>
-                <span className="rn-label">{it.label}</span>
-                <span className="rn-tick" />
-              </a>
-            ))}
-          </nav>
+          {!props.embedded && (
+            <nav className="railnav" aria-label="Bölümler">
+              {railItems.map((it) => (
+                <a key={it.id} className={`rn-item${activeRail === it.id ? ' active' : ''}`} href={`#${it.id}`} onClick={(e) => { e.preventDefault(); scrollTo(it.id); }}>
+                  <span className="rn-label">{it.label}</span>
+                  <span className="rn-tick" />
+                </a>
+              ))}
+            </nav>
+          )}
 
-          <nav className="dock">
-            {DOCK.map((d) => (
-              <a key={d.target} href="#" className={d.active ? 'active' : ''} onClick={(e) => { e.preventDefault(); props.onNav?.(d.target); }}>{d.label}</a>
-            ))}
-          </nav>
+          {!props.embedded && (
+            <nav className="dock">
+              {DOCK.map((d) => (
+                <a key={d.target} href="#" className={d.active ? 'active' : ''} onClick={(e) => { e.preventDefault(); props.onNav?.(d.target); }}>{d.label}</a>
+              ))}
+            </nav>
+          )}
 
         </div>
       </div>

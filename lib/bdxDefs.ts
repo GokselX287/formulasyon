@@ -581,6 +581,30 @@ export const BDX_DEFS: Record<string, DiagramDef> = {
     ],
   },
 
+  // Uzunlamasına (gelişimsel) formülasyon — döngü DEĞİL, dikey akış (Beck longitudinal).
+  // Anamnezden tohumlanan erken yaşantılar → temel/ara inançlar → başa çıkma zinciri.
+  // Düğüm key'leri DanisanRaporu/AnamnezV2'de panel.longitudinal'den beslenir (readOnly).
+  'uzunlamasina': {
+    vb: [520, 470], max: 500,
+    cite: 'Uzunlamasına (Gelişimsel) Formülasyon — Beck',
+    legend: false,
+    nodes: [
+      { id: 'N1', key: 'lng_erken', x: 60, y: 16,  w: 400, h: 80, title: 'Erken yaşantılar', sub: 'gelişimsel köken',
+        desc: 'Çocukluk/ergenlik deneyimleri, aile ortamı ve travmalar — inançların kökeni.', ph: '…' },
+      { id: 'N2', key: 'lng_temel', x: 60, y: 132, w: 400, h: 70, title: 'Temel inançlar',
+        desc: 'Kendine / başkalarına / dünyaya dair derin, koşulsuz inançlar.', ph: '…' },
+      { id: 'N3', key: 'lng_ara',   x: 60, y: 238, w: 400, h: 80, title: 'Ara inançlar / kurallar', sub: 'koşullu varsayımlar',
+        desc: 'Tutum, kural ve varsayımlar ("…sa, …olur"); temel inançtan türer.', ph: '…' },
+      { id: 'N4', key: 'lng_basa',  x: 60, y: 354, w: 400, h: 84, shape: 'pill', variant: 'accent', title: 'Başa çıkma stratejileri',
+        desc: 'Telafi edici / koruyucu davranış örüntüleri (bağlanma, ilişki örüntüleri).', ph: '…' },
+    ],
+    edges: [
+      { from: 'N1', to: 'N2', fromSide: 'b', toSide: 't' },
+      { from: 'N2', to: 'N3', fromSide: 'b', toSide: 't' },
+      { from: 'N3', to: 'N4', fromSide: 'b', toSide: 't' },
+    ],
+  },
+
 };
 
 /** DiagramType — 23 modelin tip birliği (DIAGRAMS sırasıyla aynı). */
@@ -589,7 +613,8 @@ export type DiagramType =
   | 'cocuk-depresyon' | 'akb' | 'anksiyete-formul' | 'ozgul-fobi' | 'yeme-sorunlari'
   | 'istek-mutluluk' | 'ddd-basit' | 'akb-komplex' | 'kacinma-ogrenme'
   | 'yab-basit' | 'hastalik-anksiyete' | 'hastalik-anksiyete-detay'
-  | 'ruminasyon' | 'ruminasyon-ust-bilis' | 'cekingenlik' | 'basit-obsesyon' | 'travma';
+  | 'ruminasyon' | 'ruminasyon-ust-bilis' | 'cekingenlik' | 'basit-obsesyon' | 'travma'
+  | 'uzunlamasina';   // gelişimsel/uzunlamasına formülasyon (DIAGRAMS galerisinde YOK — türetilmiş)
 
 /** Katalog — liste/seçim ekranlarının kullandığı görünen ad + etiket. */
 export const DIAGRAMS: { id: DiagramType; label: string; tag: string }[] = [

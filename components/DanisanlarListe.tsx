@@ -18,7 +18,7 @@ export type DanisanlarListeProps = {
   onBack?(): void;
   onNav?(target: string): void;            // 'home' | 'calendar' | 'profil' | 'ayarlar'
   onNewClient?(): void;
-  onOpenClient?(id: string): void;         // → /danisan/[id]
+  onOpenClient?(id: string): void;         // anamnez kapısı: çocuk→değerlendirme · yetişkin anamnez boşsa→Anamnez, doluysa→Özet Sunum
   onPrefetchClient?(id: string): void;
   onMail?(id: string): void;
   onSms?(id: string): void;

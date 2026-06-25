@@ -80,6 +80,9 @@ const SECTIONS = [
 const AYLAR = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
 const MOOD_GLYPHS = ['☁', '🌥', '⛅', '🌤', '☀'];
 
+type City = { city: string; n: number };
+type Channel = { key: string; label: string; sub: string; color: string; n: number };
+
 export default function AnaSayfaLanding({ data, onOpenFile, onNav, onOpenProfile, onSaveWellbeing }: AnaSayfaLandingProps) {
   const D = data;
   const rootRef = useRef<HTMLDivElement>(null);
@@ -105,6 +108,30 @@ export default function AnaSayfaLanding({ data, onOpenFile, onNav, onOpenProfile
     let v = parseInt(raw, 10); if (isNaN(v)) v = 0; v = Math.max(0, Math.min(168, v));
     setWeeklyHours(String(v)); lsSet('calmie-weekly-hours', String(v)); setWhEditing(false);
   };
+
+  // ── Danışan kazanımı: konum (anamnez şehir) + kaynak (anamnez "nasıl buldu") ──
+  const [cities, setCities] = useState<City[] | null>(null);
+  useEffect(() => {
+    fetch('/api/danisan-konum').then((r) => r.json()).then((d) => {
+      const arr: City[] = Array.isArray(d?.iller) ? d.iller.map((i: any) => ({ city: i.sehir, n: i.count })) : [];
+      if (d?.bilinmeyen > 0) arr.push({ city: 'Diğer', n: d.bilinmeyen });
+      setCities(arr);
+    }).catch(() => setCities([]));
+  }, []);
+  const [channels, setChannels] = useState<Channel[] | null>(null);
+  useEffect(() => {
+    fetch('/api/kazanim-kanali').then((r) => r.json()).then((d) => setChannels(Array.isArray(d?.channels) ? d.channels : [])).catch(() => setChannels([]));
+  }, []);
+  const cityTotal = cities ? cities.reduce((a, c) => a + c.n, 0) : 0;
+  const cityMax = cities && cities.length ? Math.max(...cities.map((c) => c.n)) : 1;
+  const chTotal = channels ? channels.reduce((a, c) => a + c.n, 0) : 0;
+  const ACQ_CIRC = 2 * Math.PI * 78;
+  const acqDonut = (() => {
+    if (!channels || chTotal === 0) return [] as { color: string; dash: string; off: string }[];
+    let off = 0;
+    return channels.map((c) => { const len = ACQ_CIRC * (c.n / chTotal); const seg = { color: c.color, dash: `${len.toFixed(2)} ${(ACQ_CIRC - len).toFixed(2)}`, off: (-off).toFixed(2) }; off += len; return seg; });
+  })();
+  const topCh = channels && channels.length ? channels.reduce((a, b) => (b.n > a.n ? b : a), channels[0]) : null;
 
   // ── seans sıralama + durum (gerçek saate göre, mount sonrası) ───────
   const sorted = useMemo(() => {
@@ -558,6 +585,67 @@ export default function AnaSayfaLanding({ data, onOpenFile, onNav, onOpenProfile
                       <span className={'risk-tag ' + d.level}>{d.risk}</span>
                     </div>
                   ))}
+                </div>
+              </div>
+            </section>
+
+            {/* ───────── DANIŞAN KAZANIMI: KONUM + KAYNAK ───────── */}
+            <section className="sec" id="secKaynak">
+              <div className="sec-head reveal">
+                <div className="l"><span className="eyebrow">danışan kazanımı</span>
+                  <h2 className="sec-title">Danışanların <span className="ser">nereden</span> ve nasıl geliyor?</h2></div>
+                <p className="sec-aside">Anamnezden türetilir — danışanın şehri ve “Bizi nasıl buldu?” yanıtından.</p>
+              </div>
+              <div className="dual reveal">
+                {/* Konumlar */}
+                <div className="dual-col">
+                  <div className="dual-sub"><span className="eyebrow">konum</span><h3>Danışanların <em>nereden</em> geliyor?</h3></div>
+                  {cities === null ? (
+                    <div className="geo-list"><div className="geo-empty">Konum verisi yükleniyor…</div></div>
+                  ) : cities.length === 0 ? (
+                    <div className="geo-list"><div className="geo-empty">Henüz konum verisi yok — danışan anamnezine şehir girilince burada görünür.</div></div>
+                  ) : (
+                    <div className="geo-list">
+                      {cities.map((c) => (
+                        <div key={c.city} className="gl-row">
+                          <span className="gl-city">{c.city}</span>
+                          <span className="gl-track"><span className="gl-fill" style={{ width: `${Math.round((c.n / cityMax) * 100)}%` }} /></span>
+                          <span className="gl-n">{c.n}</span>
+                        </div>
+                      ))}
+                      <div className="geo-foot"><span>Toplam</span><span><b>{cityTotal}</b> danışan</span></div>
+                    </div>
+                  )}
+                </div>
+                {/* Kaynak */}
+                <div className="dual-col">
+                  <div className="dual-sub"><span className="eyebrow">kaynak</span><h3>Danışanların seni <em>nasıl</em> buluyor?</h3></div>
+                  {channels === null ? (
+                    <div className="acq-wrap" style={{ display: 'block' }}><div className="geo-empty">Kaynak verisi yükleniyor…</div></div>
+                  ) : channels.length === 0 ? (
+                    <div className="acq-wrap" style={{ display: 'block' }}><div className="geo-empty">Henüz kaynak verisi yok — anamnezdeki “Bizi nasıl buldu?” doldurulunca burada görünür.</div></div>
+                  ) : (
+                    <div className="acq-wrap">
+                      <div className="acq-donut">
+                        <svg viewBox="0 0 200 200" aria-hidden="true">
+                          <circle cx="100" cy="100" r="78" fill="none" stroke="rgba(35,34,42,.06)" strokeWidth="22" />
+                          {acqDonut.map((d, i) => <circle key={i} cx="100" cy="100" r="78" fill="none" stroke={d.color} strokeWidth="22" strokeDasharray={d.dash} strokeDashoffset={d.off} transform="rotate(-90 100 100)" />)}
+                        </svg>
+                        <div className="acq-center"><b>{chTotal}</b><span>danışan</span></div>
+                      </div>
+                      <div className="acq-list">
+                        {channels.map((c) => (
+                          <div key={c.key} className="ac-row">
+                            <span className="ac-key"><span className="ac-dot" style={{ background: c.color }} />{c.label}</span>
+                            <span className="ac-sub">{c.sub}</span>
+                            <span className="ac-pct">{Math.round((c.n / (chTotal || 1)) * 100)}%</span>
+                            <span className="ac-n">{c.n}</span>
+                          </div>
+                        ))}
+                        {topCh && <div className="acq-note"><span className="ac-dot" style={{ background: topCh.color }} /> En çok kazanım: <b>{topCh.label}</b> · %{Math.round((topCh.n / (chTotal || 1)) * 100)}</div>}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </section>

@@ -3936,8 +3936,24 @@ export default function HomePage() {
               onBack={() => setCalismaSubTab('hub')}
               onNav={(t) => { if (t === 'profil') setTab('terapist'); else if (t === 'home') setTab('home'); else if (t === 'calendar') goToTakvim(); else if (t === 'ayarlar') setTab('ayarlar'); else setTab(t as Tab); }}
               onNewClient={() => setNewClientOpen(true)}
-              onPrefetchClient={(id) => router.prefetch(`/danisan/${id}`)}
-              onOpenClient={(id) => router.push(`/danisan/${id}`)}
+              onPrefetchClient={(id) => {
+                const p = (state.patients as any[]).find((x) => String(x.id) === String(id));
+                router.prefetch((p?.patientType ?? 'yetiskin') === 'cocuk' ? `/clients/${id}/cocuk` : `/clients/${id}/anamnez`);
+              }}
+              onOpenClient={async (id) => {
+                // /danisan derleme kaldırıldı → "anamnez kapısı": çocuk→değerlendirme;
+                // yetişkin anamnez boşsa→Anamnez editörü, doluysa→Özet Sunum (/profil).
+                const p = (state.patients as any[]).find((x) => String(x.id) === String(id));
+                if ((p?.patientType ?? 'yetiskin') === 'cocuk') { router.push(`/clients/${id}/cocuk`); return; }
+                let anamnezDone = false;
+                try {
+                  const a = await fetch(`/api/anamnez/${id}`).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+                  anamnezDone = !!(a && typeof a === 'object' && Object.values(a).some((v) =>
+                    (typeof v === 'string' && v.trim()) || (Array.isArray(v) && v.length) ||
+                    (v && typeof v === 'object' && Object.values(v).some((x) => (typeof x === 'string' && x.trim()) || (Array.isArray(x) && x.length)))));
+                } catch { /* yok */ }
+                router.push(anamnezDone ? `/profil/${id}` : `/clients/${id}/anamnez`);
+              }}
             />
           )}
           {tab === "calisma-alani" && calismaSubTab === "bu-hafta" && (() => {
