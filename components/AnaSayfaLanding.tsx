@@ -269,6 +269,8 @@ export default function AnaSayfaLanding({ data, onOpenFile, onNav, onOpenProfile
               <a onClick={() => onNav?.('calendar')}>Takvim</a>
               <a onClick={() => onNav?.('calisma-alani')}>Çalışma Alanı</a>
               <a onClick={() => onOpenProfile?.()}>Profil</a>
+              {/* şimdilik: tanıtım (landing) sayfasına dön */}
+              <a href="/">Tanıtım Sayfası</a>
             </div>
             <a className="nav-prof" onClick={() => onOpenProfile?.()}>
               <div className="np-col">
@@ -286,6 +288,8 @@ export default function AnaSayfaLanding({ data, onOpenFile, onNav, onOpenProfile
             <a onClick={() => { setMobileMenu(false); onNav?.('calendar'); }}>Takvim &amp; Randevular</a>
             <a onClick={() => { setMobileMenu(false); onNav?.('calisma-alani'); }}>Çalışma Alanı</a>
             <a onClick={() => { setMobileMenu(false); onOpenProfile?.(); }}>Profil</a>
+            {/* şimdilik: tanıtım (landing) sayfasına dön */}
+            <a href="/">Tanıtım Sayfası</a>
           </div>
         </div>
 
