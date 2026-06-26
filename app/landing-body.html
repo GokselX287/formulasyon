@@ -1,13 +1,18 @@
-
+<!-- =====================================================================
+     Calmie — TEK-SAYFA landing gövdesi (page.tsx tarafından gömülür)
+     Sıra: nav · hero · problem · moduller · ozellikler · fiyat · guven · sss · footer · tema seçici
+     Davranış (kaydırma/tema/menü) LandingFx.tsx içinde — buradaki markup saftır.
+     ===================================================================== -->
 <div class="scene" aria-hidden="true"></div>
 <div class="grain" aria-hidden="true"></div>
 
+<!-- ================= NAV ================= -->
 <div class="navwrap">
   <nav class="nav" aria-label="Birincil">
-    <div class="brand"><a href="#" class="logo">Calmie<i>.</i></a></div>
+    <div class="brand"><a href="#hero" class="logo">Calmie<i>.</i></a></div>
     <div class="nav-links">
       <a href="#moduller">Modüller</a>
-      <a href="#nasil">Nasıl çalışır</a>
+      <a href="#problem">Nasıl çalışır</a>
       <a href="#ozellikler">Özellikler</a>
       <a href="#fiyat">Fiyat</a>
       <a href="#sss">SSS</a>
@@ -15,12 +20,12 @@
     <div class="nav-cta">
       <a href="/giris" class="login">Giriş yap</a>
       <a href="/kayit" class="btn btn-primary">Kapalı betaya giriş kodu iste</a>
-      <button class="menu-btn" id="menuBtn" aria-label="Menü"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+      <button class="menu-btn" id="menuBtn" type="button" aria-label="Menü" aria-expanded="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
     </div>
   </nav>
   <div class="mobile-menu" id="mobileMenu">
     <a href="#moduller">Modüller</a>
-    <a href="#nasil">Nasıl çalışır</a>
+    <a href="#problem">Nasıl çalışır</a>
     <a href="#ozellikler">Özellikler</a>
     <a href="#fiyat">Fiyat</a>
     <a href="#sss">SSS</a>
@@ -33,13 +38,15 @@
 <section class="hero" id="hero" data-screen-label="Hero">
   <div class="wrap">
     <div class="hero-text reveal">
-      <span class="eyebrow hero-eye" style="font-family:var(--font-display);text-transform:none;letter-spacing:-.005em;font-weight:600;color:var(--ink-strong)"><span class="pulse"></span>Danışan takibi yaparken profesyonel bir süreç isteyenler için</span>
-      <h1 class="hero-title">Dosyalamayı <span class="ser">sevmemen</span> çok normal.</h1>
-      <p class="hero-lead">Sen sadece işine ve kendine odaklan. Gerisini Calmie üstlensin.</p>
+      <h1 class="hero-title">Danışan takibi <span class="ser">artık</span> <span class="ser">çok kolay</span>.</h1>
+      <p class="hero-lead">Dosyalama, formülleştirme, danışan ve randevu izleme, form paylaşma ve kişisel gelişimin için ihtiyaç duyduğun her şey Calmie'de.</p>
       <div class="hero-cta">
-        <a href="/kayit" class="btn btn-primary btn-lg">Kapalı betaya giriş kodu iste</a>
-        <a href="/giris" class="btn btn-ghost btn-lg">Giriş yap</a>
+        <div class="cta-merge">
+          <a href="/kayit" class="cta-merge-main">Kapalı betaya giriş kodu iste</a>
+          <a href="/giris" class="cta-merge-alt">Giriş yap</a>
+        </div>
       </div>
+      <p class="hero-eye-note">Danışan takibinde profesyonel bir süreç isteyenler için</p>
       <div class="hero-badges">
         <span class="hero-badge"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Davet temelli, sınırlı erişim</span>
         <span class="hero-badge"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3 5 6v5c0 4.2 2.9 7.7 7 9 4.1-1.3 7-4.8 7-9V6l-7-3z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>KVKK uyumlu &amp; güvenli</span>
@@ -48,34 +55,64 @@
     </div>
 
     <div class="hero-visual reveal">
-      <div class="card mock" aria-hidden="true">
-        <span class="card-tint"></span>
-        <div class="card-z">
-          <div class="mock-bar"><i></i><i></i><i></i><span style="font-family:var(--font-display);letter-spacing:-.005em;font-weight:600;color:var(--ink-strong)">calmie · danışan dosyası</span></div>
-          <div class="mock-head">
-            <div class="mock-id">
-              <div class="mock-av">A.Y.</div>
-              <div><b>A. Yılmaz</b><small>32 · Anksiyete · 7. seans</small></div>
+      <div class="pcard" aria-hidden="true">
+        <!-- bugünün seansları + seans listesi -->
+        <div class="pc-day">
+          <div class="dcard daycard">
+            <div class="day-date">26 Haziran 2026 · Cuma</div>
+            <div class="day-block">
+              <div class="day-kick">Seans akışı</div>
+              <h3 class="day-title">Bugünün<br>seansları</h3>
             </div>
-            <span class="mock-pill">Formülasyon hazır</span>
+            <div class="day-block">
+              <div class="day-kick">Haftalık çalışma</div>
+              <div class="day-stat">21<span>saat</span></div>
+            </div>
           </div>
-          <div class="mock-cycle">
-            <div class="lbl">Bozukluk döngüsü</div>
-            <svg viewBox="0 0 300 148" width="100%" height="136">
-              <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#9AA6E8"/></marker></defs>
-              <path class="cyc-flow" d="M82 38 C120 18 180 18 218 38"/>
-              <path class="cyc-flow" d="M238 56 C256 84 256 84 238 110"/>
-              <path class="cyc-flow" d="M218 126 C180 144 120 144 82 126"/>
-              <path class="cyc-flow" d="M62 110 C44 84 44 84 62 56"/>
-              <g><circle class="cyc-node" cx="60" cy="40" r="22"/><text class="cyc-label" x="60" y="44" text-anchor="middle">Tetikleyici</text></g>
-              <g><circle class="cyc-node" cx="240" cy="40" r="22"/><text class="cyc-label" x="240" y="44" text-anchor="middle">Düşünce</text></g>
-              <g><circle class="cyc-node" cx="240" cy="122" r="22"/><text class="cyc-label" x="240" y="126" text-anchor="middle">Davranış</text></g>
-              <g><circle class="cyc-node" cx="60" cy="122" r="22"/><text class="cyc-label" x="60" y="126" text-anchor="middle">Duygu</text></g>
-            </svg>
+          <ul class="pc-sessions">
+            <li><span class="pc-stime">09:00</span><span class="pc-cname">Elif K.</span><span class="pc-cnote">İlk görüşme</span></li>
+            <li><span class="pc-stime">10:30</span><span class="pc-cname">Mert A.</span><span class="pc-cnote">Takip · BDT</span></li>
+            <li><span class="pc-stime">13:00</span><span class="pc-cname">Zeynep D.</span><span class="pc-cnote">Online</span></li>
+            <li><span class="pc-stime">15:00</span><span class="pc-cname">Can Y.</span><span class="pc-cnote">Çift terapisi</span></li>
+            <li><span class="pc-stime">16:30</span><span class="pc-cname">Selin T.</span><span class="pc-cnote">Takip</span></li>
+          </ul>
+        </div>
+        <!-- bu hafta + günlük duygu / bekleyen -->
+        <div class="pc-row2">
+          <div class="dcard tall">
+            <div class="ddots"><i></i><i></i><i></i></div>
+            <div class="dweek-eye">Bu hafta ne kadar yoğunsun?</div>
+            <div class="dbars">
+              <div class="dbar" style="height:22%"></div>
+              <div class="dbar" style="height:64%"></div>
+              <div class="dbar" style="height:40%"></div>
+              <div class="dbar" style="height:84%"></div>
+              <div class="dbar" style="height:58%"></div>
+              <div class="dbar" style="height:20%"></div>
+              <div class="dbar" style="height:16%"></div>
+            </div>
+            <div class="dweek-foot">
+              <span class="dweek-lbl">Pzt — Paz</span>
+              <span class="dplay"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>
+            </div>
           </div>
-          <div class="mock-mini">
-            <div class="mini"><small>Sonraki seans</small><b>24 Haz · 14:00</b></div>
-            <div class="mini"><small>Ruh hâli</small><b>6.4 / 10</b></div>
+          <div class="dsplit">
+            <div class="dcard dmini">
+              <div class="dbadge"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7"/><path d="M9 14.2c.8 1 1.8 1.5 3 1.5s2.2-.5 3-1.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="9" cy="10" r="1.1" fill="currentColor"/><circle cx="15" cy="10" r="1.1" fill="currentColor"/></svg></div>
+              <div class="dmini-body">
+                <h4 class="dmini-title">Günlük duygu kaydı</h4>
+                <p class="dmini-sub">Bugünü işaretle</p>
+              </div>
+              <span class="dmini-aux"><span class="dmood"><i style="background:#F2C29F"></i><i style="background:#D9A7DE"></i><i style="background:#9FB6E8"></i></span></span>
+            </div>
+            <div class="dcard dmini">
+              <div class="dbadge"><svg viewBox="0 0 24 24" fill="none"><path d="M3 7c0-1 .8-2 2-2h3.5l2 2H19c1 0 2 .9 2 2v7c0 1.1-1 2-2 2H5c-1.2 0-2-.9-2-2z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
+              <div class="dmini-body">
+                <h4 class="dmini-title">Bekleyen dosyalar</h4>
+                <p class="dmini-sub">Tamamlanmayı bekliyor</p>
+              </div>
+              <span class="dmini-aux"><span class="dmini-count">4</span></span>
+            </div>
           </div>
         </div>
       </div>
@@ -83,10 +120,9 @@
   </div>
 </section>
 
-
 <main class="main wrap">
 
-<!-- ================= PROBLEM ================= -->
+<!-- ================= PROBLEM / NASIL ÇALIŞIR ================= -->
 <section class="sec" id="problem" data-screen-label="Problem">
   <div class="sec-head reveal">
     <span class="eyebrow">tanıdık geldi mi?</span>
@@ -111,7 +147,7 @@
         <li><span class="ic"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Calmie randevu saati geçtiğinde danışan dosyasını otomatik oluşturur. Dosya takibini kaçırmazsın.</li>
         <li><span class="ic"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Sen randevunu oluştur, Calmie hatırlatma mesajlarını otomatik atsın.</li>
         <li><span class="ic"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Danışanın bilgilerini tek dosyada görselleştirebilirsin.</li>
-        <li><span class="ic"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Danışan dosyalarını özetlemene gerek yok. Danışanla paylaşılacak versiyonu tek tıkla oluşturabilirsin.</li>
+        <li><span class="ic"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Danışan dosyalarını özetlemene gerek yok. Paylaşılacak versiyonu tek tıkla oluştur.</li>
         <li><span class="ic"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>İzole, şifreli, KVKK uyumlu</li>
       </ul>
     </div>
@@ -123,48 +159,47 @@
   <div class="sec-head center reveal">
     <span class="eyebrow">tek panel</span>
     <h2 class="sec-title"><span class="ser">Dağınıklık değil, net bir akış.</span></h2>
-    <p class="sec-sub">Klasörler, kağıtlar, çıktı derdi, aksayan randevular ve “SMS gitti mi” endişesi olmadan çalış.</p>
+    <p class="sec-sub">Klasörler, kağıtlar, çıktı derdi, aksayan randevular ve "SMS gitti mi" endişesi olmadan çalış.</p>
   </div>
   <div class="tile-grid mod-grid">
     <div class="tile reveal">
       <div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M7 4h7l4 4v12H7z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M14 4v4h4M9 13h6M9 16h6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></div>
-      <h3>Randevu oluştur: Dosya hazır!</h3>
+      <h3>Randevu oluştur, dosya hazır</h3>
       <p>Randevu saati geçince danışan dosyası otomatik açılır. Sen adımları takip edip özeti dijitalleştirirsin.</p>
     </div>
     <div class="tile reveal">
       <div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="4" y="5" width="16" height="15" rx="2.2" stroke="currentColor" stroke-width="1.7"/><path d="M4 9h16M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></div>
-      <h3>Takvim &amp; Randevu</h3>
-      <p>En sık kullandığın takvimini eşle. Hem uygulamadan hem kendi cihazlarından randevularını aynı anda oluştur, iptal et, not ekle ya da güncelle.</p>
+      <h3>Takvim &amp; randevu</h3>
+      <p>macOS ile senkron; uygulamadan ya da cihazından ekle, taşı, sil, not düş — iki yönlü.</p>
     </div>
     <div class="tile reveal">
       <div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M10.5 21a1.5 1.5 0 0 0 3 0" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></div>
-      <h3>Hatırlatma mesajların otomatik gönderilsin ister misin?</h3>
-      <p>Calmie altyapını kurar, sen bireye özel, toplu ya da otomatik hatırlatma SMS'leri gönderebilirsin.</p>
+      <h3>Otomatik hatırlatma</h3>
+      <p>Calmie altyapını kurar; bireysel, toplu ya da otomatik hatırlatma SMS'leri gönder.</p>
     </div>
     <div class="tile reveal">
       <div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="5" y="3" width="14" height="18" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M9 8h6M9 12h6M9 16h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></div>
-      <h3>Dosya paylaşımı artık çok kolay.</h3>
-      <p>Danışan dosyasını sadece senin ya da danışanlarının göreceği şekilde oluşturup tek tıkla paylaşabilirsin. Dosya zaten SMS ve E-mail bağlantılarına sahip!</p>
+      <h3>Dosya paylaşımı</h3>
+      <p>Danışanla paylaşılacak özeti tek tıkla oluştur — SMS ve e-posta bağlantısı hazır.</p>
     </div>
   </div>
 </section>
 
 <!-- ================= FEATURES ================= -->
 <section class="sec" id="ozellikler" data-screen-label="Özellikler">
-  <div class="sec-head center reveal" style="margin-bottom:0">
+  <div class="sec-head center reveal">
     <span class="eyebrow">özellikler</span>
-  </div>
+    <h2 class="sec-title">Tek akışta, <span class="ser">her şey yerli yerinde</span></h2>
   </div>
 
   <div class="feat reveal">
     <div class="feat-text">
       <span class="eyebrow">tek akış</span>
-      <h3>“Hangi bilgileri nereye yazacağım ve nasıl sunacağım?” endişelerine son.</h3>
+      <h3>"Hangi bilgiyi nereye yazacağım ve nasıl sunacağım?" endişelerine son.</h3>
       <ul class="ticks">
         <li><span class="tk"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Nereye ne yazacağını düşünmezsin; gereksiz alanları çıkarır, ihtiyacına göre yenisini eklersin</span></li>
         <li><span class="tk"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Kısır döngüyü tek bakışta görünür kıl, danışanınla paylaş</span></li>
         <li><span class="tk"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Her seansta tek yerden güncellersin, dağılmaz</span></li>
-        <li><span class="tk"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Danışanın ilerlemesini grafikle gör</span></li>
         <li><span class="tk"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Danışan dosyasından PDF / yazdırılabilir rapor, anında</span></li>
       </ul>
     </div>
@@ -224,30 +259,30 @@
         <p class="sec-sub">Karmaşık paket yok. Tek bir üyelik — kağıt yığını değil, kazanılan zaman.</p>
       </div>
       <div class="card price-card reveal">
-    <span class="topbar"></span>
-    <span class="card-tint"></span>
-    <div class="card-z">
-      <div class="price-name">Calmie · Klinik Asistan</div>
-      <div class="price-amt">₺499 <small>/ ay</small></div>
-      <div class="price-sub">Yıllık ödemede ₺4.990 — 2 ay bedava</div>
-      <ul class="price-list">
-        <li><span class="ic"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Sınırsız danışan dosyası</li>
-        <li><span class="ic"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Tüm formülasyon görünümleri (4P · Beck · ACT)</li>
-        <li><span class="ic"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Otomatik SMS randevu hatırlatma</li>
-        <li><span class="ic"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Özet &amp; PDF raporlama</li>
-        <li><span class="ic"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>macOS takvim senkronu</li>
-        <li><span class="ic"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Dosyalama yükü sıfır — kendine kalan zaman</li>
-      </ul>
-      <a href="/kayit" class="btn btn-primary btn-lg">Kapalı betaya giriş kodu iste</a>
-      <div class="price-note">Davet temelli erişim · Kontenjan sınırlı</div>
-    </div>
-  </div>
+        <span class="topbar"></span>
+        <span class="card-tint"></span>
+        <div class="card-z">
+          <div class="price-name">Calmie · Klinik Asistan</div>
+          <div class="price-amt">₺499 <small>/ ay</small></div>
+          <div class="price-sub">Yıllık ödemede ₺4.990 — 2 ay bedava</div>
+          <ul class="price-list">
+            <li><span class="ic"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Sınırsız danışan dosyası</li>
+            <li><span class="ic"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Tüm formülasyon görünümleri (4P · Beck · ACT)</li>
+            <li><span class="ic"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Otomatik SMS randevu hatırlatma</li>
+            <li><span class="ic"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Özet &amp; PDF raporlama</li>
+            <li><span class="ic"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>macOS takvim senkronu</li>
+            <li><span class="ic"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Dosyalama yükü sıfır — kendine kalan zaman</li>
+          </ul>
+          <a href="/kayit" class="btn btn-primary btn-lg">Kapalı betaya giriş kodu iste</a>
+          <div class="price-note">Davet temelli erişim · Kontenjan sınırlı</div>
+        </div>
+      </div>
     </div>
   </div>
 </section>
 
-<!-- ================= TRUST STATEMENT ================= -->
-<section class="sec" data-screen-label="Güven">
+<!-- ================= TRUST ================= -->
+<section class="sec" id="guven" data-screen-label="Güven">
   <div class="badges reveal">
     <span class="tbadge"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3 5 6v5c0 4.2 2.9 7.7 7 9 4.1-1.3 7-4.8 7-9V6l-7-3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>KVKK uyumlu</span>
     <span class="tbadge"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.6"/></svg>Şifreli &amp; izole veri</span>
@@ -263,7 +298,7 @@
     <h2 class="sec-title">Aklındaki <span class="ser">sorular</span></h2>
   </div>
   <div class="faq reveal">
-    <details><summary>Calmie nedir?<span class="sign"><svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span></summary><div class="ans">Calmie, klinik psikologlar ve psikoterapistler için bir dijital klinik asistanıdır. Anamnez, vaka formülasyonu, bozukluk döngüsü, seans takibi ve randevu hatırlatmasını tek panelde toplar; kağıt ve Excel dağınıklığını ortadan kaldırır.</div></details>
+    <details open><summary>Calmie nedir?<span class="sign"><svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span></summary><div class="ans">Calmie, klinik psikologlar ve psikoterapistler için bir dijital klinik asistanıdır. Anamnez, vaka formülasyonu, bozukluk döngüsü, seans takibi ve randevu hatırlatmasını tek panelde toplar; kağıt ve Excel dağınıklığını ortadan kaldırır.</div></details>
     <details><summary>Verilerim güvende mi? KVKK uyumlu mu?<span class="sign"><svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span></summary><div class="ans">Evet. Her terapist yalnızca kendi danışanlarının verisine erişir; veriler izole ve şifreli saklanır. Altyapı KVKK ilkelerine uygun tasarlanmıştır.</div></details>
     <details><summary>Hangi terapi ekolleriyle çalışıyor?<span class="sign"><svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span></summary><div class="ans">Vaka formülasyonu; 4P modeli, Beck bilişsel modeli ve ACT Hexaflex görünümleriyle çalışır. Sözlük BDT, ACT, Şema ve Psikodinamik ekollerden ortak bir dil sunar.</div></details>
     <details><summary>Randevu hatırlatma SMS'i gönderebilir miyim?<span class="sign"><svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span></summary><div class="ans">Evet. Takvim macOS ile senkron çalışır ve randevu yaklaşınca danışana otomatik bilgilendirme SMS'i gider; böylece gelmeyen danışan ve boşa giden saat azalır.</div></details>
@@ -279,13 +314,13 @@
   <footer>
     <div class="foot-grid">
       <div class="foot-brand">
-        <a href="#" class="logo">Calmie<i>.</i></a>
+        <a href="#hero" class="logo">Calmie<i>.</i></a>
         <p>İşini profesyonel boyutta yapmak isteyen herkes için dijital klinik asistanı — sade, güvenli, bütüncül.</p>
       </div>
       <div class="foot-col">
         <h4>Ürün</h4>
         <a href="#moduller">Modüller</a>
-        <a href="#nasil">Nasıl çalışır</a>
+        <a href="#problem">Nasıl çalışır</a>
         <a href="#ozellikler">Özellikler</a>
         <a href="#fiyat">Fiyat</a>
         <a href="/kayit">Kapalı betaya giriş kodu iste</a>
@@ -313,6 +348,9 @@
   </footer>
 </div>
 
-
-<nav class="railnav" id="railNav" aria-label="Bölümler"></nav>
-
+<!-- ================= TEMA SEÇİCİ ================= -->
+<div class="bgsw" role="group" aria-label="Tema seç">
+  <button data-theme="light" aria-pressed="true" title="Açık tema — çizgili"></button>
+  <button data-theme="light-plain" aria-pressed="false" title="Açık tema — çizgisiz"></button>
+  <button data-theme="night" aria-pressed="false" title="Gece teması"></button>
+</div>

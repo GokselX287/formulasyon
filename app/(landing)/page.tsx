@@ -1,6 +1,14 @@
 import type { Metadata } from 'next';
-import { section } from './sections';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import { pageMeta } from './meta';
+
+// ──────────────────────────────────────────────────────────────────────────
+// TEK-SAYFA landing. Tüm tasarım app/landing-body.html içinde (nav · hero ·
+// problem · moduller · ozellikler · fiyat · guven · sss · footer · tema seçici).
+// Davranış (kaydırma / tema / menü) app/LandingFx.tsx içinde (layout'ta mount'lu).
+// Eski çok-sayfalı sürümdeki sections.ts artık ana sayfa için kullanılmaz.
+// ──────────────────────────────────────────────────────────────────────────
 
 export const metadata: Metadata = {
   ...pageMeta({
@@ -16,6 +24,14 @@ export const metadata: Metadata = {
   ],
 };
 
+let cache: string | null = null;
+function landingBody(): string {
+  if (cache == null) {
+    cache = readFileSync(join(process.cwd(), 'app', 'landing-body.html'), 'utf8');
+  }
+  return cache;
+}
+
 export default function HomePage() {
-  return <div suppressHydrationWarning dangerouslySetInnerHTML={{ __html: section('hero') }} />;
+  return <div suppressHydrationWarning dangerouslySetInnerHTML={{ __html: landingBody() }} />;
 }

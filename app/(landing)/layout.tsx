@@ -1,14 +1,13 @@
 import type { Metadata } from 'next';
 import '../landing.css';
 import LandingFx from '../LandingFx';
-import LandingNav from './LandingNav';
-import LandingFooter from './LandingFooter';
 import { SITE, orgJsonLd } from './meta';
 
 // ──────────────────────────────────────────────────────────────────────────
-// Çok-sayfalı pazarlama landing'inin paylaşılan kabuğu. Her route kendi
-// bölümünü `children` olarak verir; nav + footer + sahne burada kalıcıdır.
-// One-page çıpa kaydırması yerine her menü ayrı URL'ye gider (LandingNav).
+// TEK-SAYFA landing kabuğu. Nav + footer + sahne + tema seçici artık
+// app/landing-body.html içindedir (page.tsx gömer); burada SADECE fontlar,
+// global stil, JSON-LD ve davranış katmanı (LandingFx) kalır.
+// Eski LandingNav.tsx / LandingFooter.tsx kullanılmıyor — silebilirsin.
 // ──────────────────────────────────────────────────────────────────────────
 
 export const metadata: Metadata = {
@@ -23,16 +22,11 @@ export default function LandingLayout({ children }: { children: React.ReactNode 
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       <link
         rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&family=Instrument+Serif:ital@0;1&family=Space+Mono:wght@400;700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..600&family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..700&family=JetBrains+Mono:wght@400;500;700&display=swap"
       />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }} />
 
-      <div className="scene" aria-hidden="true" />
-      <div className="grain" aria-hidden="true" />
-
-      <LandingNav />
       {children}
-      <LandingFooter />
       <LandingFx />
     </>
   );

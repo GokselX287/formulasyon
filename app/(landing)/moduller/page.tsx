@@ -1,14 +1,14 @@
-import type { Metadata } from 'next';
-import { section } from '../sections';
-import { pageMeta } from '../meta';
+'use client';
 
-export const metadata: Metadata = pageMeta({
-  title: 'Modüller — Calmie',
-  description:
-    'Randevudan otomatik dosya açmaya, takvim senkronundan SMS hatırlatmaya — Calmie modülleri klinik akışını dağınıklık olmadan tek panelde toplar.',
-  path: '/moduller',
-});
+import { useEffect } from 'react';
 
-export default function ModullerPage() {
-  return <main className="main wrap" suppressHydrationWarning dangerouslySetInnerHTML={{ __html: section('moduller') }} />;
+// Tek-sayfaya geçişte eski /moduller route'u → ana sayfadaki #moduller bölümüne.
+// Aynısını /nasil-calisir(#problem), /ozellikler(#ozellikler), /fiyat(#fiyat),
+// /sss(#sss) için kopyala — ya da bu route klasörlerini tümden sil
+// (menü/footer linkleri artık #çıpa olduğundan route'lara gerek yok).
+export default function Page() {
+  useEffect(() => {
+    window.location.replace('/#moduller');
+  }, []);
+  return null;
 }
