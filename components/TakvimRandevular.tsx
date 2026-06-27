@@ -36,6 +36,8 @@ export type TakvimRandevularProps = {
   onCancelSession?(name: string, mode: 'iptal' | 'ertelendi', isoDate: string): void | Promise<void>;
   onUpdateEvent?(patch: ApptEdit): Promise<boolean> | boolean;
   onDeleteEvent?(uid: string, name?: string): Promise<boolean> | boolean;
+  /** Başlangıç teması (örn. /preview için "dark"). Verilirse localStorage geçersiz kılınır. */
+  initialTheme?: string;
 };
 
 type SubTab = 'takvim' | 'hazirlik' | 'musaitlik' | 'gecmis' | 'takip';
@@ -80,7 +82,7 @@ const WORKING_HOURS = [
 // Tema dock (Ana Sayfa/Danışanlar ile paylaşımlı: localStorage 'calmie-theme')
 const DOCK_THEMES = [
   { id: 'sage', dot: '#8FB58C' }, { id: 'ocean', dot: '#5FA9C0' }, { id: 'dusk', dot: '#9A7FD0' },
-  { id: 'clay', dot: '#D78C66' }, { id: 'rose', dot: '#C97FA0' },
+  { id: 'clay', dot: '#D78C66' }, { id: 'rose', dot: '#C97FA0' }, { id: 'dark', dot: '#15141A' },
 ];
 
 const HSTART = 9 * 60, HEND = 22 * 60, HPX = 45;
@@ -117,8 +119,8 @@ export default function TakvimRandevular(props: TakvimRandevularProps) {
   const [mobileMenu, setMobileMenu] = useState(false);
 
   // ── Tema (Ana Sayfa/Danışanlar ile paylaşılır: calmie-theme) ──
-  const [theme, setTheme] = useState('sage');
-  useEffect(() => { const s = lsGet('calmie-theme'); if (s && DOCK_THEMES.some((t) => t.id === s)) setTheme(s); }, []);
+  const [theme, setTheme] = useState(props.initialTheme ?? 'sage');
+  useEffect(() => { if (props.initialTheme) return; const s = lsGet('calmie-theme'); if (s && DOCK_THEMES.some((t) => t.id === s)) setTheme(s); }, [props.initialTheme]);
   const applyTheme = (id: string) => { setTheme(id); try { localStorage.setItem('calmie-theme', id); } catch { /* yoksay */ } };
 
   // ── İptal/erteleme bölgesi saat aralığı (terapist belirler; yerel) ──

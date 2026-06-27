@@ -78,6 +78,7 @@ export default function TakvimPreviewPage() {
 
   return (
     <TakvimRandevular
+      initialTheme="dark"
       events={events}
       resolveClient={resolveClient}
       avgFee={1300}

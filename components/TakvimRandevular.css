@@ -598,3 +598,119 @@
 .tkv .cancel-cfg .cc-row select{font:inherit;font-size:13px;font-weight:600;color:var(--ink);background:rgba(255,255,255,.72);border:1px solid var(--line-2);border-radius:10px;padding:9px 10px;outline:none;cursor:pointer;font-variant-numeric:tabular-nums}
 .tkv .cancel-cfg .cc-row select:focus{border-color:var(--viz-warm)}
 .tkv .cancel-cfg .cc-dash{font-size:14px;color:var(--ink-faint);padding-bottom:9px}
+
+/* =====================================================================
+   KOYU TEMA — .tkv[data-theme="dark"]
+   Anasayfa diliyle uyumlu: derin indigo tuval + açık buzlu cam kartlar.
+   EKLEMELİ varyant: 5 açık tema (sage/ocean/dusk/clay/rose) bozulmaz.
+   Aksanı değiştirmek için: --violet (menekşe) + --viz-grad (yoğunluk barı).
+   ===================================================================== */
+.tkv[data-theme="dark"]{
+  /* metin — koyuda açık */
+  --ink:#E8E7F0; --ink-strong:#FFFFFF; --ink-soft:#BAB8C8; --ink-mute:#8E8CA2; --ink-faint:#6C6A82;
+  /* sahne — derin indigo→siyah */
+  --scene-1:#15131D; --scene-2:#100E16; --scene-3:#0A0910;
+  /* aksan tonları (sahne meshi + vurgular) */
+  --blush:#39354E; --rose:#473F63; --lilac:#4C5E7C; --peri:#6E9A7C; --sky:#3A5366;
+  --violet:#9F8BE6; --txt-accent:#9F8BE6;
+  /* çizgiler — koyuda açık-saydam */
+  --line:rgba(255,255,255,.10); --line-2:rgba(255,255,255,.18);
+  /* cam yüzeyler — koyu saydam */
+  --glass-2:rgba(255,255,255,.05); --glass-3:rgba(255,255,255,.09); --glass-brd:rgba(255,255,255,.14);
+  --opal-face:linear-gradient(152deg,rgba(255,255,255,.09) 0%,rgba(255,255,255,.05) 48%,rgba(255,255,255,.035) 100%);
+  --opal-rim:linear-gradient(135deg,rgba(255,255,255,.34) 0%,rgba(159,139,230,.22) 38%,rgba(255,255,255,.05) 68%,rgba(255,255,255,.24) 100%);
+  /* gölgeler — siyah tabanlı (beyaz inset yok) */
+  --sh-card:0 2px 6px -2px rgba(0,0,0,.5),0 18px 40px -22px rgba(0,0,0,.72),0 52px 92px -52px rgba(0,0,0,.8);
+  --sh-soft:0 2px 6px -2px rgba(0,0,0,.45),0 16px 32px -22px rgba(0,0,0,.6);
+  --sh-float:0 6px 14px -6px rgba(0,0,0,.55),0 44px 84px -36px rgba(0,0,0,.85);
+  /* data-viz — yoğunluk barı menekşe (anasayfa ile aynı dil) */
+  --viz-a:#7FB58C; --viz-b:#CDAE6E; --viz-warm:#E2986E;
+  --viz-grad:linear-gradient(180deg,#B7A6F0,#8A72D8 70%);
+  --mesh:
+    radial-gradient(46% 54% at 14% 8%, rgba(159,139,230,.22), transparent 60%),
+    radial-gradient(50% 58% at 86% 14%, rgba(110,154,124,.16), transparent 64%),
+    radial-gradient(54% 60% at 88% 82%, rgba(226,152,110,.12), transparent 62%),
+    linear-gradient(160deg,#15131D 0%,#100E16 52%,#0A0910 100%);
+  background:var(--scene-2);
+}
+
+/* sahne dokusu/grain koyuya uyarlanır */
+.tkv[data-theme="dark"] .scene::after{background-image:linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px)}
+.tkv[data-theme="dark"] .grain{mix-blend-mode:soft-light;opacity:.10}
+
+/* "açık pill" aktif durumlar — ink-strong artık AÇIK olduğundan metni koyu yapıyoruz */
+.tkv[data-theme="dark"] .btn-primary,
+.tkv[data-theme="dark"] .tab.on,
+.tkv[data-theme="dark"] .seg button.on,
+.tkv[data-theme="dark"] .yog-seg button.on,
+.tkv[data-theme="dark"] .tk-act.prim,
+.tkv[data-theme="dark"] .tk-save{background:#F4F3EF;color:#15141A;box-shadow:0 12px 26px -12px rgba(0,0,0,.7)}
+.tkv[data-theme="dark"] .tk-act.prim:hover{background:#fff}
+.tkv[data-theme="dark"] .tab.on .badge{background:rgba(0,0,0,.20);color:#15141A}
+.tkv[data-theme="dark"] .mo-cell.today .dnum{background:#F4F3EF;color:#15141A}
+
+/* koyu yüzeyde açık-saydam çipler/segmentler */
+.tkv[data-theme="dark"] .seg,
+.tkv[data-theme="dark"] .yog-seg{background:rgba(255,255,255,.08)}
+.tkv[data-theme="dark"] .tab .badge{background:rgba(255,255,255,.14);color:var(--ink-soft)}
+.tkv[data-theme="dark"] .chip{background:rgba(255,255,255,.07);border-color:var(--line)}
+.tkv[data-theme="dark"] .modal-opt.keep .mo-ic{background:rgba(255,255,255,.10);color:var(--ink-soft)}
+.tkv[data-theme="dark"] .yb-col{background:linear-gradient(180deg,rgba(255,255,255,.16),rgba(255,255,255,.05))}
+
+/* form alanları / arama / iç yüzeyler: beyaz → koyu cam */
+.tkv[data-theme="dark"] .form-row input,
+.tkv[data-theme="dark"] .form-row select,
+.tkv[data-theme="dark"] .modal-inp,
+.tkv[data-theme="dark"] .tk-note textarea,
+.tkv[data-theme="dark"] .tk-note input,
+.tkv[data-theme="dark"] .cancel-cfg .cc-row select,
+.tkv[data-theme="dark"] .topic-box,
+.tkv[data-theme="dark"] .tk-intro,
+.tkv[data-theme="dark"] .modal-opt,
+.tkv[data-theme="dark"] .search,
+.tkv[data-theme="dark"] .modal-x{background:rgba(255,255,255,.06);border-color:var(--line-2)}
+
+/* hafta başlığı (sticky beyaz gradient) → koyu cam; şimdi-çizgisi etiketi; scrollbar */
+.tkv[data-theme="dark"] .wk-head{background:linear-gradient(180deg,rgba(20,18,26,.95),rgba(20,18,26,.80))}
+.tkv[data-theme="dark"] .now-line .lbl{background:rgba(10,9,16,.88)}
+.tkv[data-theme="dark"] .wk::-webkit-scrollbar-thumb{background:rgba(255,255,255,.20)}
+.tkv[data-theme="dark"] .wk::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.32)}
+.tkv[data-theme="dark"] .wk-col.weekend{background-color:rgba(255,255,255,.02)}
+.tkv[data-theme="dark"] .mo-cell.dim,
+.tkv[data-theme="dark"] .mo-cell.weekend{background:rgba(255,255,255,.02)}
+
+/* ısı ızgarası (müsaitlik) — koyuya uygun dolu/blok hücreler + okunur metin */
+.tkv[data-theme="dark"] .cell{background:rgba(255,255,255,.05)}
+.tkv[data-theme="dark"] .cell.full{background:color-mix(in srgb,var(--viz-a) 28%,#1A1820);border-color:color-mix(in srgb,var(--viz-a) 42%,transparent)}
+.tkv[data-theme="dark"] .cell.todayfull{background:color-mix(in srgb,var(--violet) 30%,#1A1820);border-color:color-mix(in srgb,var(--violet) 44%,transparent)}
+.tkv[data-theme="dark"] .cell.full .ci,
+.tkv[data-theme="dark"] .cell.todayfull .ci,
+.tkv[data-theme="dark"] .cell .blk{color:#F4F3EF}
+.tkv[data-theme="dark"] .cell.kapali{background:rgba(255,255,255,.12)}
+.tkv[data-theme="dark"] .cell.closed{background:repeating-linear-gradient(135deg,rgba(255,255,255,.05) 0 6px,rgba(255,255,255,.10) 6px 12px)}
+.tkv[data-theme="dark"] .cell.yemek{background:color-mix(in srgb,var(--viz-b) 26%,#1A1820)}
+.tkv[data-theme="dark"] .cell.mola{background:color-mix(in srgb,#7FA0C0 26%,#1A1820)}
+.tkv[data-theme="dark"] .cell.izin{background:color-mix(in srgb,var(--viz-warm) 26%,#1A1820)}
+.tkv[data-theme="dark"] .cell.musait_degil{background:color-mix(in srgb,#A788B0 24%,#1A1820)}
+.tkv[data-theme="dark"] .legend i.lg-empty{background:rgba(255,255,255,.10)}
+.tkv[data-theme="dark"] .legend i.lg-kapali{background:rgba(255,255,255,.16)}
+.tkv[data-theme="dark"] .legend i.lg-full{background:color-mix(in srgb,var(--viz-a) 42%,#1A1820)}
+.tkv[data-theme="dark"] .legend i.lg-today{background:color-mix(in srgb,var(--violet) 42%,#1A1820)}
+.tkv[data-theme="dark"] .legend i.lg-yemek{background:color-mix(in srgb,var(--viz-b) 42%,#1A1820)}
+.tkv[data-theme="dark"] .legend i.lg-mola{background:color-mix(in srgb,#7FA0C0 42%,#1A1820)}
+.tkv[data-theme="dark"] .legend i.lg-izin{background:color-mix(in srgb,var(--viz-warm) 42%,#1A1820)}
+.tkv[data-theme="dark"] .legend i.lg-musait_degil{background:color-mix(in srgb,#A788B0 40%,#1A1820)}
+
+/* çakışma kartı ikonu — koyuda okunur sıcak çip */
+.tkv[data-theme="dark"] .conflict-ic{background:color-mix(in srgb,var(--viz-warm) 30%,#241A12);color:#F0C39A}
+
+/* kazanç kutusu zaten koyu — koyu zeminde ayrışsın diye ince sınır */
+.tkv[data-theme="dark"] .dark-box{border:1px solid rgba(255,255,255,.10)}
+
+/* sürükleme hayaleti + toast — ink-strong artık açık; sabit koyu yüzey ver */
+.tkv[data-theme="dark"] .ev-ghost,
+.tkv[data-theme="dark"] .toast{background:#201E2C;color:#F4F3EF}
+.tkv[data-theme="dark"] .ev-ghost span{color:rgba(244,243,239,.7)}
+
+/* modal arka planı biraz daha koyu */
+.tkv[data-theme="dark"] .modal-back{background:rgba(6,5,10,.6)}
